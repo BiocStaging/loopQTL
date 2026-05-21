@@ -96,17 +96,3 @@ BPPARAM = BiocParallel::MulticoreParam(workers = 16)
 BPPARAM = BiocParallel::BatchtoolsParam(workers = 200, cluster = "slurm",
                                         template = "slurm.tmpl")
 ```
-
-## Testing
-
-A small `testthat` suite uses `strawr`'s bundled `test.hic` plus an on-the-fly stub VCF for an end-to-end smoke test. Run with:
-
-```r
-devtools::test()
-# or
-R CMD check .
-```
-
-## License
-
-MIT. See [LICENSE](LICENSE).
