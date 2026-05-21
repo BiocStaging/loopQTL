@@ -73,18 +73,7 @@ head(results)
 #   loop_id   snp_id          chrom  pos      ref alt anchor   beta   se     t      p   n_used  maf
 ```
 
-## Design decisions
-
-These are settled — see the [design spec](../loopQTL_package_spec.md) for the full rationale:
-
-- **Anchor-restricted, not window-scan.** SNPs are only tested if they fall in (or within `window` of) the loop's anchor bins.
-- **Intra-chromosomal loops only.** Trans loops are dropped at setup; count recorded in `meta`.
-- **Bin-match consensus.** Two loops are "the same" if both anchors fall in the same `resolution` bin pair.
-- **Uniform NA -> 0.** Any absent contact lookup becomes 0. There are no NAs in the contact matrix after setup.
-- **Single RINT, fixed order.** DESeq2 -> log2 -> residualize -> RINT, applied exactly once, inside `loopQTL_normalize()`.
-- **`run_QTL()` is bare.** No transformation, no covariate adjustment, no FDR, no lead-SNP selection. Returns the full per-(loop, SNP) table; significance calling is up to you.
-
-## Parallelism
+## Run in parallel
 
 The unit of parallel work is one `(sample, chromosome)` extraction in `loopQTL_setup()`. Dispatched via `BiocParallel::bplapply` — the backend is your choice via `BPPARAM`:
 
