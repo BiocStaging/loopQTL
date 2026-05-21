@@ -1,0 +1,24 @@
+export(loopQTL_setup)
+export(loopQTL_normalize)
+export(run_QTL)
+exportClasses(loopQTL)
+exportMethods(show)
+
+importFrom(methods, new, setClass, setValidity, setGeneric, setMethod, validObject, slot, is)
+importFrom(stats, lm.fit, model.matrix, qnorm, pt, sd, var, setNames)
+importFrom(utils, head)
+
+importFrom(strawr, readHicChroms, readHicBpResolutions, readHicNormTypes, straw)
+
+importFrom(DESeq2, estimateSizeFactorsForMatrix)
+
+importFrom(GenomicRanges, GRanges, seqnames, start, end, width, reduce, findOverlaps)
+importFrom(IRanges, IRanges)
+importFrom(InteractionSet, GInteractions, anchors, regions)
+importFrom(S4Vectors, queryHits, subjectHits, mcols, "mcols<-")
+importFrom(SummarizedExperiment, rowRanges)
+
+importFrom(VariantAnnotation, readVcf, ScanVcfParam, geno, info, header, samples)
+importFrom(Rsamtools, TabixFile, headerTabix)
+
+importFrom(BiocParallel, bplapply, SerialParam, bpparam)

@@ -1,0 +1,35 @@
+# R session / history
+.Rhistory
+.Rapp.history
+.RData
+.Rproj.user/
+*.Rproj
+
+# Build artifacts
+*.tar.gz
+src/*.o
+src/*.so
+src/*.dll
+src-x64/
+src-i386/
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Test / check output
+loopQTL.Rcheck/
+tests/testthat/Rplots.pdf
+
+# Doc build (Roxygen generates man/ from source; we commit man/ so don't ignore it)
+
+# Local secrets / data
+.env
+*.local

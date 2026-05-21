@@ -1,0 +1,38 @@
+Package: loopQTL
+Type: Package
+Title: Anchor-Restricted Loop QTL Mapping from Hi-C
+Version: 0.1.0
+Authors@R: person("Zexun", "Wu", role = c("aut", "cre"), email = "zexunwu@usc.edu")
+Description: Maps chromatin loop QTLs by testing whether genotype at a loop's
+    anchors associates with the loop's contact strength across samples. Reads
+    .hic files via strawr, builds a bin-matched consensus loop set, normalizes
+    contact counts (DESeq2 size factors -> log2 -> covariate residualization ->
+    RINT), and runs anchor-restricted SNP-by-loop regressions. Intra-chromosomal
+    loops only; no FDR or lead-SNP selection (left to the user).
+URL: https://github.com/tim-wuuu/loopQTL
+BugReports: https://github.com/tim-wuuu/loopQTL/issues
+License: MIT + file LICENSE
+Encoding: UTF-8
+LazyData: false
+Depends:
+    R (>= 4.1)
+Imports:
+    methods,
+    stats,
+    utils,
+    strawr,
+    DESeq2,
+    GenomicRanges,
+    IRanges,
+    InteractionSet,
+    S4Vectors,
+    VariantAnnotation,
+    Rsamtools,
+    SummarizedExperiment,
+    BiocParallel
+Suggests:
+    testthat (>= 3.0.0),
+    knitr,
+    rmarkdown
+Config/testthat/edition: 3
+RoxygenNote: 7.3.1
