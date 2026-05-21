@@ -52,16 +52,19 @@ run_QTL <- function(obj, window = 0L) {
   if (length(vcf_chroms) == 0L)
     stop("Could not read chromosome names from VCF tabix index")
   vcf_norm <- .make_chrom_normalizer(vcf_chroms)
-  rt_chroms <- as.character(GenomicRanges::seqnames(read_targets))
-  rt_chroms_vcf <- vcf_norm(rt_chroms)
-  GenomicRanges::seqlevels(read_targets) <- unique(rt_chroms_vcf)
-  GenomicRanges::seqnames(read_targets) <-
-    S4Vectors::Rle(rt_chroms_vcf)
+  rt_chroms_vcf <- vcf_norm(as.character(GenomicRanges::seqnames(read_targets)))
 
-  read_targets <- read_targets[as.character(GenomicRanges::seqnames(read_targets)) %in% vcf_chroms]
-  if (length(read_targets) == 0L) {
-    return(.empty_qtl_result())
-  }
+  # Rebuild read_targets in the VCF's chrom naming style, drop chroms absent
+  # from the tabix index.
+  keep <- rt_chroms_vcf %in% vcf_chroms
+  if (!any(keep)) return(.empty_qtl_result())
+  read_targets <- GenomicRanges::GRanges(
+    seqnames = rt_chroms_vcf[keep],
+    ranges   = IRanges::IRanges(
+      start = GenomicRanges::start(read_targets)[keep],
+      end   = GenomicRanges::end(read_targets)[keep]
+    )
+  )
 
   # ---- Single targeted VCF read ----
   param <- VariantAnnotation::ScanVcfParam(
@@ -99,28 +102,22 @@ run_QTL <- function(obj, window = 0L) {
     snp_id <- sprintf("%s:%d_%s/%s", snp_chrom, snp_pos, snp_ref, snp_alt)
 
   # ---- Map SNPs to loops via anchor overlap ----
-  # Build matched-naming anchor GRanges for overlap with the VCF rowRanges
-  anchorA_vcf <- anchorA
-  anchorB_vcf <- anchorB
-  GenomicRanges::seqlevels(anchorA_vcf) <- unique(vcf_norm(GenomicRanges::seqlevels(anchorA_vcf)))
-  GenomicRanges::seqnames(anchorA_vcf)  <-
-    S4Vectors::Rle(vcf_norm(as.character(GenomicRanges::seqnames(anchorA))))
-  GenomicRanges::seqlevels(anchorB_vcf) <- unique(vcf_norm(GenomicRanges::seqlevels(anchorB_vcf)))
-  GenomicRanges::seqnames(anchorB_vcf)  <-
-    S4Vectors::Rle(vcf_norm(as.character(GenomicRanges::seqnames(anchorB))))
+  # Build matched-naming, window-padded anchor GRanges for overlap with the VCF rowRanges.
+  anchorA_chroms_vcf <- vcf_norm(as.character(GenomicRanges::seqnames(anchorA)))
+  anchorB_chroms_vcf <- vcf_norm(as.character(GenomicRanges::seqnames(anchorB)))
 
   padded_A <- GenomicRanges::GRanges(
-    seqnames = GenomicRanges::seqnames(anchorA_vcf),
+    seqnames = anchorA_chroms_vcf,
     ranges   = IRanges::IRanges(
-      start = pmax(1L, GenomicRanges::start(anchorA_vcf) - window),
-      end   = GenomicRanges::end(anchorA_vcf) + window
+      start = pmax(1L, GenomicRanges::start(anchorA) - window),
+      end   = GenomicRanges::end(anchorA) + window
     )
   )
   padded_B <- GenomicRanges::GRanges(
-    seqnames = GenomicRanges::seqnames(anchorB_vcf),
+    seqnames = anchorB_chroms_vcf,
     ranges   = IRanges::IRanges(
-      start = pmax(1L, GenomicRanges::start(anchorB_vcf) - window),
-      end   = GenomicRanges::end(anchorB_vcf) + window
+      start = pmax(1L, GenomicRanges::start(anchorB) - window),
+      end   = GenomicRanges::end(anchorB) + window
     )
   )
 
