@@ -1,8 +1,8 @@
 # loopQTL
 
-Anchor-restricted loop QTL mapping from Hi-C — a single-environment, pure-R package for testing whether genotype at a chromatin loop's anchors associates with the loop's contact strength across samples.
+An R package for testing whether genotype at a chromatin loop's anchors associates with the loop's contact strength across samples.
 
-Unlike peak-centric, window-scan tools (e.g. QTLtools), `loopQTL` only tests SNPs that fall in the loop's **anchor bins**, because most window-scan SNPs are biologically meaningless for a given loop. Intra-chromosomal loops only.
+Unlike peak-centric, window-scan tools (e.g. QTLtools), `loopQTL` only tests SNPs that fall in the loop's **anchor bins**, because most window-scan SNPs are biologically meaningless for a given loop. Intra-chromosomal loops only. Meanwhile, it considers the total cis reads depth for the normalization.
 
 ## Pipeline
 
