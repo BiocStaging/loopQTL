@@ -21,7 +21,10 @@ Imports:
     stats,
     utils,
     strawr,
-    DESeq2,
+    multiHiCcompare,
+    bnbc,
+    MatrixEQTL,
+    PCAForQTL,
     GenomicRanges,
     IRanges,
     InteractionSet,
@@ -29,10 +32,13 @@ Imports:
     VariantAnnotation,
     Rsamtools,
     SummarizedExperiment,
-    BiocParallel
+    BiocParallel,
+    data.table
 Suggests:
     testthat (>= 3.0.0),
     knitr,
     rmarkdown
+Remotes:
+    heatherjzhou/PCAForQTL
 Config/testthat/edition: 3
 RoxygenNote: 7.3.1

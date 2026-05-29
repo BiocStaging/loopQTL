@@ -8,14 +8,19 @@ Unlike peak-centric, window-scan tools (e.g. QTLtools), `loopQTL` only tests SNP
 
 ```
 loopQTL_setup()    -> reads .hic per sample, builds bin-matched consensus loops,
-                      builds (loops x samples) contact matrix
-loopQTL_normalize() -> DESeq2 -> log2 -> residualize log10(cis+1) (+ user covariates)
-                      -> RINT  (single RINT, owned here)
-run_QTL()          -> targeted tabix VCF read of anchor SNPs, lm() per (loop, SNP)
+                      pulls RAW contacts at consensus bin-pairs (for QC),
+                      computes cis depth per sample
+loopQTL_normalize() -> per-chrom whole-genome straw pull (parallel),
+                      multiHiCcompare cyclic_loess (fast) or BNBC band-wise
+                      quantile normalization, extract at consensus loops,
+                      optional RINT (default TRUE)
+loopQTL_choose_K()  -> PCAForQTL elbow/BE selection of K phenotype PCs (helper)
+run_QTL()          -> targeted tabix VCF read of anchor SNPs, MatrixEQTL run
+                      once per anchor, merge + label anchor (A/B/both)
                       -> tidy results data.frame
 ```
 
-A single `loopQTL` S4 object is threaded through all three functions. The canonical sample order is an invariant; matrices stay aligned.
+A single `loopQTL` S4 object is threaded through. The canonical sample order is an invariant; matrices stay aligned.
 
 ## Install
 
@@ -24,13 +29,17 @@ The package depends on a handful of Bioconductor packages. From R:
 ```r
 if (!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocManager")
 BiocManager::install(c(
-  "strawr", "DESeq2", "GenomicRanges", "IRanges", "InteractionSet",
+  "strawr", "multiHiCcompare", "bnbc",
+  "GenomicRanges", "IRanges", "InteractionSet",
   "S4Vectors", "VariantAnnotation", "Rsamtools",
   "SummarizedExperiment", "BiocParallel"
 ))
+install.packages(c("MatrixEQTL", "data.table"))
+# PCAForQTL is GitHub-only:
+remotes::install_github("heatherjzhou/PCAForQTL")
 
 # install loopQTL from this repo:
-# devtools::install_github("tim-wuuu/loopQTL")
+# remotes::install_github("tim-wuuu/loopQTL")
 # or, from a local clone:
 # devtools::install_local("path/to/loopQTL")
 ```
@@ -64,13 +73,22 @@ obj <- loopQTL_setup(
   BPPARAM     = BiocParallel::MulticoreParam(workers = 8)
 )
 
-obj <- loopQTL_normalize(obj)
-# optional extra covariates (e.g. genotype PCs), samples x k:
-# obj <- loopQTL_normalize(obj, covariates = pcs)
+obj <- loopQTL_normalize(
+  obj,
+  method  = "multiHiCcompare",      # or "BNBC"
+  normal  = TRUE,                   # apply RINT after normalization
+  BPPARAM = BiocParallel::MulticoreParam(workers = 8)
+)
 
-results <- run_QTL(obj, window = 0L)   # window = bp flank around anchor bin
+# Covariates: by default `run_QTL()` calls loopQTL_choose_K() (PCAForQTL elbow)
+# and uses the chosen K phenotype PCs as MatrixEQTL's `cvrt`. To override,
+# pass your own covariates matrix:
+#   pcs <- loopQTL_choose_K(obj, K_method = "BE")$PCs
+#   res <- run_QTL(obj, window = 0L, covariates = pcs)
+
+results <- run_QTL(obj, window = 0L)
 head(results)
-#   loop_id   snp_id          chrom  pos      ref alt anchor   beta   se     t      p   n_used  maf
+#   loop_id   snp_id   chrom  pos    ref alt anchor   beta   se     t      p     FDR_cis  n_used  maf
 ```
 
 ## Run in parallel

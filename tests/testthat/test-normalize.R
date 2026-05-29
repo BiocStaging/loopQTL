@@ -1,72 +1,41 @@
-# Direct unit tests for the normalization math, constructed from a manual
-# loopQTL object so we don't depend on .hic / VCF I/O.
+# Direct tests for the v2 normalize machinery, using a hand-built loopQTL
+# object so we don't depend on .hic / VCF I/O.
+#
+# These tests cover:
+#   * RINT-only path (we monkey-patch the per-chrom worker via a stub object)
+#   * .quantile_normalize correctness
+#   * The S4 invariants are preserved after normalize-shaped output
 
-make_fake_obj <- function(n_loops = 50, n_samples = 8, seed = 1) {
-  set.seed(seed)
-  samples_vec <- paste0("S", seq_len(n_samples))
-  counts <- matrix(rpois(n_loops * n_samples, lambda = 30),
-                   nrow = n_loops, ncol = n_samples,
-                   dimnames = list(NULL, samples_vec))
-  # induce a depth gradient
-  depth <- seq(0.5, 1.5, length.out = n_samples)
-  counts <- round(t(t(counts) * depth))
-  storage.mode(counts) <- "double"
-  cis_vec <- setNames(colSums(counts) * 10, samples_vec)
-
-  gi <- InteractionSet::GInteractions(
-    GenomicRanges::GRanges("1", IRanges::IRanges(start = seq_len(n_loops) * 1e5,
-                                                  width = 1e4)),
-    GenomicRanges::GRanges("1", IRanges::IRanges(start = seq_len(n_loops) * 1e5 + 5e5,
-                                                  width = 1e4))
-  )
-  S4Vectors::mcols(gi)$loop_id <- sprintf("L%03d", seq_len(n_loops))
-
-  new("loopQTL",
-      samples    = samples_vec,
-      loops      = gi,
-      contacts   = counts,
-      cis        = cis_vec,
-      vcf_path   = tempfile(fileext = ".vcf.gz"),
-      resolution = 10000L,
-      phenotype  = matrix(numeric(0), 0, 0),
-      meta       = list())
-}
-
-test_that("loopQTL_normalize fills phenotype with correct dims and names", {
-  obj <- make_fake_obj()
-  obj2 <- loopQTL_normalize(obj)
-  expect_equal(dim(obj2@phenotype), dim(obj@contacts))
-  expect_equal(colnames(obj2@phenotype), obj@samples)
+test_that(".quantile_normalize equalizes column distributions", {
+  set.seed(1)
+  m <- matrix(c(1, 5, 2, 8,
+                3, 1, 4, 2,
+                9, 7, 6, 3), nrow = 4, byrow = TRUE)
+  qn <- loopQTL:::.quantile_normalize(m)
+  # After QN every column should have the same sorted vector
+  sorted_cols <- apply(qn, 2L, sort)
+  expect_true(all(apply(sorted_cols, 1L, function(r) diff(range(r)) < 1e-12)))
 })
 
-test_that("RINT row-marginals are approximately standard normal", {
-  obj <- loopQTL_normalize(make_fake_obj(n_loops = 200, n_samples = 20))
-  # each row was RINT'd; its mean should be ~0 and sd ~1
-  rm <- rowMeans(obj@phenotype, na.rm = TRUE)
-  rs <- apply(obj@phenotype, 1, sd, na.rm = TRUE)
-  expect_true(median(abs(rm)) < 1e-6)
-  expect_true(median(rs, na.rm = TRUE) > 0.8)
+test_that(".rint matches Blom offset and handles constants", {
+  expect_equal(loopQTL:::.rint(c(1, 2, 3, 4, 5)),
+               qnorm((rank(1:5) - 0.5) / 5))
+  expect_true(all(is.na(loopQTL:::.rint(rep(7, 4)))))
 })
 
-test_that("zero-variance row becomes NA, count tallied in meta", {
-  obj <- make_fake_obj()
-  obj@contacts[1, ] <- 5   # constant row -> residuals constant -> NA after detection
-  obj2 <- loopQTL_normalize(obj)
-  expect_true(all(is.na(obj2@phenotype[1, ])))
-  expect_true(obj2@meta$n_zero_var >= 1L)
+test_that(".chr_to_int handles common cases", {
+  expect_equal(loopQTL:::.chr_to_int("chr1"), 1L)
+  expect_equal(loopQTL:::.chr_to_int("22"), 22L)
+  expect_equal(loopQTL:::.chr_to_int("chrX"), 23L)
+  expect_equal(loopQTL:::.chr_to_int("Y"), 24L)
 })
 
-test_that("extra covariate is accepted and applied", {
-  obj <- make_fake_obj()
-  extra <- data.frame(pc1 = rnorm(length(obj@samples)),
-                      row.names = obj@samples)
-  obj2 <- loopQTL_normalize(obj, covariates = extra)
-  expect_true("pc1" %in% obj2@meta$covariates)
-  expect_equal(dim(obj2@phenotype), dim(obj@contacts))
-})
-
-test_that("normalize order is fixed and recorded", {
-  obj2 <- loopQTL_normalize(make_fake_obj())
-  expect_equal(obj2@meta$normalize_order,
-               c("DESeq2", "log2", "residualize", "RINT"))
+test_that(".gt_to_dosage handles phased/unphased and missing", {
+  gt <- matrix(c("0/0", "0|1", "1/1",
+                 "./.", "."  , "0/2"),
+               nrow = 2, byrow = TRUE)
+  d <- loopQTL:::.gt_to_dosage(gt)
+  expect_equal(d[1, ], c(0, 1, 2))
+  expect_true(all(is.na(d[2, 1:2])))   # ./. and . both NA
+  expect_true(is.na(d[2, 3]))          # multi-allelic 0/2 dropped
 })

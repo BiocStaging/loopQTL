@@ -211,7 +211,8 @@ loopQTL_setup <- function(samples,
     n_trans_dropped   = sum(n_trans_per_sample),
     n_trans_per_sample = setNames(n_trans_per_sample, sample_ids),
     cis_source        = if (is.null(user_cis)) "computed_from_hic" else "user_provided",
-    normalization     = "NONE"
+    normalization     = "NONE",
+    hic_paths         = setNames(hic_paths, sample_ids)   # for loopQTL_normalize's whole-genome straw pull
   )
 
   obj <- new("loopQTL",
