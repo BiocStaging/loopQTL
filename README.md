@@ -7,9 +7,9 @@ Unlike peak-centric, window-scan tools (e.g. QTLtools), `loopQTL` only tests SNP
 ## Pipeline
 
 ```
-loopQTL_setup()    -> reads .hic per sample, builds bin-matched consensus loops,
-                      pulls RAW contacts at consensus bin-pairs (for QC),
-                      computes cis depth per sample
+loopQTL_setup()    -> validates VCF + .hic headers, reads loop BEDPEs,
+                      builds bin-matched consensus loops. No contact extraction
+                      (fast; iterate on the samplesheet freely).
 loopQTL_normalize() -> per-chrom whole-genome straw pull (parallel),
                       multiHiCcompare fastlo() or BNBC band-wise
                       quantile normalization, extract at consensus loops,
@@ -69,8 +69,7 @@ obj <- loopQTL_setup(
   samples     = samples_df,
   vcf         = "cohort.vcf.gz",     # bgzipped + tabix-indexed
   resolution  = 10000L,              # bp; must exist in every .hic
-  min_samples = 2L,                  # consensus filter
-  BPPARAM     = BiocParallel::MulticoreParam(workers = 8)
+  min_samples = 2L                   # consensus filter
 )
 
 obj <- loopQTL_normalize(
