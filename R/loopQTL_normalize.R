@@ -4,7 +4,8 @@
 #' `strawr::straw("NONE", ...)`, then normalizes across samples:
 #'
 #'  * `method = "multiHiCcompare"`: builds a per-chrom `hicexp` (groups all = 1)
-#'    and runs `multiHiCcompare::cyclic_loess(..., fast = TRUE)`. We do not use
+#'    and runs `multiHiCcompare::fastlo(...)`. `fastlo` is multiHiCcompare's
+#'    fast loess normalization, distinct from `cyclic_loess`. We do not use
 #'    the differential side of multiHiCcompare.
 #'  * `method = "BNBC"`: per-chrom log-transformed contact matrices,
 #'    band-wise quantile-normalized across samples. ComBat batch correction is
@@ -22,7 +23,8 @@
 #' @param obj A [loopQTL-class] from [loopQTL_setup()].
 #' @param method Normalization method. Default `"multiHiCcompare"`.
 #' @param normal Apply RINT after normalization. Default `TRUE`.
-#' @param span Cyclic loess smoothing span (multiHiCcompare only). Default 0.2.
+#' @param span Loess smoothing span passed to `multiHiCcompare::fastlo()`.
+#'   Default 0.7 (matches `fastlo`'s default).
 #' @param BPPARAM A [BiocParallel::BiocParallelParam] for parallelization over
 #'   chromosomes. Default [BiocParallel::SerialParam()].
 #'
@@ -33,7 +35,7 @@
 loopQTL_normalize <- function(obj,
                               method  = c("multiHiCcompare", "BNBC"),
                               normal  = TRUE,
-                              span    = 0.2,
+                              span    = 0.7,
                               BPPARAM = BiocParallel::SerialParam()) {
   stopifnot(methods::is(obj, "loopQTL"))
   method <- match.arg(method)
@@ -177,9 +179,10 @@ loopQTL_normalize <- function(obj,
     zero.p    = 1,        # don't drop bin-pairs on % zeros — we want raw coverage
     A.min     = 0
   )
-  hicexp <- multiHiCcompare::cyclic_loess(
-    hicexp, span = span, parallel = FALSE
-    # multiHiCcompare's "fast" path is the default for cyclic_loess; no extra flag needed
+  # fastlo is multiHiCcompare's fast loess normalization (distinct from cyclic_loess).
+  # `parallel = FALSE` here because we parallelize one level up, by chromosome.
+  hicexp <- multiHiCcompare::fastlo(
+    hicexp, span = span, parallel = FALSE, verbose = FALSE
   )
   tab <- multiHiCcompare::hic_table(hicexp)
   # `tab` has columns: chr, region1, region2, D, IF1, IF2, ...

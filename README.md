@@ -11,7 +11,7 @@ loopQTL_setup()    -> reads .hic per sample, builds bin-matched consensus loops,
                       pulls RAW contacts at consensus bin-pairs (for QC),
                       computes cis depth per sample
 loopQTL_normalize() -> per-chrom whole-genome straw pull (parallel),
-                      multiHiCcompare cyclic_loess (fast) or BNBC band-wise
+                      multiHiCcompare fastlo() or BNBC band-wise
                       quantile normalization, extract at consensus loops,
                       optional RINT (default TRUE)
 loopQTL_choose_K()  -> PCAForQTL elbow/BE selection of K phenotype PCs (helper)
