@@ -25,6 +25,12 @@
 #' @param normal Apply RINT after normalization. Default `TRUE`.
 #' @param span Loess smoothing span passed to `multiHiCcompare::fastlo()`.
 #'   Default 0.7 (matches `fastlo`'s default).
+#' @param chroms Optional character vector of chromosome names to normalize.
+#'   Default `NULL` = all chromosomes present in `obj@loops`. When a subset is
+#'   passed, only those chroms' loop rows are filled in `obj@phenotype`; rows
+#'   for other chroms stay `NA`. Use this to split a large run across SLURM
+#'   array tasks (one chrom per task), then combine the per-chrom objects with
+#'   [loopQTL_combine_normalized()].
 #' @param BPPARAM A [BiocParallel::BiocParallelParam] for parallelization over
 #'   chromosomes. Default [BiocParallel::SerialParam()].
 #'
@@ -36,6 +42,7 @@ loopQTL_normalize <- function(obj,
                               method  = c("multiHiCcompare", "BNBC"),
                               normal  = TRUE,
                               span    = 0.7,
+                              chroms  = NULL,
                               BPPARAM = BiocParallel::SerialParam()) {
   stopifnot(methods::is(obj, "loopQTL"))
   method <- match.arg(method)
@@ -62,7 +69,18 @@ loopQTL_normalize <- function(obj,
   }
   loop_key <- paste(loop_chr, loop_binA, loop_binB, sep = ":")
 
-  chroms <- unique(loop_chr)
+  all_chroms <- unique(loop_chr)
+  if (is.null(chroms)) {
+    chroms_to_run <- all_chroms
+  } else {
+    chroms_to_run <- intersect(as.character(chroms), all_chroms)
+    missing <- setdiff(as.character(chroms), all_chroms)
+    if (length(missing) > 0L)
+      warning("These `chroms` are not present in obj@loops and will be ignored: ",
+              paste(missing, collapse = ", "))
+    if (length(chroms_to_run) == 0L)
+      stop("No requested `chroms` overlap obj@loops' chromosomes")
+  }
   loop_idx_by_chr <- split(seq_along(loop_chr), loop_chr)
 
   # ---- worker: normalize one chromosome, return (consensus_rows, values matrix) ----
@@ -110,33 +128,42 @@ loopQTL_normalize <- function(obj,
     list(rows = rows, mat = chrom_mat)
   }
 
-  chrom_results <- BiocParallel::bplapply(chroms, per_chr_worker, BPPARAM = BPPARAM)
+  chrom_results <- BiocParallel::bplapply(chroms_to_run, per_chr_worker, BPPARAM = BPPARAM)
 
   # ---- Assemble per-chrom slices into the full (loops x samples) phenotype ----
-  pheno <- matrix(0, nrow = length(loops_gi), ncol = length(samples_vec),
+  # Rows for chroms we did NOT process are left as NA, so a partial run produces
+  # an obj that can be combined with sibling per-chrom runs via
+  # loopQTL_combine_normalized().
+  pheno <- matrix(NA_real_, nrow = length(loops_gi), ncol = length(samples_vec),
                   dimnames = list(NULL, samples_vec))
-  for (r in chrom_results) pheno[r$rows, ] <- r$mat
+  processed_rows <- integer(0)
+  for (r in chrom_results) {
+    pheno[r$rows, ] <- r$mat
+    processed_rows <- c(processed_rows, r$rows)
+  }
 
-  # ---- RINT if requested ----
+  # ---- RINT if requested (per-loop; only over the rows we actually filled) ----
   n_zero_var <- 0L
-  if (normal) {
-    row_sd <- apply(pheno, 1L, stats::sd)
+  if (normal && length(processed_rows) > 0L) {
+    sub <- pheno[processed_rows, , drop = FALSE]
+    row_sd <- apply(sub, 1L, stats::sd)
     zero_var <- !is.finite(row_sd) | row_sd == 0
     n_zero_var <- sum(zero_var)
-    rint_mat <- pheno
-    rint_mat[zero_var, ] <- NA_real_
+    rint_sub <- sub
+    rint_sub[zero_var, ] <- NA_real_
     if (any(!zero_var)) {
       good <- which(!zero_var)
-      rint_mat[good, ] <- t(apply(pheno[good, , drop = FALSE], 1L, .rint))
+      rint_sub[good, ] <- t(apply(sub[good, , drop = FALSE], 1L, .rint))
     }
-    pheno <- rint_mat
+    pheno[processed_rows, ] <- rint_sub
   }
 
   obj@phenotype <- pheno
-  obj@meta$normalize_method <- method
-  obj@meta$normal           <- normal
-  obj@meta$n_zero_var       <- n_zero_var
-  obj@meta$normalize_order  <- c(method, if (normal) "RINT" else NULL)
+  obj@meta$normalize_method   <- method
+  obj@meta$normal             <- normal
+  obj@meta$n_zero_var         <- n_zero_var
+  obj@meta$normalize_order    <- c(method, if (normal) "RINT" else NULL)
+  obj@meta$chroms_normalized  <- chroms_to_run
   methods::validObject(obj)
   obj
 }

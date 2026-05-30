@@ -1,5 +1,6 @@
 export(loopQTL_setup)
 export(loopQTL_normalize)
+export(loopQTL_combine_normalized)
 export(loopQTL_choose_K)
 export(run_QTL)
 exportClasses(loopQTL)
