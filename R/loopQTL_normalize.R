@@ -223,91 +223,150 @@ loopQTL_normalize <- function(obj,
 
 # -------------------------------------------------------------------------- #
 # Internal: BNBC band-wise quantile normalization, one chrom across samples.
-# Skips ComBat.
+# Skips ComBat. Sparse triplet implementation (no dense per-sample matrices).
+#
+# Memory profile (chr1 / 101 samples / 10 kb): ~25-50 GB peak.
+#
+# Algorithm:
+#   1. For each sample, store straw output as a triplet (i, j, x, d=j-i)
+#      data.table in upper-triangle convention. Skip zeros entirely.
+#   2. For each genomic distance band d (in bp), find the union of bin-pair
+#      positions where any sample has a non-zero contact. Build a small
+#      dense L_d x n_samples block with 0-fill for missing samples.
+#   3. Quantile-normalize that block across samples.
+#   4. Emit non-zero QN'd cells as new triplets.
+#   5. Pivot the combined triplets to wide form (one IF column per sample).
+#
+# Correctness: bin-pairs that are zero in every sample are absent from all
+# triplets and stay absent (their QN'd value would be the row-1 reference,
+# which equals mean(per-band minima); since most band positions are all-zero
+# for chr-scale Hi-C, that reference is ~0). Bin-pairs non-zero in at least
+# one sample are processed in full.
 # -------------------------------------------------------------------------- #
 .normalize_BNBC <- function(sparse_list, chr) {
   n_samples <- length(sparse_list)
-
-  # 1. Determine universe of bins on this chrom across samples
-  all_x <- unique(unlist(lapply(sparse_list, function(d) c(d$x, d$y))))
-  if (length(all_x) == 0L) {
-    out <- data.table::data.table(chr = character(0),
-                                  region1 = integer(0),
-                                  region2 = integer(0))
-    for (j in seq_len(n_samples))
-      out[[paste0("IF_", j)]] <- numeric(0)
-    return(out)
+  empty_out <- function() {
+    out <- data.table::data.table(
+      chr = character(0), region1 = integer(0), region2 = integer(0))
+    for (k in seq_len(n_samples)) out[[paste0("IF_", k)]] <- numeric(0)
+    out
   }
-  all_bins <- sort(unique(all_x))
-  bin_to_idx <- setNames(seq_along(all_bins), as.character(all_bins))
-  nb <- length(all_bins)
+  if (n_samples == 0L) return(empty_out())
 
-  # 2. Build per-sample dense contact matrices (upper triangle, on this chrom)
-  mats <- lapply(sparse_list, function(d) {
-    m <- matrix(0, nrow = nb, ncol = nb)
-    if (nrow(d) > 0L) {
-      i <- bin_to_idx[as.character(d$x)]
-      j <- bin_to_idx[as.character(d$y)]
-      m[cbind(i, j)] <- d$counts
-      m[cbind(j, i)] <- d$counts
-    }
-    log2(m + 1)
-  })
-
-  # 3. Band-wise quantile normalize across samples.
-  #    For each off-diagonal band b in 0:(nb-1), collect the b-th superdiagonal
-  #    from every sample as a column, run quantile normalization across columns,
-  #    write back.
-  for (b in 0:(nb - 1L)) {
-    idx_row <- seq_len(nb - b)
-    idx_col <- idx_row + b
-    cells <- cbind(idx_row, idx_col)
-    band_mat <- vapply(mats, function(m) m[cells], numeric(length(idx_row)))
-    if (length(idx_row) == 1L) {
-      # single cell — nothing to qnorm; just keep
-      next
-    }
-    qn <- .quantile_normalize(band_mat)
-    for (s in seq_len(n_samples)) {
-      mats[[s]][cells] <- qn[, s]
-      mats[[s]][cbind(idx_col, idx_row)] <- qn[, s]   # mirror
-    }
-  }
-
-  # 4. Convert back to long form
-  long_list <- vector("list", n_samples)
+  # ---- 1. per-sample triplets, log2(x+1), upper-triangle, keyed by band ----
+  per_sample_dt <- vector("list", n_samples)
   for (s in seq_len(n_samples)) {
-    m <- mats[[s]]
-    idx <- which(upper.tri(m, diag = TRUE) & m != 0, arr.ind = TRUE)
-    if (nrow(idx) == 0L) {
-      long_list[[s]] <- data.table::data.table(
-        region1 = integer(0), region2 = integer(0), val = numeric(0)
-      )
+    d <- sparse_list[[s]]
+    if (is.null(d) || nrow(d) == 0L) {
+      per_sample_dt[[s]] <- data.table::data.table(
+        i = integer(0), j = integer(0),
+        x = numeric(0), d = integer(0))
+      data.table::setkey(per_sample_dt[[s]], d, i)
       next
     }
-    long_list[[s]] <- data.table::data.table(
-      region1 = all_bins[idx[, 1L]],
-      region2 = all_bins[idx[, 2L]],
-      val     = m[idx]
+    ii <- as.integer(d$x)
+    jj <- as.integer(d$y)
+    swap <- ii > jj
+    if (any(swap)) { t1 <- ii[swap]; ii[swap] <- jj[swap]; jj[swap] <- t1 }
+    dt <- data.table::data.table(
+      i = ii, j = jj,
+      x = log2(as.numeric(d$counts) + 1),
+      d = jj - ii
     )
+    data.table::setkey(dt, d, i)
+    per_sample_dt[[s]] <- dt
   }
 
-  # 5. Merge by (region1, region2)
-  merged <- long_list[[1L]]
-  data.table::setnames(merged, "val", "IF_1")
-  if (n_samples > 1L) {
-    for (s in seq.int(2L, n_samples)) {
-      x <- long_list[[s]]
-      data.table::setnames(x, "val", paste0("IF_", s))
-      merged <- merge(merged, x, by = c("region1", "region2"), all = TRUE)
+  # ---- 2. set of distinct bands across all samples ----
+  all_bands <- sort(unique(unlist(
+    lapply(per_sample_dt, function(dt) unique(dt$d))
+  )))
+  if (length(all_bands) == 0L) return(empty_out())
+
+  # ---- 3. per-band quantile normalization ----
+  output_chunks <- vector("list", length(all_bands))
+  for (k in seq_along(all_bands)) {
+    b <- all_bands[k]
+
+    # Per-sample (i, x) for this band via keyed lookup
+    samp_data <- lapply(per_sample_dt, function(dt) {
+      dt[.(b), .(i, x), on = "d", nomatch = 0L]
+    })
+
+    # Union of active i positions for this band
+    active_i <- sort(unique(unlist(lapply(samp_data, function(sd) sd$i))))
+    L <- length(active_i)
+    if (L == 0L) next
+
+    if (L < 2L) {
+      # Single-cell band — no QN possible; emit as-is.
+      rows <- list()
+      for (s in seq_len(n_samples)) {
+        sd <- samp_data[[s]]
+        if (nrow(sd) > 0L) {
+          rows[[length(rows) + 1L]] <- data.table::data.table(
+            s = s, i = sd$i, j = sd$i + b, x = sd$x
+          )
+        }
+      }
+      if (length(rows) > 0L)
+        output_chunks[[k]] <- data.table::rbindlist(rows)
+      next
+    }
+
+    # Build L x n_samples dense block (small per band, even for chr1)
+    block <- matrix(0, nrow = L, ncol = n_samples)
+    for (s in seq_len(n_samples)) {
+      sd <- samp_data[[s]]
+      if (nrow(sd) > 0L) {
+        row_idx <- match(sd$i, active_i)
+        block[row_idx, s] <- sd$x
+      }
+    }
+
+    qn <- .quantile_normalize(block)
+
+    # Emit non-zero QN'd cells as triplets
+    nz_mask <- qn != 0
+    if (any(nz_mask)) {
+      idxs <- which(nz_mask, arr.ind = TRUE)
+      output_chunks[[k]] <- data.table::data.table(
+        s = idxs[, 2L],
+        i = active_i[idxs[, 1L]],
+        j = active_i[idxs[, 1L]] + b,
+        x = qn[nz_mask]
+      )
     }
   }
-  for (cc in grep("^IF_", names(merged), value = TRUE)) {
-    merged[is.na(merged[[cc]]), (cc) := 0]
+
+  # Free per-sample input triplets before assembling the wide output
+  rm(per_sample_dt)
+  invisible(gc(verbose = FALSE))
+
+  # ---- 4. combine all output chunks into long form ----
+  out_long <- data.table::rbindlist(output_chunks, fill = TRUE)
+  rm(output_chunks)
+  if (nrow(out_long) == 0L) return(empty_out())
+
+  # ---- 5. pivot wide on (i, j) -> one IF column per sample ----
+  wide <- data.table::dcast(out_long, i + j ~ s, value.var = "x", fill = 0)
+  rm(out_long); invisible(gc(verbose = FALSE))
+  data.table::setnames(wide, c("i", "j"), c("region1", "region2"))
+
+  # Ensure every sample has an IF column (some may be all-absent on this chrom)
+  for (s in seq_len(n_samples)) {
+    nm_in  <- as.character(s)
+    nm_out <- paste0("IF_", s)
+    if (nm_in %in% names(wide)) {
+      data.table::setnames(wide, nm_in, nm_out)
+    } else {
+      wide[, (nm_out) := 0]
+    }
   }
-  merged$chr <- as.character(chr)
-  merged[, c("chr", "region1", "region2",
-             paste0("IF_", seq_len(n_samples))), with = FALSE]
+
+  wide[, chr := as.character(chr)]
+  wide[, c("chr", "region1", "region2",
+           paste0("IF_", seq_len(n_samples))), with = FALSE]
 }
 
 # Quantile normalization across columns (samples) of a matrix.
