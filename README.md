@@ -29,7 +29,7 @@ The package depends on a handful of Bioconductor packages. From R:
 ```r
 if (!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocManager")
 BiocManager::install(c(
-  "strawr", "multiHiCcompare", "bnbc",
+  "strawr", "multiHiCcompare", "preprocessCore",
   "GenomicRanges", "IRanges", "InteractionSet",
   "S4Vectors", "VariantAnnotation", "Rsamtools",
   "SummarizedExperiment", "BiocParallel"

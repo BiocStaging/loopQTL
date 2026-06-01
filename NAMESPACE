@@ -24,3 +24,5 @@ importFrom(Rsamtools, TabixFile, headerTabix)
 importFrom(BiocParallel, bplapply, SerialParam, bpparam)
 
 importFrom(data.table, data.table, setnames, setkey, ":=", as.data.table)
+
+importFrom(preprocessCore, normalize.quantiles)

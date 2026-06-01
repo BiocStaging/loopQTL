@@ -7,9 +7,13 @@
 #'    and runs `multiHiCcompare::fastlo(...)`. `fastlo` is multiHiCcompare's
 #'    fast loess normalization, distinct from `cyclic_loess`. We do not use
 #'    the differential side of multiHiCcompare.
-#'  * `method = "BNBC"`: per-chrom log-transformed contact matrices,
-#'    band-wise quantile-normalized across samples. ComBat batch correction is
-#'    intentionally skipped.
+#'  * `method = "BNBC"`: per-chrom log-transformed contact triplets,
+#'    band-wise quantile-normalized across samples via
+#'    `preprocessCore::normalize.quantiles()` (Bolstad et al. 2003), as in BNBC
+#'    (Fletez-Brant et al. 2021). ComBat batch correction is intentionally
+#'    skipped. The sparse triplet data structure is our own implementation;
+#'    the `bnbc` Bioconductor package is not used (its dense internals don't
+#'    scale to 50+ samples at 10 kb).
 #'
 #' Normalized values are indexed at the consensus loop bin-pairs to build the
 #' (loops x samples) phenotype matrix. If `normal = TRUE` (default), a Blom-
@@ -224,8 +228,10 @@ loopQTL_normalize <- function(obj,
 # -------------------------------------------------------------------------- #
 # Internal: BNBC band-wise quantile normalization, one chrom across samples.
 # Skips ComBat. Sparse triplet implementation (no dense per-sample matrices).
+# QN math is delegated to preprocessCore::normalize.quantiles(), the canonical
+# implementation used by BNBC and limma.
 #
-# Memory profile (chr1 / 101 samples / 10 kb): ~25-50 GB peak.
+# Memory profile (chr1 / 50-100 samples / 10 kb): ~25-50 GB peak.
 #
 # Algorithm:
 #   1. For each sample, store straw output as a triplet (i, j, x, d=j-i)
@@ -233,7 +239,7 @@ loopQTL_normalize <- function(obj,
 #   2. For each genomic distance band d (in bp), find the union of bin-pair
 #      positions where any sample has a non-zero contact. Build a small
 #      dense L_d x n_samples block with 0-fill for missing samples.
-#   3. Quantile-normalize that block across samples.
+#   3. Quantile-normalize that block across samples via preprocessCore.
 #   4. Emit non-zero QN'd cells as new triplets.
 #   5. Pivot the combined triplets to wide form (one IF column per sample).
 #
@@ -369,18 +375,14 @@ loopQTL_normalize <- function(obj,
            paste0("IF_", seq_len(n_samples))), with = FALSE]
 }
 
-# Quantile normalization across columns (samples) of a matrix.
-# Each column is treated as a sample's vector; each row's mean rank value
-# replaces the original.
+# Quantile normalization across columns (samples) of an L x N matrix.
+# Thin wrapper around preprocessCore::normalize.quantiles(), which is the
+# canonical Bioconductor QN implementation used by BNBC, limma, et al.
+# (Bolstad et al. 2003). Single-column input is returned unchanged.
 .quantile_normalize <- function(mat) {
   if (ncol(mat) < 2L) return(mat)
-  ranks  <- apply(mat, 2L, rank, ties.method = "average")
-  sorted <- apply(mat, 2L, sort)
-  row_means <- rowMeans(sorted)
-  out <- mat
-  for (j in seq_len(ncol(mat))) {
-    out[, j] <- row_means[as.integer(ranks[, j])]
-  }
+  out <- preprocessCore::normalize.quantiles(mat, copy = TRUE)
+  dimnames(out) <- dimnames(mat)
   out
 }
 
