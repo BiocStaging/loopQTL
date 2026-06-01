@@ -113,7 +113,13 @@ loopQTL_normalize <- function(obj,
     if (method == "multiHiCcompare") {
       norm_vals <- .normalize_multiHiCcompare(sparse_list, chr, span)
     } else {
-      norm_vals <- .normalize_BNBC(sparse_list, chr)
+      # Filter BNBC emission to consensus (binA, binB) pairs on this chrom.
+      # QN math is still computed over the full band; only the final triplet
+      # emission is restricted, which keeps the dcast wide-pivot from
+      # blowing past R's integer.max on large chroms with many samples.
+      keep_pairs_chr <- cbind(loop_binA[rows], loop_binB[rows])
+      norm_vals <- .normalize_BNBC(sparse_list, chr,
+                                   keep_pairs = keep_pairs_chr)
     }
     # norm_vals: data.table(chr, region1, region2, IF_1, ..., IF_n)
 
@@ -240,8 +246,18 @@ loopQTL_normalize <- function(obj,
 #      positions where any sample has a non-zero contact. Build a small
 #      dense L_d x n_samples block with 0-fill for missing samples.
 #   3. Quantile-normalize that block across samples via preprocessCore.
-#   4. Emit non-zero QN'd cells as new triplets.
+#   4. Emit non-zero QN'd cells as new triplets, OPTIONALLY filtered to a
+#      user-supplied set of (i, j) keep_pairs. QN math is always over the
+#      full band; the filter only restricts what we materialize for the
+#      downstream wide pivot.
 #   5. Pivot the combined triplets to wide form (one IF column per sample).
+#
+# Why keep_pairs matters: without it, the long->wide pivot (dcast) tries to
+# build a grid of all genome-wide non-zero (i, j) x all samples, which can
+# exceed R's integer.max for large chroms with many samples (e.g. chr3 /
+# 50 samples / 10 kb gives ~6.5e9 cells in the CJ). Restricting emission
+# to the consensus-loop (i, j) pairs that the caller will use shrinks this
+# to a few thousand rows per chrom.
 #
 # Correctness: bin-pairs that are zero in every sample are absent from all
 # triplets and stay absent (their QN'd value would be the row-1 reference,
@@ -249,7 +265,7 @@ loopQTL_normalize <- function(obj,
 # for chr-scale Hi-C, that reference is ~0). Bin-pairs non-zero in at least
 # one sample are processed in full.
 # -------------------------------------------------------------------------- #
-.normalize_BNBC <- function(sparse_list, chr) {
+.normalize_BNBC <- function(sparse_list, chr, keep_pairs = NULL) {
   n_samples <- length(sparse_list)
   empty_out <- function() {
     out <- data.table::data.table(
@@ -258,6 +274,18 @@ loopQTL_normalize <- function(obj,
     out
   }
   if (n_samples == 0L) return(empty_out())
+
+  # Pre-compute a hash set of keep_pairs for O(1) lookup per-band.
+  # keep_pairs is a 2-column matrix/data.frame of (i, j) in bp.
+  keep_set <- NULL
+  if (!is.null(keep_pairs)) {
+    if (NROW(keep_pairs) == 0L) return(empty_out())
+    kp_i <- as.integer(keep_pairs[, 1L])
+    kp_j <- as.integer(keep_pairs[, 2L])
+    swap <- kp_i > kp_j
+    if (any(swap)) { t1 <- kp_i[swap]; kp_i[swap] <- kp_j[swap]; kp_j[swap] <- t1 }
+    keep_set <- paste(kp_i, kp_j, sep = "_")
+  }
 
   # ---- 1. per-sample triplets, log2(x+1), upper-triangle, keyed by band ----
   per_sample_dt <- vector("list", n_samples)
@@ -310,6 +338,13 @@ loopQTL_normalize <- function(obj,
       for (s in seq_len(n_samples)) {
         sd <- samp_data[[s]]
         if (nrow(sd) > 0L) {
+          # Apply keep_pairs filter even here.
+          if (!is.null(keep_set)) {
+            ekeys <- paste(sd$i, sd$i + b, sep = "_")
+            keep_idx <- which(ekeys %in% keep_set)
+            if (length(keep_idx) == 0L) next
+            sd <- sd[keep_idx]
+          }
           rows[[length(rows) + 1L]] <- data.table::data.table(
             s = s, i = sd$i, j = sd$i + b, x = sd$x
           )
@@ -332,14 +367,27 @@ loopQTL_normalize <- function(obj,
 
     qn <- .quantile_normalize(block)
 
+    # Filter QN output rows to keep_pairs (if requested) BEFORE materializing
+    # the triplet emission. This is the fix that prevents the dcast CJ
+    # overflow on large chroms with many samples.
+    if (!is.null(keep_set)) {
+      band_keys <- paste(active_i, active_i + b, sep = "_")
+      keep_rows <- which(band_keys %in% keep_set)
+      if (length(keep_rows) == 0L) next
+      qn <- qn[keep_rows, , drop = FALSE]
+      active_i_em <- active_i[keep_rows]
+    } else {
+      active_i_em <- active_i
+    }
+
     # Emit non-zero QN'd cells as triplets
     nz_mask <- qn != 0
     if (any(nz_mask)) {
       idxs <- which(nz_mask, arr.ind = TRUE)
       output_chunks[[k]] <- data.table::data.table(
         s = idxs[, 2L],
-        i = active_i[idxs[, 1L]],
-        j = active_i[idxs[, 1L]] + b,
+        i = active_i_em[idxs[, 1L]],
+        j = active_i_em[idxs[, 1L]] + b,
         x = qn[nz_mask]
       )
     }
