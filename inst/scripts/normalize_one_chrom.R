@@ -5,12 +5,15 @@
 # Each array task runs normalize for exactly ONE chromosome and saves a
 # per-chrom .rda. A final combine job loads them all and stitches them.
 #
+# NOTE: As of the RINT-moves-to-run_QTL refactor, loopQTL_normalize() no
+# longer applies RINT. The phenotype slot stores pre-RINT BNBC/fastlo
+# output. Apply RINT (or not) via `normal = TRUE/FALSE` in run_QTL().
+#
 # Usage (inside a SLURM array task):
 #   Rscript normalize_one_chrom.R \
 #     --setup    loopQTL_01_setup.rda \
 #     --chrom    "$CHROM" \
 #     --method   multiHiCcompare \
-#     --normal   TRUE \
 #     --span     0.7 \
 #     --pkg      /project2/rhie_130/suhn/zexunwu/loopQTL \
 #     --out      normalize_chrom_${SLURM_ARRAY_TASK_ID}.rda
@@ -34,7 +37,6 @@ get_arg <- function(name, default = NULL) {
 setup_path <- get_arg("setup")
 chrom      <- get_arg("chrom")
 method     <- get_arg("method",  "multiHiCcompare")
-normal     <- as.logical(get_arg("normal", "TRUE"))
 span       <- as.numeric(get_arg("span", "0.7"))
 pkg_path   <- get_arg("pkg")
 out_path   <- get_arg("out")
@@ -53,11 +55,10 @@ load(setup_path)   # restores `obj`
 stopifnot(exists("obj"))
 
 message("[", Sys.time(), "] normalizing chrom ", chrom,
-        " (method=", method, ", normal=", normal, ", span=", span, ")")
+        " (method=", method, ", span=", span, ")")
 obj <- loopQTL_normalize(
   obj,
   method  = method,
-  normal  = normal,
   span    = span,
   chroms  = chrom,
   BPPARAM = BiocParallel::SerialParam()   # one chrom, one process

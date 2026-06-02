@@ -5,14 +5,22 @@
 #' with anchor-B. Results are outer-joined on `(loop_id, snp_id)` and labeled
 #' `anchor = A / B / both`.
 #'
-#' Covariates: if `covariates = NULL`, [loopQTL_choose_K()] selects K
-#' phenotype PCs via PCAForQTL (default `K_method = "elbow"`) and uses those.
-#' Otherwise the user-supplied matrix is used as-is.
+#' RINT (Blom-offset rank-inverse-normal transform) is applied per loop just
+#' before the regression when `normal = TRUE` (default). Zero-variance loops
+#' become all-NA phenotype rows and are skipped by MatrixEQTL. The raw,
+#' pre-RINT BNBC/fastlo output in `obj@phenotype` is left untouched, so you
+#' can A/B-compare the two by toggling this flag.
+#'
+#' Covariates: if `covariates = NULL`, K phenotype PCs are auto-chosen via
+#' PCAForQTL (default `K_method = "elbow"`). PCA is run on the same phenotype
+#' form (RINT'd or not) the regression will use. Otherwise the user-supplied
+#' matrix is used as-is.
 #'
 #' @param obj A [loopQTL-class] after [loopQTL_normalize()].
 #' @param window Bp flank added to each anchor bin when matching SNPs. Default 0.
 #' @param covariates Optional `samples x k` matrix/data.frame. If `NULL`,
 #'   auto-chosen via PCAForQTL.
+#' @param normal Apply RINT per loop before regression. Default `TRUE`.
 #' @param K_method `"elbow"` or `"BE"`; passed to [loopQTL_choose_K()] when
 #'   covariates is `NULL`. Default `"elbow"`.
 #' @param pvOutputThreshold MatrixEQTL p-value threshold. Default 1 (return
@@ -26,22 +34,31 @@
 run_QTL <- function(obj,
                     window            = 0L,
                     covariates        = NULL,
+                    normal            = TRUE,
                     K_method          = c("elbow", "BE"),
                     pvOutputThreshold = 1) {
   stopifnot(
     methods::is(obj, "loopQTL"),
     length(obj@phenotype) > 0L,
-    is.numeric(window), length(window) == 1L, window >= 0
+    is.numeric(window), length(window) == 1L, window >= 0,
+    is.logical(normal), length(normal) == 1L, !is.na(normal)
   )
   window <- as.integer(window)
   K_method <- match.arg(K_method)
 
   loops_gi    <- obj@loops
-  phenotype   <- obj@phenotype
   samples_vec <- obj@samples
   loop_ids    <- S4Vectors::mcols(loops_gi)$loop_id
   anchorA <- InteractionSet::anchors(loops_gi, type = "first")
   anchorB <- InteractionSet::anchors(loops_gi, type = "second")
+
+  # ---- Apply RINT if requested. obj@phenotype is left untouched (the local
+  # `phenotype` variable is what flows into MatrixEQTL and PCA). ----
+  phenotype <- if (normal) .rint_matrix(obj@phenotype) else obj@phenotype
+  n_zero_var <- sum(rowSums(!is.na(phenotype)) == 0L) -
+                sum(rowSums(!is.na(obj@phenotype)) == 0L)
+  # n_zero_var = loops newly NA'd by RINT (had data but constant after RINT).
+  # Originally-NA loops aren't counted here.
 
   # ---- Build union of (anchor +- window) target ranges for the VCF read ----
   pad <- function(gr) {
@@ -118,7 +135,8 @@ run_QTL <- function(obj,
 
   # ---- Resolve covariates ----
   if (is.null(covariates)) {
-    K_res <- loopQTL_choose_K(obj, K_method = K_method)
+    # Use the already-RINT'd-or-not `phenotype` matrix to avoid double-RINT.
+    K_res <- .pca_for_qtl(phenotype, samples = samples_vec, K_method = K_method)
     cvrt_mat <- t(K_res$PCs)     # MatrixEQTL wants k x n_samples
     obj_K_meta <- list(K = K_res$K, K_method = K_res$method, K_source = "auto_PCAForQTL")
   } else {
@@ -137,7 +155,9 @@ run_QTL <- function(obj,
     colnames(cvrt_mat) <- samples_vec
     obj_K_meta <- list(K = nrow(cvrt_mat), K_method = NA_character_, K_source = "user")
   }
-  obj@meta$run_QTL_K <- obj_K_meta
+  obj@meta$run_QTL_K        <- obj_K_meta
+  obj@meta$run_QTL_normal   <- normal
+  obj@meta$run_QTL_n_zero_var <- max(0L, n_zero_var)
 
   # ---- Build SlicedData inputs for MatrixEQTL ----
   snps_sd <- .as_sliced(dosage)

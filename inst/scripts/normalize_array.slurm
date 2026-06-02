@@ -40,7 +40,6 @@ Rscript ${PKG}/inst/scripts/normalize_one_chrom.R \
   --setup  $SETUP \
   --chrom  $CHROM \
   --method multiHiCcompare \
-  --normal TRUE \
   --span   0.7 \
   --pkg    $PKG \
   --out    $OUT

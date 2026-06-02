@@ -4,8 +4,14 @@
 #' as `cvrt` in MatrixEQTL. Default `K_method = "elbow"` (fast); `"BE"` is the
 #' Buja-Eyuboglu permutation-based method (slower, more rigorous).
 #'
+#' `normal` controls whether RINT is applied to the phenotype before PCA.
+#' Default `TRUE` matches `run_QTL()`'s default, so the PCs reflect the same
+#' phenotype form that the regression will use. Pass `normal = FALSE` to PCA
+#' the raw (BNBC/fastlo) phenotype instead.
+#'
 #' @param obj A [loopQTL-class] with `phenotype` populated by `loopQTL_normalize()`.
 #' @param K_method `"elbow"` (default) or `"BE"`.
+#' @param normal Apply RINT per loop before PCA. Default `TRUE`.
 #' @param ... Forwarded to `PCAForQTL::runElbow` or `PCAForQTL::runBE`.
 #'
 #' @return A list:
@@ -18,6 +24,7 @@
 #' @export
 loopQTL_choose_K <- function(obj,
                              K_method = c("elbow", "BE"),
+                             normal   = TRUE,
                              ...) {
   stopifnot(
     methods::is(obj, "loopQTL"),
@@ -25,9 +32,20 @@ loopQTL_choose_K <- function(obj,
   )
   K_method <- match.arg(K_method)
 
-  # PCs of the samples are PCs of t(phenotype). Use only loops with finite values
-  # (zero-var/NA rows from normalize were carried as NA — drop them here).
   Y <- obj@phenotype
+  if (normal) Y <- .rint_matrix(Y)
+
+  .pca_for_qtl(Y, samples = obj@samples, K_method = K_method, ...)
+}
+
+# Internal: PCA + K selection on a (loops x samples) matrix. Shared by
+# loopQTL_choose_K() and run_QTL() (so we don't RINT twice when run_QTL
+# already RINT'd the matrix it's passing).
+.pca_for_qtl <- function(Y,
+                         samples,
+                         K_method = c("elbow", "BE"),
+                         ...) {
+  K_method <- match.arg(K_method)
   keep_rows <- stats::complete.cases(Y)
   if (sum(keep_rows) < 2L)
     stop("Not enough non-NA loops to run PCA")
@@ -44,7 +62,7 @@ loopQTL_choose_K <- function(obj,
   K <- min(K, ncol(pca_res$x))
 
   PCs <- pca_res$x[, seq_len(K), drop = FALSE]
-  rownames(PCs) <- obj@samples
+  rownames(PCs) <- samples
   colnames(PCs) <- paste0("PC", seq_len(K))
 
   list(K = K, PCs = PCs, method = K_method)

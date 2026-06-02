@@ -1,4 +1,4 @@
-#' Normalize loopQTL contacts at whole-genome scale, optional RINT
+#' Normalize loopQTL contacts at whole-genome scale
 #'
 #' For each chromosome, pulls whole-genome `(x, y, counts)` from every .hic via
 #' `strawr::straw("NONE", ...)`, then normalizes across samples:
@@ -16,17 +16,15 @@
 #'    scale to 50+ samples at 10 kb).
 #'
 #' Normalized values are indexed at the consensus loop bin-pairs to build the
-#' (loops x samples) phenotype matrix. If `normal = TRUE` (default), a Blom-
-#' offset RINT is applied per loop across samples. Zero-variance rows become
-#' all-NA phenotype rows and are counted in `meta$n_zero_var`.
+#' (loops x samples) phenotype matrix. **No RINT is applied here** — the
+#' phenotype slot stores the BNBC/fastlo output directly. RINT moved to
+#' `run_QTL()` (`normal` argument there) so the un-RINT'd matrix remains
+#' inspectable for QC.
 #'
-#' Per-chromosome work is dispatched via `BiocParallel`. This normalize-time
-#' straw pull is independent of (and additional to) the consensus extraction
-#' performed at `loopQTL_setup()` time.
+#' Per-chromosome work is dispatched via `BiocParallel`.
 #'
 #' @param obj A [loopQTL-class] from [loopQTL_setup()].
 #' @param method Normalization method. Default `"multiHiCcompare"`.
-#' @param normal Apply RINT after normalization. Default `TRUE`.
 #' @param span Loess smoothing span passed to `multiHiCcompare::fastlo()`.
 #'   Default 0.7 (matches `fastlo`'s default).
 #' @param chroms Optional character vector of chromosome names to normalize.
@@ -38,13 +36,12 @@
 #' @param BPPARAM A [BiocParallel::BiocParallelParam] for parallelization over
 #'   chromosomes. Default [BiocParallel::SerialParam()].
 #'
-#' @return The input object with `phenotype` filled and `meta$normalize_method`,
-#'   `meta$normal`, `meta$n_zero_var` recorded.
+#' @return The input object with `phenotype` filled (BNBC or fastlo output,
+#'   pre-RINT) and `meta$normalize_method` recorded.
 #'
 #' @export
 loopQTL_normalize <- function(obj,
                               method  = c("multiHiCcompare", "BNBC"),
-                              normal  = TRUE,
                               span    = 0.7,
                               chroms  = NULL,
                               BPPARAM = BiocParallel::SerialParam()) {
@@ -152,27 +149,11 @@ loopQTL_normalize <- function(obj,
     processed_rows <- c(processed_rows, r$rows)
   }
 
-  # ---- RINT if requested (per-loop; only over the rows we actually filled) ----
-  n_zero_var <- 0L
-  if (normal && length(processed_rows) > 0L) {
-    sub <- pheno[processed_rows, , drop = FALSE]
-    row_sd <- apply(sub, 1L, stats::sd)
-    zero_var <- !is.finite(row_sd) | row_sd == 0
-    n_zero_var <- sum(zero_var)
-    rint_sub <- sub
-    rint_sub[zero_var, ] <- NA_real_
-    if (any(!zero_var)) {
-      good <- which(!zero_var)
-      rint_sub[good, ] <- t(apply(sub[good, , drop = FALSE], 1L, .rint))
-    }
-    pheno[processed_rows, ] <- rint_sub
-  }
-
+  # No RINT here — that's run_QTL()'s job (so obj@phenotype always stores the
+  # pre-RINT BNBC/fastlo output, available for QC/comparison).
   obj@phenotype <- pheno
   obj@meta$normalize_method   <- method
-  obj@meta$normal             <- normal
-  obj@meta$n_zero_var         <- n_zero_var
-  obj@meta$normalize_order    <- c(method, if (normal) "RINT" else NULL)
+  obj@meta$normalize_order    <- method
   obj@meta$chroms_normalized  <- chroms_to_run
   methods::validObject(obj)
   obj

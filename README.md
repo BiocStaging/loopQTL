@@ -75,17 +75,17 @@ obj <- loopQTL_setup(
 obj <- loopQTL_normalize(
   obj,
   method  = "multiHiCcompare",      # or "BNBC"
-  normal  = TRUE,                   # apply RINT after normalization
   BPPARAM = BiocParallel::MulticoreParam(workers = 8)
 )
+# obj@phenotype now holds the PRE-RINT BNBC/fastlo output (inspectable for QC)
 
-# Covariates: by default `run_QTL()` calls loopQTL_choose_K() (PCAForQTL elbow)
-# and uses the chosen K phenotype PCs as MatrixEQTL's `cvrt`. To override,
-# pass your own covariates matrix:
+# By default run_QTL() applies RINT per loop before regression (normal = TRUE)
+# AND auto-picks K phenotype PCs via PCAForQTL as the regression covariates.
+# Pass normal = FALSE to skip RINT, or pass your own covariates matrix:
 #   pcs <- loopQTL_choose_K(obj, K_method = "BE")$PCs
 #   res <- run_QTL(obj, window = 0L, covariates = pcs)
 
-results <- run_QTL(obj, window = 0L)
+results <- run_QTL(obj, window = 0L, normal = TRUE)
 head(results)
 #   loop_id   snp_id   chrom  pos    ref alt anchor   beta   se     t      p     FDR_cis  n_used  maf
 ```

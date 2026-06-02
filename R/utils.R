@@ -22,12 +22,31 @@
   }
 }
 
-# RINT with Blom offset, NA-aware.
+# RINT with Blom offset, NA-aware. Operates on a single vector (one loop's
+# values across samples).
 .rint <- function(x) {
   r <- rank(x, ties.method = "average", na.last = "keep")
   n <- sum(!is.na(r))
   if (n < 2L) return(rep(NA_real_, length(x)))
   qnorm((r - 0.5) / n)
+}
+
+# Apply .rint() row-wise to a (loops x samples) matrix. Rows whose values are
+# all-NA, fewer than 2 non-NA, or have zero variance are returned as all-NA
+# (RINT on a constant produces NaN/Inf, which would poison downstream
+# regressions). dimnames are preserved.
+.rint_matrix <- function(mat) {
+  if (length(mat) == 0L) return(mat)
+  out <- matrix(NA_real_,
+                nrow = nrow(mat), ncol = ncol(mat),
+                dimnames = dimnames(mat))
+  row_sd <- apply(mat, 1L, stats::sd, na.rm = TRUE)
+  ok <- is.finite(row_sd) & row_sd > 0
+  if (any(ok)) {
+    good <- which(ok)
+    out[good, ] <- t(apply(mat[good, , drop = FALSE], 1L, .rint))
+  }
+  out
 }
 
 # Read a single BEDPE-like loop file. Tolerant of "#chr" headers and of
