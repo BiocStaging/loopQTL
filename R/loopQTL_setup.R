@@ -2,27 +2,23 @@
 #'
 #' Builds the bin-matched consensus loop set, validates per-sample `.hic`
 #' metadata and the VCF header, and records the per-sample `.hic` paths
-#' needed by [loopQTL_normalize()]. By default also auto-computes per-sample
-#' cis depth from the `.hic` files via a one-pass straw aggregation (sums of
-#' counts per `(sample, chrom)`, no consensus indexing) — needed by the
-#' BNBC logCPM step downstream. If you precompute `cis` per sample yourself
-#' (e.g. from a Hi-C QC report) and put it in the samplesheet, that value
-#' is used as-is and the .hic pass is skipped.
+#' needed by [loopQTL_normalize()]. When the samplesheet does not provide a
+#' `cis` column, per-sample cis depth is unconditionally auto-computed from
+#' the `.hic` files via a one-pass straw aggregation (sums of counts per
+#' `(sample, chrom)`, no consensus indexing) — needed by the BNBC logCPM
+#' step downstream. If you precompute `cis` per sample yourself (e.g. from
+#' a Hi-C QC report) and put it in the samplesheet, that value is used
+#' as-is and the .hic pass is skipped.
 #'
 #' @param samples data.frame with columns `Sample`, `hic`, `loops`. Optional
 #'   `cis` column: if present, those values become `obj@cis` directly. If
-#'   absent and `compute_cis = TRUE`, cis is summed from the `.hic` files
-#'   here at setup time.
+#'   absent, cis is summed from the `.hic` files here at setup time.
 #' @param vcf Path to a bgzipped + tabix-indexed multi-sample VCF.
 #' @param resolution Analysis bin size in bp (must exist in every .hic).
 #' @param min_samples Keep consensus loops appearing in at least this many
 #'   samples (default 2).
-#' @param compute_cis Auto-compute cis depth from .hic files when no `cis`
-#'   column is given. Default `TRUE`. Set `FALSE` if you want setup to stay
-#'   metadata-only and you'll attach `obj@cis` yourself before normalize.
-#' @param BPPARAM A [BiocParallel::BiocParallelParam] for parallelizing the
-#'   cis-computing straw pulls. Ignored if `cis` is in the samplesheet or
-#'   `compute_cis = FALSE`. Default [BiocParallel::SerialParam()].
+#' @param BPPARAM A [BiocParallel::BiocParallelParam] that parallelizes the
+#'   cis-computing straw pulls. Default [BiocParallel::SerialParam()].
 #'
 #' @return A [loopQTL-class] object with `samples`, `loops`, `vcf_path`,
 #'   `resolution`, `cis` (if provided or computed), and `meta` populated.
@@ -34,7 +30,6 @@ loopQTL_setup <- function(samples,
                           vcf,
                           resolution,
                           min_samples = 2L,
-                          compute_cis = TRUE,
                           BPPARAM     = BiocParallel::SerialParam()) {
 
   stopifnot(
@@ -160,7 +155,7 @@ loopQTL_setup <- function(samples,
     if (anyNA(user_cis) || any(user_cis <= 0))
       stop("`samples$cis` must be positive numeric with no NAs")
     setNames(as.numeric(user_cis), sample_ids)
-  } else if (compute_cis) {
+  } else {
     message("[", format(Sys.time()), "] computing cis depth from .hic files ",
             "(no `cis` column in samplesheet; ", length(cis_chroms),
             " chroms x ", length(sample_ids), " samples) ...")
@@ -172,13 +167,9 @@ loopQTL_setup <- function(samples,
       chrom_norms = chrom_norm_per_sample,
       BPPARAM     = BPPARAM
     )
-  } else {
-    numeric(0)
   }
 
-  cis_source_tag <- if (!is.null(user_cis)) "user_provided"
-                    else if (compute_cis) "computed_from_hic"
-                    else "not_provided"
+  cis_source_tag <- if (!is.null(user_cis)) "user_provided" else "computed_from_hic"
 
   meta <- list(
     resolution         = resolution,

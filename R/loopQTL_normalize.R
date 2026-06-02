@@ -10,10 +10,12 @@
 #'  * `method = "BNBC"`: per-chrom log-transformed contact triplets,
 #'    band-wise quantile-normalized across samples via
 #'    `preprocessCore::normalize.quantiles()` (Bolstad et al. 2003), as in BNBC
-#'    (Fletez-Brant et al. 2021). ComBat batch correction is intentionally
-#'    skipped. The sparse triplet data structure is our own implementation;
-#'    the `bnbc` Bioconductor package is not used (its dense internals don't
-#'    scale to 50+ samples at 10 kb).
+#'    (Fletez-Brant et al. 2021). logCPM depth normalization is always applied
+#'    before band-wise QN, following Fletez-Brant et al. 2021; this requires
+#'    `obj@cis` to be populated (the function errors otherwise). ComBat batch
+#'    correction is intentionally skipped. The sparse triplet data structure
+#'    is our own implementation; the `bnbc` Bioconductor package is not used
+#'    (its dense internals don't scale to 50+ samples at 10 kb).
 #'
 #' Normalized values are indexed at the consensus loop bin-pairs to build the
 #' (loops x samples) phenotype matrix. **No RINT is applied here** — the
@@ -25,11 +27,6 @@
 #'
 #' @param obj A [loopQTL-class] from [loopQTL_setup()].
 #' @param method Normalization method. Default `"multiHiCcompare"`.
-#' @param depth_correct For `method = "BNBC"`: apply logCPM depth normalization
-#'   before band-wise QN, following Fletez-Brant et al. 2021. Default `TRUE`.
-#'   Requires `obj@cis` to be populated (either via the samplesheet at setup
-#'   or by setup's auto-compute). Ignored for `method = "multiHiCcompare"`
-#'   (fastlo handles depth implicitly).
 #' @param span Loess smoothing span passed to `multiHiCcompare::fastlo()`.
 #'   Default 0.7 (matches `fastlo`'s default).
 #' @param chroms Optional character vector of chromosome names to normalize.
@@ -47,23 +44,21 @@
 #' @export
 loopQTL_normalize <- function(obj,
                               method        = c("multiHiCcompare", "BNBC"),
-                              depth_correct = TRUE,
                               span          = 0.7,
                               chroms        = NULL,
                               BPPARAM       = BiocParallel::SerialParam()) {
   stopifnot(methods::is(obj, "loopQTL"))
   method <- match.arg(method)
 
-  # ---- Depth-correction requires cis when using BNBC ----
-  if (method == "BNBC" && isTRUE(depth_correct)) {
+  # ---- BNBC always applies logCPM depth correction, which requires cis ----
+  if (method == "BNBC") {
     if (length(obj@cis) == 0L) {
-      stop("BNBC with depth_correct = TRUE requires per-sample cis depth in ",
+      stop("BNBC requires per-sample cis depth in ",
            "obj@cis, but it is empty. Options:\n",
            "  1. Include a `cis` column in the samplesheet at loopQTL_setup(), or\n",
-           "  2. Re-run loopQTL_setup() with `compute_cis = TRUE` (default), or\n",
-           "  3. Manually attach: obj@cis <- setNames(<numeric>, obj@samples), or\n",
-           "  4. Set depth_correct = FALSE (not recommended — known to leave\n",
-           "     residual depth bias in 50+ sample cohorts).")
+           "  2. Re-run loopQTL_setup() (cis is auto-computed from .hic when no\n",
+           "     `cis` column is provided), or\n",
+           "  3. Manually attach: obj@cis <- setNames(<numeric>, obj@samples)")
     }
     if (length(obj@cis) != length(obj@samples) ||
         !identical(names(obj@cis), obj@samples)) {
@@ -145,7 +140,7 @@ loopQTL_normalize <- function(obj,
       # emission is restricted, which keeps the dcast wide-pivot from
       # blowing past R's integer.max on large chroms with many samples.
       keep_pairs_chr <- cbind(loop_binA[rows], loop_binB[rows])
-      cis_arg <- if (isTRUE(depth_correct)) obj@cis else NULL
+      cis_arg <- obj@cis
       norm_vals <- .normalize_BNBC(sparse_list, chr,
                                    keep_pairs = keep_pairs_chr,
                                    cis = cis_arg)
