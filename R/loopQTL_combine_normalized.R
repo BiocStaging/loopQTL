@@ -90,11 +90,34 @@ loopQTL_combine_normalized <- function(..., paths = NULL) {
 
   base@phenotype <- pheno
 
-  # Merge meta
+  # ---- Merge cis ----
+  # If any input flags user_provided, take that one as-is (genome-wide,
+  # authoritative; all user_provided inputs should be identical anyway).
+  # Otherwise sum per-chrom contributions across inputs.
+  cis_sources <- vapply(objs,
+                        function(o) as.character(o@meta$cis_source %||% NA_character_),
+                        character(1L))
+  user_inputs <- which(cis_sources == "user_provided")
+  if (length(user_inputs) > 0L) {
+    base@cis <- objs[[user_inputs[1L]]]@cis
+    base@meta$cis_source <- "user_provided"
+  } else if (all(cis_sources == "computed_from_hic", na.rm = TRUE) &&
+             all(vapply(objs, function(o) length(o@cis) == n_samples, logical(1L)))) {
+    cis_sum <- setNames(numeric(n_samples), base@samples)
+    for (o in objs) cis_sum <- cis_sum + o@cis
+    base@cis <- cis_sum
+    base@meta$cis_source <- "computed_from_hic"
+    base@meta$cis_chroms_in <- Reduce(union,
+      lapply(objs, function(o) o@meta$cis_chroms_in %||% character(0)))
+  } else {
+    # Mixed / partial — leave whatever object 1 had and warn.
+    warning("Could not merge cis cleanly across inputs (mixed sources or ",
+            "incomplete cis vectors); object 1's cis preserved as-is")
+  }
+
+  # Merge other meta
   base@meta$chroms_normalized <- Reduce(union,
     lapply(objs, function(o) o@meta$chroms_normalized %||% character(0)))
-  base@meta$n_zero_var <- sum(vapply(objs,
-    function(o) as.integer(o@meta$n_zero_var %||% 0L), integer(1L)))
   base@meta$combined_from <- length(objs)
 
   methods::validObject(base)
