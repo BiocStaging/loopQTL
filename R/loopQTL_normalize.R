@@ -25,6 +25,11 @@
 #'
 #' @param obj A [loopQTL-class] from [loopQTL_setup()].
 #' @param method Normalization method. Default `"multiHiCcompare"`.
+#' @param depth_correct For `method = "BNBC"`: apply logCPM depth normalization
+#'   before band-wise QN, following Fletez-Brant et al. 2021. Default `TRUE`.
+#'   Requires `obj@cis` to be populated (either via the samplesheet at setup
+#'   or by setup's auto-compute). Ignored for `method = "multiHiCcompare"`
+#'   (fastlo handles depth implicitly).
 #' @param span Loess smoothing span passed to `multiHiCcompare::fastlo()`.
 #'   Default 0.7 (matches `fastlo`'s default).
 #' @param chroms Optional character vector of chromosome names to normalize.
@@ -41,12 +46,31 @@
 #'
 #' @export
 loopQTL_normalize <- function(obj,
-                              method  = c("multiHiCcompare", "BNBC"),
-                              span    = 0.7,
-                              chroms  = NULL,
-                              BPPARAM = BiocParallel::SerialParam()) {
+                              method        = c("multiHiCcompare", "BNBC"),
+                              depth_correct = TRUE,
+                              span          = 0.7,
+                              chroms        = NULL,
+                              BPPARAM       = BiocParallel::SerialParam()) {
   stopifnot(methods::is(obj, "loopQTL"))
   method <- match.arg(method)
+
+  # ---- Depth-correction requires cis when using BNBC ----
+  if (method == "BNBC" && isTRUE(depth_correct)) {
+    if (length(obj@cis) == 0L) {
+      stop("BNBC with depth_correct = TRUE requires per-sample cis depth in ",
+           "obj@cis, but it is empty. Options:\n",
+           "  1. Include a `cis` column in the samplesheet at loopQTL_setup(), or\n",
+           "  2. Re-run loopQTL_setup() with `compute_cis = TRUE` (default), or\n",
+           "  3. Manually attach: obj@cis <- setNames(<numeric>, obj@samples), or\n",
+           "  4. Set depth_correct = FALSE (not recommended — known to leave\n",
+           "     residual depth bias in 50+ sample cohorts).")
+    }
+    if (length(obj@cis) != length(obj@samples) ||
+        !identical(names(obj@cis), obj@samples)) {
+      stop("obj@cis must be a named numeric vector with one entry per sample, ",
+           "names matching obj@samples")
+    }
+  }
 
   samples_vec <- obj@samples
   resolution  <- obj@resolution
@@ -121,8 +145,10 @@ loopQTL_normalize <- function(obj,
       # emission is restricted, which keeps the dcast wide-pivot from
       # blowing past R's integer.max on large chroms with many samples.
       keep_pairs_chr <- cbind(loop_binA[rows], loop_binB[rows])
+      cis_arg <- if (isTRUE(depth_correct)) obj@cis else NULL
       norm_vals <- .normalize_BNBC(sparse_list, chr,
-                                   keep_pairs = keep_pairs_chr)
+                                   keep_pairs = keep_pairs_chr,
+                                   cis = cis_arg)
     }
     # norm_vals: data.table(chr, region1, region2, IF_1, ..., IF_n)
 
@@ -264,7 +290,7 @@ loopQTL_normalize <- function(obj,
 # for chr-scale Hi-C, that reference is ~0). Bin-pairs non-zero in at least
 # one sample are processed in full.
 # -------------------------------------------------------------------------- #
-.normalize_BNBC <- function(sparse_list, chr, keep_pairs = NULL) {
+.normalize_BNBC <- function(sparse_list, chr, keep_pairs = NULL, cis = NULL) {
   n_samples <- length(sparse_list)
   empty_out <- function() {
     out <- data.table::data.table(
@@ -286,7 +312,28 @@ loopQTL_normalize <- function(obj,
     keep_set <- paste(kp_i, kp_j, sep = "_")
   }
 
-  # ---- 1. per-sample triplets, log2(x+1), upper-triangle, keyed by band ----
+  # ---- 0. logCPM depth correction (exact bnbc formula) ----
+  # bnbc/R/contactGroup_utils.R::logCPM:
+  #   libs <- (librarySize + 1) / 1e6
+  #   c.   <- abs(1/min(libs) - 1/max(libs))      # stability offset
+  #   log((count + 0.5) / libs + c.)
+  # natural log, not log2; (count + 0.5) not (count + 1).
+  # When cis is NULL we fall back to log2(count + 1) (no depth correction).
+  if (!is.null(cis)) {
+    libs <- (as.numeric(cis) + 1) / 1e6
+    if (any(!is.finite(libs)) || any(libs <= 0))
+      stop("Invalid cis values: must be positive and finite")
+    c_offset <- abs(1/min(libs) - 1/max(libs))
+    transform_sample <- function(counts, s) {
+      log((as.numeric(counts) + 0.5) / libs[s] + c_offset)
+    }
+  } else {
+    transform_sample <- function(counts, s) {
+      log2(as.numeric(counts) + 1)
+    }
+  }
+
+  # ---- 1. per-sample triplets, depth-corrected log, upper-triangle, keyed by band ----
   per_sample_dt <- vector("list", n_samples)
   for (s in seq_len(n_samples)) {
     d <- sparse_list[[s]]
@@ -303,7 +350,7 @@ loopQTL_normalize <- function(obj,
     if (any(swap)) { t1 <- ii[swap]; ii[swap] <- jj[swap]; jj[swap] <- t1 }
     dt <- data.table::data.table(
       i = ii, j = jj,
-      x = log2(as.numeric(d$counts) + 1),
+      x = transform_sample(d$counts, s),
       d = jj - ii
     )
     data.table::setkey(dt, d, i)
@@ -330,32 +377,16 @@ loopQTL_normalize <- function(obj,
     active_i <- sort(unique(unlist(lapply(samp_data, function(sd) sd$i))))
     L <- length(active_i)
     if (L == 0L) next
+    # Note: L = 1 is OK — preprocessCore returns all samples equal to the mean.
+    # That degenerate cell will have zero variance downstream and be skipped.
 
-    if (L < 2L) {
-      # Single-cell band — no QN possible; emit as-is.
-      rows <- list()
-      for (s in seq_len(n_samples)) {
-        sd <- samp_data[[s]]
-        if (nrow(sd) > 0L) {
-          # Apply keep_pairs filter even here.
-          if (!is.null(keep_set)) {
-            ekeys <- paste(sd$i, sd$i + b, sep = "_")
-            keep_idx <- which(ekeys %in% keep_set)
-            if (length(keep_idx) == 0L) next
-            sd <- sd[keep_idx]
-          }
-          rows[[length(rows) + 1L]] <- data.table::data.table(
-            s = s, i = sd$i, j = sd$i + b, x = sd$x
-          )
-        }
-      }
-      if (length(rows) > 0L)
-        output_chunks[[k]] <- data.table::rbindlist(rows)
-      next
-    }
-
-    # Build L x n_samples dense block (small per band, even for chr1)
-    block <- matrix(0, nrow = L, ncol = n_samples)
+    # Build L x n_samples dense block. The "missing" fill is the per-sample
+    # logCPM transform of raw-count=0 (not literally 0) — because not having
+    # a triplet at (i, i+b) means the underlying raw count was 0, and
+    # log((0+0.5)/libs[s] + c_offset) is a small negative value, not 0.
+    zero_fill <- vapply(seq_len(n_samples), function(s) transform_sample(0, s),
+                        numeric(1L))
+    block <- matrix(zero_fill, nrow = L, ncol = n_samples, byrow = TRUE)
     for (s in seq_len(n_samples)) {
       sd <- samp_data[[s]]
       if (nrow(sd) > 0L) {
@@ -379,17 +410,26 @@ loopQTL_normalize <- function(obj,
       active_i_em <- active_i
     }
 
-    # Emit non-zero QN'd cells as triplets
-    nz_mask <- qn != 0
-    if (any(nz_mask)) {
+    # Emit QN'd cells as triplets. With logCPM, "zero contact" maps to a
+    # per-sample baseline value (small but informative), so we emit ALL
+    # cells in the keep set. With log2(x+1) (no depth correction), genuine
+    # zeros stay zero and we skip them to save downstream memory.
+    if (is.null(cis)) {
+      nz_mask <- qn != 0
+      if (!any(nz_mask)) next
       idxs <- which(nz_mask, arr.ind = TRUE)
-      output_chunks[[k]] <- data.table::data.table(
-        s = idxs[, 2L],
-        i = active_i_em[idxs[, 1L]],
-        j = active_i_em[idxs[, 1L]] + b,
-        x = qn[nz_mask]
-      )
+      vals <- qn[nz_mask]
+    } else {
+      # Emit every cell (all are informative under logCPM)
+      idxs <- which(matrix(TRUE, nrow = nrow(qn), ncol = ncol(qn)), arr.ind = TRUE)
+      vals <- as.numeric(qn)
     }
+    output_chunks[[k]] <- data.table::data.table(
+      s = idxs[, 2L],
+      i = active_i_em[idxs[, 1L]],
+      j = active_i_em[idxs[, 1L]] + b,
+      x = vals
+    )
   }
 
   # Free per-sample input triplets before assembling the wide output

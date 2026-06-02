@@ -2,29 +2,40 @@
 #'
 #' Builds the bin-matched consensus loop set, validates per-sample `.hic`
 #' metadata and the VCF header, and records the per-sample `.hic` paths
-#' needed by [loopQTL_normalize()]. No contact extraction is performed here
-#' (that's the whole-genome pull inside `loopQTL_normalize()`, deliberately
-#' kept out of setup so this step is fast and you can iterate on the
-#' samplesheet without paying for straw extraction).
+#' needed by [loopQTL_normalize()]. By default also auto-computes per-sample
+#' cis depth from the `.hic` files via a one-pass straw aggregation (sums of
+#' counts per `(sample, chrom)`, no consensus indexing) — needed by the
+#' BNBC logCPM step downstream. If you precompute `cis` per sample yourself
+#' (e.g. from a Hi-C QC report) and put it in the samplesheet, that value
+#' is used as-is and the .hic pass is skipped.
 #'
 #' @param samples data.frame with columns `Sample`, `hic`, `loops`. Optional
-#'   `cis` column: if present, those values become `obj@cis` (used downstream
-#'   only as a stored QC metric — not by `loopQTL_normalize()`). Absent: `cis`
-#'   slot stays empty.
+#'   `cis` column: if present, those values become `obj@cis` directly. If
+#'   absent and `compute_cis = TRUE`, cis is summed from the `.hic` files
+#'   here at setup time.
 #' @param vcf Path to a bgzipped + tabix-indexed multi-sample VCF.
 #' @param resolution Analysis bin size in bp (must exist in every .hic).
 #' @param min_samples Keep consensus loops appearing in at least this many
 #'   samples (default 2).
+#' @param compute_cis Auto-compute cis depth from .hic files when no `cis`
+#'   column is given. Default `TRUE`. Set `FALSE` if you want setup to stay
+#'   metadata-only and you'll attach `obj@cis` yourself before normalize.
+#' @param BPPARAM A [BiocParallel::BiocParallelParam] for parallelizing the
+#'   cis-computing straw pulls. Ignored if `cis` is in the samplesheet or
+#'   `compute_cis = FALSE`. Default [BiocParallel::SerialParam()].
 #'
 #' @return A [loopQTL-class] object with `samples`, `loops`, `vcf_path`,
-#'   `resolution`, optionally `cis`, and `meta` populated. `contacts` and
-#'   `phenotype` are empty placeholders until normalize fills `phenotype`.
+#'   `resolution`, `cis` (if provided or computed), and `meta` populated.
+#'   `contacts` and `phenotype` are empty placeholders until normalize fills
+#'   `phenotype`.
 #'
 #' @export
 loopQTL_setup <- function(samples,
                           vcf,
                           resolution,
-                          min_samples = 2L) {
+                          min_samples = 2L,
+                          compute_cis = TRUE,
+                          BPPARAM     = BiocParallel::SerialParam()) {
 
   stopifnot(
     is.data.frame(samples),
@@ -62,14 +73,22 @@ loopQTL_setup <- function(samples,
          paste(missing_in_vcf, collapse = ", "))
 
   # ---- Per-.hic metadata + resolution / NONE check (header reads only) ----
+  # Also build per-sample chromosome-naming normalizers so we can map a
+  # user-style chrom string (e.g. "1") to whatever this .hic file uses
+  # (e.g. "chr1") when summing cis.
+  chrom_norm_per_sample <- vector("list", length(hic_paths))
+  hic_chroms_per_sample <- vector("list", length(hic_paths))
   for (i in seq_along(hic_paths)) {
-    bp_res <- strawr::readHicBpResolutions(hic_paths[i])
-    norms  <- strawr::readHicNormTypes(hic_paths[i])
+    chroms_i <- strawr::readHicChroms(hic_paths[i])$name
+    bp_res   <- strawr::readHicBpResolutions(hic_paths[i])
+    norms    <- strawr::readHicNormTypes(hic_paths[i])
     if (!(resolution %in% bp_res))
       stop("Resolution ", resolution, " not available in ", hic_paths[i],
            " (available: ", paste(bp_res, collapse = ", "), ")")
     if (!("NONE" %in% norms))
       stop("Normalization 'NONE' not available in ", hic_paths[i])
+    chrom_norm_per_sample[[i]] <- .make_chrom_normalizer(chroms_i)
+    hic_chroms_per_sample[[i]] <- chroms_i
   }
 
   # ---- Read and partition loops ----
@@ -132,21 +151,42 @@ loopQTL_setup <- function(samples,
   gi <- InteractionSet::GInteractions(anchorA, anchorB)
   S4Vectors::mcols(gi)$loop_id <- loop_id
 
-  # ---- cis (user-supplied only; no straw computation in setup) ----
+  # ---- cis: user-supplied if provided, else auto-computed from .hic ----
+  cis_chroms <- unique(uniq$chr)   # chroms with consensus loops; defines the
+                                   # set of chroms cis is summed over (consistent
+                                   # with what normalize will process)
+
   cis_vec <- if (!is.null(user_cis)) {
     if (anyNA(user_cis) || any(user_cis <= 0))
       stop("`samples$cis` must be positive numeric with no NAs")
     setNames(as.numeric(user_cis), sample_ids)
+  } else if (compute_cis) {
+    message("[", format(Sys.time()), "] computing cis depth from .hic files ",
+            "(no `cis` column in samplesheet; ", length(cis_chroms),
+            " chroms x ", length(sample_ids), " samples) ...")
+    .compute_cis_from_hic(
+      hic_paths   = hic_paths,
+      sample_ids  = sample_ids,
+      chroms      = cis_chroms,
+      resolution  = resolution,
+      chrom_norms = chrom_norm_per_sample,
+      BPPARAM     = BPPARAM
+    )
   } else {
     numeric(0)
   }
+
+  cis_source_tag <- if (!is.null(user_cis)) "user_provided"
+                    else if (compute_cis) "computed_from_hic"
+                    else "not_provided"
 
   meta <- list(
     resolution         = resolution,
     min_samples        = min_samples,
     n_trans_dropped    = sum(n_trans_per_sample),
     n_trans_per_sample = setNames(n_trans_per_sample, sample_ids),
-    cis_source         = if (is.null(user_cis)) "not_provided" else "user_provided",
+    cis_source         = cis_source_tag,
+    cis_chroms_in      = if (length(cis_vec) > 0L) cis_chroms else character(0),
     normalization      = "NONE",
     hic_paths          = setNames(hic_paths, sample_ids)
   )
@@ -162,4 +202,36 @@ loopQTL_setup <- function(samples,
              meta       = meta)
   methods::validObject(obj)
   obj
+}
+
+# Internal: compute per-sample cis depth by summing all straw counts across
+# the given chroms. Returns a named numeric vector (one entry per sample).
+# Parallel unit of work: one (sample, chrom) straw pull + sum.
+.compute_cis_from_hic <- function(hic_paths, sample_ids, chroms,
+                                   resolution, chrom_norms,
+                                   BPPARAM = BiocParallel::SerialParam()) {
+  grid <- expand.grid(sample_i = seq_along(sample_ids),
+                      chrom    = chroms,
+                      stringsAsFactors = FALSE,
+                      KEEP.OUT.ATTRS = FALSE)
+
+  one <- function(k) {
+    si  <- grid$sample_i[k]
+    chr <- grid$chrom[k]
+    chr_in_hic <- chrom_norms[[si]](chr)
+    dat <- tryCatch(
+      strawr::straw("NONE", hic_paths[si], chr_in_hic, chr_in_hic,
+                    "BP", resolution),
+      error = function(e) NULL
+    )
+    if (is.null(dat) || nrow(dat) == 0L) return(0)
+    sum(as.numeric(dat$counts))
+  }
+
+  results <- BiocParallel::bplapply(seq_len(nrow(grid)), one, BPPARAM = BPPARAM)
+  cis_vec <- setNames(numeric(length(sample_ids)), sample_ids)
+  for (k in seq_len(nrow(grid))) {
+    cis_vec[grid$sample_i[k]] <- cis_vec[grid$sample_i[k]] + results[[k]]
+  }
+  cis_vec
 }
