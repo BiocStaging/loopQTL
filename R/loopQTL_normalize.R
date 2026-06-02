@@ -125,12 +125,6 @@ loopQTL_normalize <- function(obj,
       dat
     })
 
-    # 1b. Per-sample cis contribution from this chrom (sum of raw counts).
-    # Computed here as a side-effect of the straw pulls we're already doing.
-    chrom_cis <- vapply(sparse_list,
-                        function(d) sum(as.numeric(d$counts)),
-                        numeric(1L))
-
     # 2. Method-specific normalization
     if (method == "multiHiCcompare") {
       norm_vals <- .normalize_multiHiCcompare(sparse_list, chr, span)
@@ -159,7 +153,7 @@ loopQTL_normalize <- function(obj,
       vals[is.na(vals)] <- 0
       chrom_mat[, j] <- vals
     }
-    list(rows = rows, mat = chrom_mat, cis = chrom_cis)
+    list(rows = rows, mat = chrom_mat)
   }
 
   chrom_results <- BiocParallel::bplapply(chroms_to_run, per_chr_worker, BPPARAM = BPPARAM)
@@ -171,22 +165,15 @@ loopQTL_normalize <- function(obj,
   pheno <- matrix(NA_real_, nrow = length(loops_gi), ncol = length(samples_vec),
                   dimnames = list(NULL, samples_vec))
   processed_rows <- integer(0)
-  cis_accum <- setNames(numeric(length(samples_vec)), samples_vec)
   for (r in chrom_results) {
     pheno[r$rows, ] <- r$mat
     processed_rows <- c(processed_rows, r$rows)
-    cis_accum <- cis_accum + r$cis
   }
 
-  # Record cis only if the user did not supply it at setup.
-  # If user provided cis (obj@meta$cis_source == "user_provided"), leave it
-  # alone — their value is genome-wide and authoritative.
-  user_provided_cis <- isTRUE(identical(obj@meta$cis_source, "user_provided"))
-  if (!user_provided_cis) {
-    obj@cis <- cis_accum
-    obj@meta$cis_source     <- "computed_from_hic"
-    obj@meta$cis_chroms_in  <- chroms_to_run
-  }
+  # cis is set authoritatively at setup time (either from samplesheet or via
+  # the auto-compute pass) and is genome-wide. Normalize does NOT touch it —
+  # touching it from per-chrom array tasks would overwrite the genome-wide
+  # value with a per-chrom partial.
 
   # No RINT here — that's run_QTL()'s job (so obj@phenotype always stores the
   # pre-RINT BNBC/fastlo output, available for QC/comparison).

@@ -90,29 +90,20 @@ loopQTL_combine_normalized <- function(..., paths = NULL) {
 
   base@phenotype <- pheno
 
-  # ---- Merge cis ----
-  # If any input flags user_provided, take that one as-is (genome-wide,
-  # authoritative; all user_provided inputs should be identical anyway).
-  # Otherwise sum per-chrom contributions across inputs.
-  cis_sources <- vapply(objs,
-                        function(o) as.character(o@meta$cis_source %||% NA_character_),
-                        character(1L))
-  user_inputs <- which(cis_sources == "user_provided")
-  if (length(user_inputs) > 0L) {
-    base@cis <- objs[[user_inputs[1L]]]@cis
-    base@meta$cis_source <- "user_provided"
-  } else if (all(cis_sources == "computed_from_hic", na.rm = TRUE) &&
-             all(vapply(objs, function(o) length(o@cis) == n_samples, logical(1L)))) {
-    cis_sum <- setNames(numeric(n_samples), base@samples)
-    for (o in objs) cis_sum <- cis_sum + o@cis
-    base@cis <- cis_sum
-    base@meta$cis_source <- "computed_from_hic"
-    base@meta$cis_chroms_in <- Reduce(union,
-      lapply(objs, function(o) o@meta$cis_chroms_in %||% character(0)))
-  } else {
-    # Mixed / partial — leave whatever object 1 had and warn.
-    warning("Could not merge cis cleanly across inputs (mixed sources or ",
-            "incomplete cis vectors); object 1's cis preserved as-is")
+  # ---- cis sanity check ----
+  # cis is set at setup time (genome-wide) and identical across all per-chrom
+  # array tasks because they all inherited from the same setup .rda. Just
+  # take base's cis and warn if any input disagrees — a mismatch would mean
+  # the inputs came from different setup runs and probably shouldn't be
+  # combined.
+  for (k in seq_along(objs)[-1L]) {
+    if (!isTRUE(all.equal(objs[[k]]@cis, base@cis,
+                          check.attributes = FALSE,
+                          tolerance = 1e-9))) {
+      warning("Object ", k, " has different `cis` from object 1; ",
+              "they may have come from different loopQTL_setup() runs. ",
+              "Object 1's cis is kept; check obj@cis after combining.")
+    }
   }
 
   # Merge other meta
