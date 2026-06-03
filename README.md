@@ -8,8 +8,12 @@ Unlike peak-centric, window-scan tools (e.g. QTLtools), `loopQTL` only tests SNP
 
 ```
 loopQTL_setup()    -> validates VCF + .hic headers, reads loop BEDPEs,
-                      builds bin-matched consensus loops. No contact extraction
-                      (fast; iterate on the samplesheet freely).
+                      builds exact-coordinate consensus loops (loops are
+                      merged only when both anchors' raw BEDPE extents
+                      match exactly; resolution is used downstream for
+                      contact indexing, not for consensus matching).
+                      No contact extraction (fast; iterate on the
+                      samplesheet freely).
 loopQTL_normalize() -> per-chrom whole-genome straw pull (parallel),
                       multiHiCcompare fastlo() or BNBC band-wise
                       quantile normalization, extract at consensus loops,

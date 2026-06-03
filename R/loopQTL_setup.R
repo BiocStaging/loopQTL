@@ -1,10 +1,13 @@
 #' Set up a loopQTL analysis
 #'
-#' Builds the bin-matched consensus loop set, validates per-sample `.hic`
+#' Builds the exact-coordinate consensus loop set, validates per-sample `.hic`
 #' metadata and the VCF header, and records the per-sample `.hic` paths
-#' needed by [loopQTL_normalize()]. When the samplesheet does not provide a
-#' `cis` column, per-sample cis depth is unconditionally auto-computed from
-#' the `.hic` files via a one-pass straw aggregation (sums of counts per
+#' needed by [loopQTL_normalize()]. Loops match across samples only if their
+#' anchor coordinates (chr, startA, endA, startB, endB) are identical after
+#' canonicalizing anchor order; there is no tolerance or binning at the
+#' matching step. When the samplesheet does not provide a `cis` column,
+#' per-sample cis depth is unconditionally auto-computed from the `.hic`
+#' files via a one-pass straw aggregation (sums of counts per
 #' `(sample, chrom)`, no consensus indexing) — needed by the BNBC logCPM
 #' step downstream. If you precompute `cis` per sample yourself (e.g. from
 #' a Hi-C QC report) and put it in the samplesheet, that value is used
@@ -14,7 +17,10 @@
 #'   `cis` column: if present, those values become `obj@cis` directly. If
 #'   absent, cis is summed from the `.hic` files here at setup time.
 #' @param vcf Path to a bgzipped + tabix-indexed multi-sample VCF.
-#' @param resolution Analysis bin size in bp (must exist in every .hic).
+#' @param resolution Analysis bin size in bp (must exist in every .hic). Used
+#'   ONLY for downstream straw extraction (normalize) and cis aggregation;
+#'   it is NOT used for consensus loop matching, which is now exact on raw
+#'   anchor coordinates.
 #' @param min_samples Keep consensus loops appearing in at least this many
 #'   samples (default 2).
 #' @param BPPARAM A [BiocParallel::BiocParallelParam] that parallelizes the
@@ -94,54 +100,76 @@ loopQTL_setup <- function(samples,
   per_sample_loops <- lapply(per_sample_loops,
                              function(d) d[d$chrA == d$chrB, , drop = FALSE])
 
-  # ---- Bin both anchors at `resolution`, build consensus ----
-  bin_pairs <- vector("list", length(per_sample_loops))
+  # ---- Exact-coordinate consensus on raw anchor extents ----
+  # Match key per loop is the 6-tuple (chr, startA, endA, startB, endB) after
+  # canonicalizing anchor order so anchor A is upstream of anchor B (by start).
+  # No binning is applied at the matching step.
+  anchor_pairs <- vector("list", length(per_sample_loops))
   for (i in seq_along(per_sample_loops)) {
     d <- per_sample_loops[[i]]
     if (nrow(d) == 0L) {
-      bin_pairs[[i]] <- data.frame(chr = character(0),
-                                   binA = integer(0), binB = integer(0),
-                                   stringsAsFactors = FALSE)
+      anchor_pairs[[i]] <- data.frame(chr    = character(0),
+                                      startA = integer(0), endA = integer(0),
+                                      startB = integer(0), endB = integer(0),
+                                      stringsAsFactors = FALSE)
       next
     }
-    bA <- .bin_anchor(d$startA, d$endA, resolution)
-    bB <- .bin_anchor(d$startB, d$endB, resolution)
-    swap <- bA > bB
-    a_lo <- ifelse(swap, bB, bA)
-    a_hi <- ifelse(swap, bA, bB)
-    bin_pairs[[i]] <- unique(data.frame(
-      chr  = d$chrA,
-      binA = a_lo,
-      binB = a_hi,
+    swap   <- d$startA > d$startB
+    lo     <- ifelse(swap, d$startB, d$startA)
+    lo_end <- ifelse(swap, d$endB,   d$endA)
+    hi     <- ifelse(swap, d$startA, d$startB)
+    hi_end <- ifelse(swap, d$endA,   d$endB)
+    anchor_pairs[[i]] <- unique(data.frame(
+      chr    = d$chrA,
+      startA = as.integer(lo),
+      endA   = as.integer(lo_end),
+      startB = as.integer(hi),
+      endB   = as.integer(hi_end),
       stringsAsFactors = FALSE
     ))
   }
 
-  all_pairs <- do.call(rbind, bin_pairs)
-  all_pairs$key <- paste(all_pairs$chr, all_pairs$binA, all_pairs$binB, sep = ":")
+  all_pairs <- do.call(rbind, anchor_pairs)
+  all_pairs$key <- paste(all_pairs$chr,
+                         all_pairs$startA, all_pairs$endA,
+                         all_pairs$startB, all_pairs$endB,
+                         sep = ":")
   pair_counts <- table(all_pairs$key)
   keep_keys <- names(pair_counts)[pair_counts >= min_samples]
   if (length(keep_keys) == 0L)
     stop("No consensus loops survived min_samples = ", min_samples)
 
   uniq <- unique(all_pairs[all_pairs$key %in% keep_keys,
-                            c("chr","binA","binB","key"), drop = FALSE])
-  ord <- order(uniq$chr, uniq$binA, uniq$binB)
+                            c("chr","startA","endA","startB","endB","key"),
+                            drop = FALSE])
+  ord <- order(uniq$chr, uniq$startA, uniq$endA, uniq$startB, uniq$endB)
   uniq <- uniq[ord, , drop = FALSE]
   rownames(uniq) <- NULL
 
+  # Diagnostic: do any consensus loops collide into the same (binA, binB)
+  # at the requested resolution? They will produce identical phenotype values
+  # downstream because straw extraction is bin-based.
+  diag_binA <- .bin_anchor(uniq$startA, uniq$endA, resolution)
+  diag_binB <- .bin_anchor(uniq$startB, uniq$endB, resolution)
+  diag_key  <- paste(uniq$chr, diag_binA, diag_binB, sep = ":")
+  diag_counts <- table(diag_key)
+  n_collide <- sum(diag_counts[diag_counts > 1L])
+  if (n_collide > 0L)
+    message("Note: ", n_collide, " consensus loops share their containing ",
+            "(binA, binB) at the requested resolution and will produce ",
+            "identical phenotype values.")
+
   loop_id <- sprintf("L%07d_%s_%d_%d",
-                     seq_len(nrow(uniq)), uniq$chr, uniq$binA, uniq$binB)
+                     seq_len(nrow(uniq)), uniq$chr,
+                     uniq$startA, uniq$startB)
 
   anchorA <- GenomicRanges::GRanges(
     seqnames = uniq$chr,
-    ranges   = IRanges::IRanges(start = uniq$binA + 1L,
-                                end   = uniq$binA + resolution)
+    ranges   = IRanges::IRanges(start = uniq$startA, end = uniq$endA)
   )
   anchorB <- GenomicRanges::GRanges(
     seqnames = uniq$chr,
-    ranges   = IRanges::IRanges(start = uniq$binB + 1L,
-                                end   = uniq$binB + resolution)
+    ranges   = IRanges::IRanges(start = uniq$startB, end = uniq$endB)
   )
   gi <- InteractionSet::GInteractions(anchorA, anchorB)
   S4Vectors::mcols(gi)$loop_id <- loop_id

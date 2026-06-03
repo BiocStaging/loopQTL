@@ -81,8 +81,13 @@ loopQTL_normalize <- function(obj,
   anchorA <- InteractionSet::anchors(loops_gi, type = "first")
   anchorB <- InteractionSet::anchors(loops_gi, type = "second")
   loop_chr  <- as.character(GenomicRanges::seqnames(anchorA))
-  loop_binA <- GenomicRanges::start(anchorA) - 1L   # 0-based bin start, matches straw
-  loop_binB <- GenomicRanges::start(anchorB) - 1L
+  # Floor each anchor's midpoint to the bin containing it — straw returns
+  # bin-based contacts, so we look up at bin granularity even when the consensus
+  # key is exact-coord.
+  loop_binA <- .bin_anchor(GenomicRanges::start(anchorA),
+                           GenomicRanges::end(anchorA), resolution)
+  loop_binB <- .bin_anchor(GenomicRanges::start(anchorB),
+                           GenomicRanges::end(anchorB), resolution)
   swap <- loop_binA > loop_binB
   if (any(swap)) {
     tmp <- loop_binA[swap]; loop_binA[swap] <- loop_binB[swap]; loop_binB[swap] <- tmp
