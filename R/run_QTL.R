@@ -26,9 +26,11 @@
 #' @param pvOutputThreshold MatrixEQTL p-value threshold. Default 1 (return
 #'   every pair). Lower it to shrink the output for very large runs.
 #'
-#' @return data.frame with one row per tested (loop, SNP) pair: `loop_id`,
-#'   `snp_id`, `chrom`, `pos`, `ref`, `alt`, `anchor`, `beta`, `se`, `t`, `p`,
-#'   `FDR_cis`, `n_used`, `maf`.
+#' @return The input `obj` with `obj@results` filled — a data.frame with one
+#'   row per tested (loop, SNP) pair: `loop_id`, `snp_id`, `chrom`, `pos`,
+#'   `ref`, `alt`, `anchor`, `beta`, `se`, `t`, `p`, `FDR_cis`, `n_used`,
+#'   `maf`. Access via `obj@results`. The wrapper `loopQTL_pair_data()` and
+#'   `loopQTL_plot_pair()` consume this slot directly.
 #'
 #' @export
 run_QTL <- function(obj,
@@ -72,6 +74,12 @@ run_QTL <- function(obj,
   }
   read_targets <- GenomicRanges::reduce(c(pad(anchorA), pad(anchorB)))
 
+  # tiny helper to short-circuit: write empty result table and return obj
+  .return_empty <- function() {
+    obj@results <- .empty_qtl_result()
+    obj
+  }
+
   # Detect VCF chrom naming style and rewrite the read targets to match
   tab <- Rsamtools::TabixFile(obj@vcf_path)
   vcf_chroms <- Rsamtools::headerTabix(tab)$seqnames
@@ -80,7 +88,7 @@ run_QTL <- function(obj,
   vcf_norm <- .make_chrom_normalizer(vcf_chroms)
   rt_chroms_vcf <- vcf_norm(as.character(GenomicRanges::seqnames(read_targets)))
   keep <- rt_chroms_vcf %in% vcf_chroms
-  if (!any(keep)) return(.empty_qtl_result())
+  if (!any(keep)) return(.return_empty())
   read_targets <- GenomicRanges::GRanges(
     seqnames = rt_chroms_vcf[keep],
     ranges   = IRanges::IRanges(
@@ -94,7 +102,7 @@ run_QTL <- function(obj,
     which = read_targets, geno = "GT", info = NA_character_
   )
   vcf <- VariantAnnotation::readVcf(obj@vcf_path, genome = "unknown", param = param)
-  if (length(vcf) == 0L) return(.empty_qtl_result())
+  if (length(vcf) == 0L) return(.return_empty())
 
   vcf_sample_names <- colnames(VariantAnnotation::geno(vcf)$GT)
   m <- match(samples_vec, vcf_sample_names)
@@ -123,7 +131,7 @@ run_QTL <- function(obj,
   af <- rowMeans(dosage, na.rm = TRUE) / 2
   maf_all <- pmin(af, 1 - af)
   snp_keep <- is.finite(maf_all) & maf_all > 0
-  if (!any(snp_keep)) return(.empty_qtl_result())
+  if (!any(snp_keep)) return(.return_empty())
   dosage     <- dosage[snp_keep, , drop = FALSE]
   snp_id     <- snp_id_raw[snp_keep]
   snp_chrom_vcf <- snp_chrom_vcf[snp_keep]
@@ -201,7 +209,10 @@ run_QTL <- function(obj,
 
   # Merge on (loop_id = gene, snp_id = snps); label anchor A / B / both.
   merged <- .merge_anchor_runs(out_A, out_B)
-  if (nrow(merged) == 0L) return(.empty_qtl_result())
+  if (nrow(merged) == 0L) {
+    obj@results <- .empty_qtl_result()
+    return(obj)
+  }
 
   # Attach SNP metadata + MAF
   snp_meta <- data.frame(
@@ -216,7 +227,10 @@ run_QTL <- function(obj,
   out <- out[, c("loop_id", "snp_id", "chrom", "pos", "ref", "alt", "anchor",
                  "beta", "se", "t", "p", "FDR_cis", "n_used", "maf")]
   rownames(out) <- NULL
-  out
+
+  # Write to slot and return the obj instead of the raw data.frame.
+  obj@results <- out
+  obj
 }
 
 # -------------------------------------------------------------------------- #

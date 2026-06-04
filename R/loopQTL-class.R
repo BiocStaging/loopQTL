@@ -13,6 +13,12 @@
 #' @slot resolution Analysis bin size (bp).
 #' @slot phenotype Model-ready phenotype (loops x samples) after normalize();
 #'   length-0 matrix before normalization.
+#' @slot results QTL result table written by `run_QTL()`. Empty data.frame
+#'   before `run_QTL()` runs. Carries one row per tested (loop, SNP) pair
+#'   with columns `loop_id`, `snp_id`, `chrom`, `pos`, `ref`, `alt`,
+#'   `anchor`, `beta`, `se`, `t`, `p`, `FDR_cis`, `n_used`, `maf`. After
+#'   `loopQTL_annotate()`, also carries `gene`, `peak` (if peak supplied),
+#'   and `Type`.
 #' @slot meta Free-form run metadata (counts of dropped loops, zero-var rows, ...).
 #'
 #' @name loopQTL-class
@@ -28,6 +34,7 @@ setClass(
     vcf_path   = "character",
     resolution = "integer",
     phenotype  = "matrix",
+    results    = "data.frame",
     meta       = "list"
   ),
   prototype(
@@ -37,6 +44,7 @@ setClass(
     vcf_path   = NA_character_,
     resolution = NA_integer_,
     phenotype  = matrix(numeric(0), 0, 0),
+    results    = data.frame(),
     meta       = list()
   )
 )
@@ -97,6 +105,10 @@ setMethod("show", "loopQTL", function(object) {
   cat("  phenotype :",
       if (length(object@phenotype) > 0L)
         paste(nrow(object@phenotype), "x", ncol(object@phenotype))
+      else "not yet computed", "\n")
+  cat("  results   :",
+      if (nrow(object@results) > 0L)
+        paste(nrow(object@results), "(loop, SNP) tests")
       else "not yet computed", "\n")
   if (length(object@meta) > 0L) {
     cat("  meta      :\n")

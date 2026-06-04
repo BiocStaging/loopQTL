@@ -34,7 +34,9 @@ Imports:
     Rsamtools,
     SummarizedExperiment,
     BiocParallel,
-    data.table
+    data.table,
+    ggplot2,
+    rtracklayer
 Suggests:
     testthat (>= 3.0.0),
     knitr,
