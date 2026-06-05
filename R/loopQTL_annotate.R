@@ -121,11 +121,29 @@ loopQTL_annotate <- function(obj,
   message("[", format(Sys.time()), "] ", length(tss_regions),
           " gene TSS regions (±", TSS_window, " bp)")
 
-  # ---- 2. Optional: read peaks, filter by TSS if remove_TSS ----
+  # ---- 2. Chrom-naming normalizer for THIS GTF -------------------------
+  # GTF may use "chr1" (GENCODE) or "1" (Ensembl); loop anchors may use
+  # either depending on the BEDPE caller (Mustache uses "1"). Build a
+  # function that converts any chrom string to whatever the GTF uses.
+  gtf_chroms <- unique(as.character(GenomicRanges::seqnames(tss_regions)))
+  gtf_uses_chr <- any(grepl("^chr", gtf_chroms))
+  normalize_chrom <- function(x) {
+    x <- as.character(x)
+    if (gtf_uses_chr) ifelse(grepl("^chr", x), x, paste0("chr", x))
+    else              sub("^chr", "", x)
+  }
+
+  # ---- 3. Optional: read peaks, filter by TSS if remove_TSS ----
   peaks_gr <- NULL
   if (!is.null(peak)) {
     message("[", format(Sys.time()), "] reading peaks: ", peak)
     peaks_gr <- rtracklayer::import(peak)
+    # Normalize peak chroms to GTF style so overlap actually works.
+    peak_chroms_norm <- normalize_chrom(GenomicRanges::seqnames(peaks_gr))
+    peaks_gr <- GenomicRanges::GRanges(
+      seqnames = peak_chroms_norm,
+      ranges   = IRanges::ranges(peaks_gr)
+    )
     if (isTRUE(remove_TSS)) {
       hits <- GenomicRanges::findOverlaps(peaks_gr, tss_regions)
       peaks_in_tss <- unique(S4Vectors::queryHits(hits))
@@ -139,7 +157,11 @@ loopQTL_annotate <- function(obj,
     }
   }
 
-  # ---- 3. Per-loop gene lists at anchor A and anchor B ----
+  # ---- 4. Per-loop gene lists at anchor A and anchor B ----
+  # Critical: normalize anchor seqnames to the GTF's convention BEFORE
+  # findOverlaps. Without this, anchor seqnames like "1" silently fail to
+  # match TSS seqnames like "chr1", producing zero gene assignments. (This
+  # was the cause of the original "no rs-gene at all" bug.)
   loops_gi <- obj@loops
   loop_ids_all <- S4Vectors::mcols(loops_gi)$loop_id
   anchorA <- InteractionSet::anchors(loops_gi, type = "first")
@@ -147,7 +169,7 @@ loopQTL_annotate <- function(obj,
 
   pad_anchor <- function(gr) {
     GenomicRanges::GRanges(
-      seqnames = GenomicRanges::seqnames(gr),
+      seqnames = normalize_chrom(GenomicRanges::seqnames(gr)),
       ranges   = IRanges::IRanges(
         start = pmax(1L, GenomicRanges::start(gr) - anchor_window),
         end   = GenomicRanges::end(gr) + anchor_window
@@ -173,21 +195,13 @@ loopQTL_annotate <- function(obj,
   genes_at_A <- build_gene_lists(padded_A)
   genes_at_B <- build_gene_lists(padded_B)
 
-  # ---- 4. Per-row annotation in obj@results ----
+  # ---- 5. Per-row annotation in obj@results ----
   res <- obj@results
   loop_idx <- match(res$loop_id, loop_ids_all)
 
-  # SNP GRanges (one bp per SNP). Match chrom naming to GTF if it differs.
-  # Heuristic: if any GTF seqlevel starts with "chr" and res$chrom does not,
-  # prepend; and vice versa.
-  gtf_chroms <- unique(as.character(GenomicRanges::seqnames(tss_regions)))
-  snp_chrom_norm <- if (any(grepl("^chr", gtf_chroms))) {
-    ifelse(grepl("^chr", res$chrom), res$chrom, paste0("chr", res$chrom))
-  } else {
-    sub("^chr", "", res$chrom)
-  }
+  # SNP GRanges (1 bp per SNP), with chrom normalized to GTF convention.
   snp_gr <- GenomicRanges::GRanges(
-    seqnames = snp_chrom_norm,
+    seqnames = normalize_chrom(res$chrom),
     ranges   = IRanges::IRanges(start = res$pos, end = res$pos)
   )
 
