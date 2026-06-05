@@ -23,13 +23,6 @@ test_that(".rint matches Blom offset and handles constants", {
   expect_true(all(is.na(loopQTL:::.rint(rep(7, 4)))))
 })
 
-test_that(".chr_to_int handles common cases", {
-  expect_equal(loopQTL:::.chr_to_int("chr1"), 1L)
-  expect_equal(loopQTL:::.chr_to_int("22"), 22L)
-  expect_equal(loopQTL:::.chr_to_int("chrX"), 23L)
-  expect_equal(loopQTL:::.chr_to_int("Y"), 24L)
-})
-
 test_that(".gt_to_dosage handles phased/unphased and missing", {
   gt <- matrix(c("0/0", "0|1", "1/1",
                  "./.", "."  , "0/2"),

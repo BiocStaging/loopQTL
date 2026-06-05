@@ -29,3 +29,6 @@ importFrom(BiocParallel, bplapply, SerialParam, bpparam)
 importFrom(data.table, data.table, setnames, setkey, ":=", as.data.table)
 
 importFrom(preprocessCore, normalize.quantiles)
+
+importFrom(DESeq2, estimateSizeFactorsForMatrix)
+importFrom(mariner, mergePairs, clusters)

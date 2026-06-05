@@ -1,17 +1,23 @@
 #' Set up a loopQTL analysis
 #'
-#' Builds the exact-coordinate consensus loop set, validates per-sample `.hic`
+#' Builds the consensus loop set via [mariner::mergePairs()] (Manhattan-radius
+#' clustering of per-sample BEDPE calls; clusters supported by at least
+#' `min_samples` distinct samples are retained), validates per-sample `.hic`
 #' metadata and the VCF header, and records the per-sample `.hic` paths
-#' needed by [loopQTL_normalize()]. Loops match across samples only if their
-#' anchor coordinates (chr, startA, endA, startB, endB) are identical after
-#' canonicalizing anchor order; there is no tolerance or binning at the
-#' matching step. When the samplesheet does not provide a `cis` column,
-#' per-sample cis depth is unconditionally auto-computed from the `.hic`
-#' files via a one-pass straw aggregation (sums of counts per
-#' `(sample, chrom)`, no consensus indexing) — needed by the BNBC logCPM
-#' step downstream. If you precompute `cis` per sample yourself (e.g. from
-#' a Hi-C QC report) and put it in the samplesheet, that value is used
-#' as-is and the .hic pass is skipped.
+#' needed by [loopQTL_normalize()].
+#'
+#' The mariner step is jitter-tolerant: calls within `radius` (default
+#' `2 * resolution`) of each other across samples are collapsed into one
+#' consensus loop, fixing the "same loop, neighbouring pixel" artifact
+#' that breaks naive exact-coord matching.
+#'
+#' When the samplesheet does not provide a `cis` column, per-sample cis
+#' depth is unconditionally auto-computed from the `.hic` files via a
+#' one-pass straw aggregation (sums of counts per `(sample, chrom)`, no
+#' consensus indexing) — needed by the BNBC logCPM step downstream. If you
+#' precompute `cis` per sample yourself (e.g. from a Hi-C QC report) and
+#' put it in the samplesheet, that value is used as-is and the .hic pass
+#' is skipped.
 #'
 #' @param samples data.frame with columns `Sample`, `hic`, `loops`. Optional
 #'   `cis` column: if present, those values become `obj@cis` directly. If
@@ -21,21 +27,26 @@
 #'   ONLY for downstream straw extraction (normalize) and cis aggregation;
 #'   it is NOT used for consensus loop matching, which is now exact on raw
 #'   anchor coordinates.
-#' @param min_samples Keep consensus loops appearing in at least this many
-#'   samples (default 2).
+#' @param min_samples Keep consensus loops supported by at least this many
+#'   distinct samples (default 2). Counting happens AFTER mergePairs (each
+#'   cluster's "support" is the number of distinct samples whose calls fell
+#'   into that cluster).
+#' @param radius Manhattan radius (bp) passed to [mariner::mergePairs()].
+#'   Default `2 * resolution` (e.g. 20 kb for 10 kb loops), matching
+#'   standard Hi-C jitter tolerance.
 #' @param BPPARAM A [BiocParallel::BiocParallelParam] that parallelizes the
 #'   cis-computing straw pulls. Default [BiocParallel::SerialParam()].
 #'
 #' @return A [loopQTL-class] object with `samples`, `loops`, `vcf_path`,
 #'   `resolution`, `cis` (if provided or computed), and `meta` populated.
-#'   `contacts` and `phenotype` are empty placeholders until normalize fills
-#'   `phenotype`.
+#'   `phenotype` is an empty placeholder until normalize fills it.
 #'
 #' @export
 loopQTL_setup <- function(samples,
                           vcf,
                           resolution,
                           min_samples = 2L,
+                          radius      = NULL,
                           BPPARAM     = BiocParallel::SerialParam()) {
 
   stopifnot(
@@ -47,6 +58,11 @@ loopQTL_setup <- function(samples,
   )
   resolution  <- as.integer(resolution)
   min_samples <- as.integer(min_samples)
+  if (is.null(radius)) radius <- 2L * resolution
+  radius <- as.integer(radius)
+  if (!requireNamespace("mariner", quietly = TRUE))
+    stop("mariner is required for loopQTL_setup(); install via ",
+         "BiocManager::install('mariner').")
 
   sample_ids <- as.character(samples$Sample)
   if (anyDuplicated(sample_ids))
@@ -100,82 +116,79 @@ loopQTL_setup <- function(samples,
   per_sample_loops <- lapply(per_sample_loops,
                              function(d) d[d$chrA == d$chrB, , drop = FALSE])
 
-  # ---- Exact-coordinate consensus on raw anchor extents ----
-  # Match key per loop is the 6-tuple (chr, startA, endA, startB, endB) after
-  # canonicalizing anchor order so anchor A is upstream of anchor B (by start).
-  # No binning is applied at the matching step.
-  anchor_pairs <- vector("list", length(per_sample_loops))
-  for (i in seq_along(per_sample_loops)) {
-    d <- per_sample_loops[[i]]
-    if (nrow(d) == 0L) {
-      anchor_pairs[[i]] <- data.frame(chr    = character(0),
-                                      startA = integer(0), endA = integer(0),
-                                      startB = integer(0), endB = integer(0),
-                                      stringsAsFactors = FALSE)
-      next
+  # ---- Build per-sample GInteractions and merge with mariner::mergePairs ----
+  # mergePairs clusters near-duplicate calls within `radius` (Manhattan) across
+  # samples, fixing the "same loop, neighbouring pixel" jitter. Each cluster's
+  # support = number of distinct samples whose calls fell into it; clusters
+  # with support >= min_samples are kept as consensus loops.
+  build_per_sample_gi <- function(d) {
+    if (nrow(d) == 0L)
+      return(InteractionSet::GInteractions(
+        GenomicRanges::GRanges(), GenomicRanges::GRanges()))
+    swap <- d$startA > d$startB
+    if (any(swap)) {
+      ts <- d$startA[swap]; te <- d$endA[swap]
+      d$startA[swap] <- d$startB[swap]; d$endA[swap] <- d$endB[swap]
+      d$startB[swap] <- ts; d$endB[swap] <- te
     }
-    swap   <- d$startA > d$startB
-    lo     <- ifelse(swap, d$startB, d$startA)
-    lo_end <- ifelse(swap, d$endB,   d$endA)
-    hi     <- ifelse(swap, d$startA, d$startB)
-    hi_end <- ifelse(swap, d$endA,   d$endB)
-    anchor_pairs[[i]] <- unique(data.frame(
-      chr    = d$chrA,
-      startA = as.integer(lo),
-      endA   = as.integer(lo_end),
-      startB = as.integer(hi),
-      endB   = as.integer(hi_end),
-      stringsAsFactors = FALSE
-    ))
+    InteractionSet::GInteractions(
+      GenomicRanges::GRanges(d$chrA,
+                             IRanges::IRanges(d$startA + 1L, d$endA)),
+      GenomicRanges::GRanges(d$chrB,
+                             IRanges::IRanges(d$startB + 1L, d$endB))
+    )
   }
+  per_sample_gi <- lapply(per_sample_loops, build_per_sample_gi)
+  names(per_sample_gi) <- sample_ids
 
-  all_pairs <- do.call(rbind, anchor_pairs)
-  all_pairs$key <- paste(all_pairs$chr,
-                         all_pairs$startA, all_pairs$endA,
-                         all_pairs$startB, all_pairs$endB,
-                         sep = ":")
-  pair_counts <- table(all_pairs$key)
-  keep_keys <- names(pair_counts)[pair_counts >= min_samples]
-  if (length(keep_keys) == 0L)
+  per_sample_n <- vapply(per_sample_gi, length, integer(1L))
+  if (sum(per_sample_n > 0L) < 2L)
+    stop("Need at least 2 samples with at least one intra-chrom loop call")
+  if (any(per_sample_n == 0L))
+    message("Dropping ", sum(per_sample_n == 0L),
+            " sample(s) with no usable loops: ",
+            paste(sample_ids[per_sample_n == 0L], collapse = ", "))
+
+  message("[", format(Sys.time()), "] mergePairs(radius = ", radius,
+          " bp, manhattan) across ", sum(per_sample_n > 0L), " samples ...")
+  mgi <- mariner::mergePairs(
+    x      = per_sample_gi[per_sample_n > 0L],
+    radius = radius,
+    method = "manhattan",
+    column = NULL
+  )
+
+  # Distinct-sample support per cluster
+  cl <- mariner::clusters(mgi)
+  if (length(cl) != length(mgi))
+    stop("Internal: mariner clusters() length mismatch")
+  n_samples_per_cluster <- vapply(cl,
+    function(d) length(unique(d$src)), integer(1L))
+
+  keep_cluster <- n_samples_per_cluster >= min_samples
+  message("[", format(Sys.time()), "] mergePairs returned ",
+          length(mgi), " clusters; ",
+          sum(keep_cluster),
+          " survive min_samples = ", min_samples)
+  if (!any(keep_cluster))
     stop("No consensus loops survived min_samples = ", min_samples)
 
-  uniq <- unique(all_pairs[all_pairs$key %in% keep_keys,
-                            c("chr","startA","endA","startB","endB","key"),
-                            drop = FALSE])
-  ord <- order(uniq$chr, uniq$startA, uniq$endA, uniq$startB, uniq$endB)
-  uniq <- uniq[ord, , drop = FALSE]
-  rownames(uniq) <- NULL
+  gi <- mgi[keep_cluster]
+  n_support <- n_samples_per_cluster[keep_cluster]
 
-  # Diagnostic: do any consensus loops collide into the same (binA, binB)
-  # at the requested resolution? They will produce identical phenotype values
-  # downstream because straw extraction is bin-based.
-  diag_binA <- .bin_anchor(uniq$startA, uniq$endA, resolution)
-  diag_binB <- .bin_anchor(uniq$startB, uniq$endB, resolution)
-  diag_key  <- paste(uniq$chr, diag_binA, diag_binB, sep = ":")
-  diag_counts <- table(diag_key)
-  n_collide <- sum(diag_counts[diag_counts > 1L])
-  if (n_collide > 0L)
-    message("Note: ", n_collide, " consensus loops share their containing ",
-            "(binA, binB) at the requested resolution and will produce ",
-            "identical phenotype values.")
-
+  # Stable loop_id from representative anchor coordinates
+  rep_A <- InteractionSet::anchors(gi, type = "first")
+  rep_B <- InteractionSet::anchors(gi, type = "second")
   loop_id <- sprintf("L%07d_%s_%d_%d",
-                     seq_len(nrow(uniq)), uniq$chr,
-                     uniq$startA, uniq$startB)
-
-  anchorA <- GenomicRanges::GRanges(
-    seqnames = uniq$chr,
-    ranges   = IRanges::IRanges(start = uniq$startA, end = uniq$endA)
-  )
-  anchorB <- GenomicRanges::GRanges(
-    seqnames = uniq$chr,
-    ranges   = IRanges::IRanges(start = uniq$startB, end = uniq$endB)
-  )
-  gi <- InteractionSet::GInteractions(anchorA, anchorB)
-  S4Vectors::mcols(gi)$loop_id <- loop_id
+                     seq_along(gi),
+                     as.character(GenomicRanges::seqnames(rep_A)),
+                     GenomicRanges::start(rep_A) - 1L,
+                     GenomicRanges::start(rep_B) - 1L)
+  S4Vectors::mcols(gi)$loop_id   <- loop_id
+  S4Vectors::mcols(gi)$n_samples <- n_support
 
   # ---- cis: user-supplied if provided, else auto-computed from .hic ----
-  cis_chroms <- unique(uniq$chr)   # chroms with consensus loops; defines the
+  cis_chroms <- unique(as.character(GenomicRanges::seqnames(rep_A)))   # chroms with consensus loops; defines the
                                    # set of chroms cis is summed over (consistent
                                    # with what normalize will process)
 
@@ -213,7 +226,6 @@ loopQTL_setup <- function(samples,
   obj <- new("loopQTL",
              samples    = sample_ids,
              loops      = gi,
-             contacts   = matrix(numeric(0), 0, 0),
              cis        = cis_vec,
              vcf_path   = vcf,
              resolution = resolution,

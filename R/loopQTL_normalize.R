@@ -1,54 +1,64 @@
-#' Normalize loopQTL contacts at whole-genome scale
+#' Normalize loopQTL contacts and write the per-loop phenotype matrix
 #'
-#' For each chromosome, pulls whole-genome `(x, y, counts)` from every .hic via
-#' `strawr::straw("NONE", ...)`, then normalizes across samples:
+#' Two normalization paths:
 #'
-#'  * `method = "multiHiCcompare"`: builds a per-chrom `hicexp` (groups all = 1)
-#'    and runs `multiHiCcompare::fastlo(...)`. `fastlo` is multiHiCcompare's
-#'    fast loess normalization, distinct from `cyclic_loess`. We do not use
-#'    the differential side of multiHiCcompare.
-#'  * `method = "BNBC"`: per-chrom log-transformed contact triplets,
-#'    band-wise quantile-normalized across samples via
-#'    `preprocessCore::normalize.quantiles()` (Bolstad et al. 2003), as in BNBC
-#'    (Fletez-Brant et al. 2021). logCPM depth normalization is always applied
-#'    before band-wise QN, following Fletez-Brant et al. 2021; this requires
-#'    `obj@cis` to be populated (the function errors otherwise). ComBat batch
-#'    correction is intentionally skipped. The sparse triplet data structure
-#'    is our own implementation; the `bnbc` Bioconductor package is not used
-#'    (its dense internals don't scale to 50+ samples at 10 kb).
+#'  * `method = "BNBC"` (default): for each chromosome, pulls whole-chrom
+#'    `(x, y, counts)` from every .hic via `strawr::straw("NONE", ...)`, applies
+#'    per-sample logCPM depth correction
+#'    (`log((count + 0.5) / libs + c_offset)`, requires `obj@cis`), then
+#'    band-wise quantile-normalizes each off-diagonal band across samples via
+#'    `preprocessCore::normalize.quantiles()` (Bolstad et al. 2003), following
+#'    Fletez-Brant et al. 2021. Normalized values are looked up at consensus
+#'    bin-pairs. Sparse triplet implementation; the `bnbc` Bioconductor
+#'    package is not used. Per-chromosome work is dispatched via
+#'    `BiocParallel`; supports per-chrom SLURM array tasks via the `chroms`
+#'    argument.
+#'  * `method = "DESeq2"`: pulls raw consensus contact counts at each loop's
+#'    bin-pair (much lighter than the BNBC whole-chrom pull), assembles a
+#'    `(loops x samples)` integer count matrix, applies DESeq2 size factors
+#'    (`estimateSizeFactorsForMatrix()`), divides, and applies `log2(x + 1)`.
+#'    Single-call (no per-chrom array workflow — size factors are computed
+#'    over the full count matrix). Recommended when BNBC's whole-genome cost
+#'    is prohibitive.
 #'
-#' Normalized values are indexed at the consensus loop bin-pairs to build the
-#' (loops x samples) phenotype matrix. **No RINT is applied here** — the
-#' phenotype slot stores the BNBC/fastlo output directly. RINT moved to
-#' `run_QTL()` (`normal` argument there) so the un-RINT'd matrix remains
-#' inspectable for QC.
-#'
-#' Per-chromosome work is dispatched via `BiocParallel`.
+#' **No RINT is applied here** — the phenotype slot stores normalize's output
+#' directly. RINT is applied just before regression in `run_QTL()`
+#' (`normal = TRUE` default).
 #'
 #' @param obj A [loopQTL-class] from [loopQTL_setup()].
-#' @param method Normalization method. Default `"multiHiCcompare"`.
-#' @param span Loess smoothing span passed to `multiHiCcompare::fastlo()`.
-#'   Default 0.7 (matches `fastlo`'s default).
-#' @param chroms Optional character vector of chromosome names to normalize.
-#'   Default `NULL` = all chromosomes present in `obj@loops`. When a subset is
-#'   passed, only those chroms' loop rows are filled in `obj@phenotype`; rows
-#'   for other chroms stay `NA`. Use this to split a large run across SLURM
-#'   array tasks (one chrom per task), then combine the per-chrom objects with
-#'   [loopQTL_combine_normalized()].
-#' @param BPPARAM A [BiocParallel::BiocParallelParam] for parallelization over
-#'   chromosomes. Default [BiocParallel::SerialParam()].
+#' @param method Normalization method. Default `"BNBC"`. The other choice is
+#'   `"DESeq2"`.
+#' @param span Loess smoothing span (unused; retained for backward-compat
+#'   argument compatibility).
+#' @param chroms (BNBC only) Optional character vector of chromosome names to
+#'   normalize. Default `NULL` = all chromosomes present in `obj@loops`. When
+#'   a subset is passed, only those chroms' loop rows are filled in
+#'   `obj@phenotype`; rows for other chroms stay `NA`. Use this to split a
+#'   large run across SLURM array tasks (one chrom per task), then combine
+#'   the per-chrom objects with [loopQTL_combine_normalized()]. Ignored for
+#'   `method = "DESeq2"` (single-call).
+#' @param BPPARAM A [BiocParallel::BiocParallelParam] for parallelization
+#'   over chromosomes (BNBC) or over `(sample, chrom)` extraction (DESeq2).
+#'   Default [BiocParallel::SerialParam()].
 #'
-#' @return The input object with `phenotype` filled (BNBC or fastlo output,
-#'   pre-RINT) and `meta$normalize_method` recorded.
+#' @return The input object with `phenotype` filled and
+#'   `meta$normalize_method` recorded.
 #'
 #' @export
 loopQTL_normalize <- function(obj,
-                              method        = c("multiHiCcompare", "BNBC"),
+                              method        = c("BNBC", "DESeq2"),
                               span          = 0.7,
                               chroms        = NULL,
                               BPPARAM       = BiocParallel::SerialParam()) {
   stopifnot(methods::is(obj, "loopQTL"))
   method <- match.arg(method)
+
+  # ---- DESeq2 path: single call, no per-chrom array workflow ----
+  if (method == "DESeq2") {
+    if (!is.null(chroms))
+      warning("`chroms` argument is ignored for method = 'DESeq2' (single-call).")
+    return(.normalize_DESeq2(obj, BPPARAM = BPPARAM))
+  }
 
   # ---- BNBC always applies logCPM depth correction, which requires cis ----
   if (method == "BNBC") {
@@ -130,20 +140,15 @@ loopQTL_normalize <- function(obj,
       dat
     })
 
-    # 2. Method-specific normalization
-    if (method == "multiHiCcompare") {
-      norm_vals <- .normalize_multiHiCcompare(sparse_list, chr, span)
-    } else {
-      # Filter BNBC emission to consensus (binA, binB) pairs on this chrom.
-      # QN math is still computed over the full band; only the final triplet
-      # emission is restricted, which keeps the dcast wide-pivot from
-      # blowing past R's integer.max on large chroms with many samples.
-      keep_pairs_chr <- cbind(loop_binA[rows], loop_binB[rows])
-      cis_arg <- obj@cis
-      norm_vals <- .normalize_BNBC(sparse_list, chr,
-                                   keep_pairs = keep_pairs_chr,
-                                   cis = cis_arg)
-    }
+    # 2. BNBC normalization. Filter emission to consensus (binA, binB) pairs
+    # on this chrom; QN math is still computed over the full band, only the
+    # final triplet emission is restricted, which keeps the dcast wide-pivot
+    # from blowing past R's integer.max on large chroms with many samples.
+    keep_pairs_chr <- cbind(loop_binA[rows], loop_binB[rows])
+    cis_arg <- obj@cis
+    norm_vals <- .normalize_BNBC(sparse_list, chr,
+                                 keep_pairs = keep_pairs_chr,
+                                 cis = cis_arg)
     # norm_vals: data.table(chr, region1, region2, IF_1, ..., IF_n)
 
     # 3. Index consensus loops on this chrom into the normalized table
@@ -191,56 +196,103 @@ loopQTL_normalize <- function(obj,
 }
 
 # -------------------------------------------------------------------------- #
-# Internal: multiHiCcompare cyclic loess (fast) for one chrom across samples
+# Internal: DESeq2 normalization on the consensus loop count matrix.
+# Pulls raw counts per (sample, chrom) at consensus bin-pairs only (much
+# lighter than the BNBC whole-chrom pull), assembles a (loops x samples)
+# integer count matrix, applies DESeq2 size factors, then log2(x + 1).
 # -------------------------------------------------------------------------- #
-.normalize_multiHiCcompare <- function(sparse_list, chr, span) {
-  n_samples <- length(sparse_list)
-  # multiHiCcompare expects data.frames with columns: chr (int or chr), region1, region2, IF
-  dl <- lapply(sparse_list, function(d) {
-    if (nrow(d) == 0L) {
-      return(data.frame(chr = integer(0),
-                        region1 = integer(0),
-                        region2 = integer(0),
-                        IF = numeric(0)))
-    }
-    data.frame(
-      chr     = .chr_to_int(chr),
-      region1 = as.integer(d$x),
-      region2 = as.integer(d$y),
-      IF      = as.numeric(d$counts)
-    )
-  })
+.normalize_DESeq2 <- function(obj, BPPARAM = BiocParallel::SerialParam()) {
+  if (!requireNamespace("DESeq2", quietly = TRUE))
+    stop("DESeq2 is required for method = 'DESeq2'; install via ",
+         "BiocManager::install('DESeq2').")
+  if (is.null(obj@meta$hic_paths))
+    stop("obj@meta$hic_paths missing; loopQTL_setup must record .hic paths")
 
-  # If every sample is empty for this chrom, return an empty merged table
-  if (all(vapply(dl, nrow, integer(1L)) == 0L)) {
-    out <- data.table::data.table(
-      chr = character(0), region1 = integer(0), region2 = integer(0)
-    )
-    for (j in seq_len(n_samples))
-      out[[paste0("IF_", j)]] <- numeric(0)
-    return(out)
+  samples_vec <- obj@samples
+  hic_paths   <- obj@meta$hic_paths
+  resolution  <- obj@resolution
+  loops_gi    <- obj@loops
+
+  anchorA <- InteractionSet::anchors(loops_gi, type = "first")
+  anchorB <- InteractionSet::anchors(loops_gi, type = "second")
+  loop_chr  <- as.character(GenomicRanges::seqnames(anchorA))
+  loop_binA <- .bin_anchor(GenomicRanges::start(anchorA),
+                           GenomicRanges::end(anchorA), resolution)
+  loop_binB <- .bin_anchor(GenomicRanges::start(anchorB),
+                           GenomicRanges::end(anchorB), resolution)
+  swap <- loop_binA > loop_binB
+  if (any(swap)) {
+    tmp <- loop_binA[swap]; loop_binA[swap] <- loop_binB[swap]; loop_binB[swap] <- tmp
   }
 
-  hicexp <- multiHiCcompare::make_hicexp(
-    data_list = dl,
-    groups    = rep(1L, n_samples),
-    remove.regions = NULL,
-    zero.p    = 1,        # don't drop bin-pairs on % zeros — we want raw coverage
-    A.min     = 0
-  )
-  # fastlo is multiHiCcompare's fast loess normalization (distinct from cyclic_loess).
-  # `parallel = FALSE` here because we parallelize one level up, by chromosome.
-  hicexp <- multiHiCcompare::fastlo(
-    hicexp, span = span, parallel = FALSE, verbose = FALSE
-  )
-  tab <- multiHiCcompare::hic_table(hicexp)
-  # `tab` has columns: chr, region1, region2, D, IF1, IF2, ...
-  # Rename IFj -> IF_j and ensure chr is character matching `chr` we expect
-  if_cols_in <- grep("^IF\\d+$", names(tab), value = TRUE)
-  data.table::setnames(tab, if_cols_in,
-                       paste0("IF_", seq_along(if_cols_in)))
-  tab$chr <- as.character(chr)
-  tab[, c("chr", "region1", "region2", paste0("IF_", seq_along(if_cols_in))), with = FALSE]
+  # Build per-sample chrom normalizers from .hic headers (so "1" maps to
+  # whatever each .hic uses — usually identical, but be safe).
+  chrom_norm <- lapply(hic_paths, function(p) {
+    .make_chrom_normalizer(strawr::readHicChroms(p)$name)
+  })
+
+  by_chr <- split(seq_along(loop_chr), loop_chr)
+  chrom_keys_by_chr <- lapply(names(by_chr), function(chr) {
+    rows <- by_chr[[chr]]
+    paste(chr, loop_binA[rows], loop_binB[rows], sep = ":")
+  })
+  names(chrom_keys_by_chr) <- names(by_chr)
+
+  # ---- Extract counts: one straw call per (sample, chrom) ----
+  grid <- expand.grid(sample_i = seq_along(samples_vec),
+                      chrom    = names(by_chr),
+                      stringsAsFactors = FALSE,
+                      KEEP.OUT.ATTRS   = FALSE)
+
+  extract_one <- function(k) {
+    si  <- grid$sample_i[k]
+    chr <- grid$chrom[k]
+    rows <- by_chr[[chr]]
+    chr_in_hic <- chrom_norm[[si]](chr)
+    dat <- tryCatch(
+      strawr::straw("NONE", hic_paths[si], chr_in_hic, chr_in_hic,
+                    "BP", resolution),
+      error = function(e) NULL
+    )
+    if (is.null(dat) || nrow(dat) == 0L) {
+      return(list(rows = rows, sample_i = si,
+                  counts = rep(0, length(rows))))
+    }
+    # canonicalize x <= y to match how we built loop_binA/B
+    sw <- dat$x > dat$y
+    if (any(sw)) { t1 <- dat$x[sw]; dat$x[sw] <- dat$y[sw]; dat$y[sw] <- t1 }
+    keys <- paste(chr, dat$x, dat$y, sep = ":")
+    want <- chrom_keys_by_chr[[chr]]
+    m <- match(want, keys)
+    counts <- ifelse(is.na(m), 0, dat$counts[m])
+    list(rows = rows, sample_i = si, counts = counts)
+  }
+
+  message("[", format(Sys.time()), "] extracting counts at ",
+          length(loops_gi), " consensus loops x ",
+          length(samples_vec), " samples ...")
+  results <- BiocParallel::bplapply(seq_len(nrow(grid)),
+                                    extract_one, BPPARAM = BPPARAM)
+
+  count_mat <- matrix(0, nrow = length(loops_gi),
+                      ncol = length(samples_vec),
+                      dimnames = list(NULL, samples_vec))
+  for (r in results) count_mat[r$rows, r$sample_i] <- r$counts
+
+  # ---- DESeq2 size factors + log2 ----
+  message("[", format(Sys.time()), "] DESeq2 estimateSizeFactorsForMatrix ...")
+  sf <- DESeq2::estimateSizeFactorsForMatrix(count_mat)
+  norm_mat <- t(t(count_mat) / sf)
+  pheno <- log2(norm_mat + 1)
+  dimnames(pheno) <- list(NULL, samples_vec)
+
+  obj@phenotype <- pheno
+  obj@meta$normalize_method  <- "DESeq2"
+  obj@meta$normalize_order   <- "DESeq2"
+  obj@meta$chroms_normalized <- names(by_chr)
+  obj@meta$DESeq2_size_factors <- sf
+  methods::validObject(obj)
+  obj
 }
 
 # -------------------------------------------------------------------------- #
@@ -460,12 +512,3 @@ loopQTL_normalize <- function(obj,
   out
 }
 
-# Convert chrom name to int form expected by multiHiCcompare ("chr1" -> 1, "X" -> 23, etc.)
-.chr_to_int <- function(chr) {
-  ch <- sub("^chr", "", as.character(chr))
-  v  <- suppressWarnings(as.integer(ch))
-  if (!is.na(v)) return(v)
-  switch(ch, "X" = 23L, "Y" = 24L, "M" = 25L, "MT" = 25L,
-         # fallback: hash to a stable positive int
-         abs(as.integer(charToRaw(ch)[1L])) + 100L)
-}

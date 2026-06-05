@@ -5,8 +5,6 @@
 #'
 #' @slot samples Canonical sample order.
 #' @slot loops Consensus intra-chromosomal loops as a [InteractionSet::GInteractions].
-#' @slot contacts Raw contact matrix (loops x samples), NA -> 0. Empty by
-#'   default; populated only if you explicitly do a consensus extraction for QC.
 #' @slot cis Per-sample cis-contact totals, names match `samples`. Empty
 #'   unless the user supplied a `cis` column in the samplesheet.
 #' @slot vcf_path Path to the tabix-indexed VCF.
@@ -29,7 +27,6 @@ setClass(
   representation(
     samples    = "character",
     loops      = "GInteractions",
-    contacts   = "matrix",
     cis        = "numeric",
     vcf_path   = "character",
     resolution = "integer",
@@ -39,7 +36,6 @@ setClass(
   ),
   prototype(
     samples    = character(0),
-    contacts   = matrix(numeric(0), 0, 0),
     cis        = numeric(0),
     vcf_path   = NA_character_,
     resolution = NA_integer_,
@@ -57,16 +53,6 @@ setValidity("loopQTL", function(object) {
 
   if (anyDuplicated(object@samples))
     errs <- c(errs, "samples must be unique")
-
-  # contacts is optional (empty by default; populated only if the user
-  # explicitly asks for raw extraction). When non-empty, columns must match
-  # samples and rows must match loops.
-  if (length(object@contacts) > 0L) {
-    if (!identical(colnames(object@contacts), object@samples))
-      errs <- c(errs, "colnames(contacts) must equal samples")
-    if (length(object@loops) != nrow(object@contacts))
-      errs <- c(errs, "nrow(contacts) must equal length(loops)")
-  }
 
   # cis is optional. When present (length > 0), must align to samples.
   if (length(object@cis) > 0L) {
@@ -95,13 +81,6 @@ setMethod("show", "loopQTL", function(object) {
       if (length(object@samples) > 4) ", ..." else "", ")\n")
   cat("  loops     :", length(object@loops), "consensus intra-chrom loops\n")
   cat("  resolution:", object@resolution, "bp\n")
-  if (length(object@contacts) > 0L) {
-    cat("  contacts  :", nrow(object@contacts), "x", ncol(object@contacts),
-        "  range [", signif(min(object@contacts), 3), ",",
-        signif(max(object@contacts), 3), "]\n")
-  } else {
-    cat("  contacts  : not extracted\n")
-  }
   cat("  phenotype :",
       if (length(object@phenotype) > 0L)
         paste(nrow(object@phenotype), "x", ncol(object@phenotype))
