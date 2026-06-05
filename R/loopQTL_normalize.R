@@ -28,8 +28,6 @@
 #' @param obj A [loopQTL-class] from [loopQTL_setup()].
 #' @param method Normalization method. Default `"BNBC"`. The other choice is
 #'   `"DESeq2"`.
-#' @param span Loess smoothing span (unused; retained for backward-compat
-#'   argument compatibility).
 #' @param chroms (BNBC only) Optional character vector of chromosome names to
 #'   normalize. Default `NULL` = all chromosomes present in `obj@loops`. When
 #'   a subset is passed, only those chroms' loop rows are filled in
@@ -47,7 +45,6 @@
 #' @export
 loopQTL_normalize <- function(obj,
                               method        = c("BNBC", "DESeq2"),
-                              span          = 0.7,
                               chroms        = NULL,
                               BPPARAM       = BiocParallel::SerialParam()) {
   stopifnot(methods::is(obj, "loopQTL"))

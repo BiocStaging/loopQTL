@@ -39,7 +39,6 @@ cd $RUN_DIR
 Rscript ${PKG}/inst/scripts/normalize_one_chrom.R \
   --setup  $SETUP \
   --chrom  $CHROM \
-  --method multiHiCcompare \
-  --span   0.7 \
+  --method BNBC \
   --pkg    $PKG \
   --out    $OUT
