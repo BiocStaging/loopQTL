@@ -23,6 +23,11 @@
 #' @param normal Apply RINT per loop before regression. Default `TRUE`.
 #' @param K_method `"elbow"` or `"BE"`; passed to [loopQTL_choose_K()] when
 #'   covariates is `NULL`. Default `"elbow"`.
+#' @param K_max Hard cap on the auto-chosen K. Default
+#'   `length(obj@samples) - 2L`, the largest K that still leaves degrees of
+#'   freedom for MatrixEQTL's intercept + genotype regressor. Pass a smaller
+#'   value (e.g. `floor(n_samples / 4)`) to force a more conservative
+#'   covariate set. Ignored when `covariates` is user-supplied.
 #' @param pvOutputThreshold MatrixEQTL p-value threshold. Default 1 (return
 #'   every pair). Lower it to shrink the output for very large runs.
 #'
@@ -38,6 +43,7 @@ run_QTL <- function(obj,
                     covariates        = NULL,
                     normal            = TRUE,
                     K_method          = c("elbow", "BE"),
+                    K_max             = NULL,
                     pvOutputThreshold = 1) {
   stopifnot(
     methods::is(obj, "loopQTL"),
@@ -144,7 +150,8 @@ run_QTL <- function(obj,
   # ---- Resolve covariates ----
   if (is.null(covariates)) {
     # Use the already-RINT'd-or-not `phenotype` matrix to avoid double-RINT.
-    K_res <- .pca_for_qtl(phenotype, samples = samples_vec, K_method = K_method)
+    K_res <- .pca_for_qtl(phenotype, samples = samples_vec,
+                          K_method = K_method, K_max = K_max)
     cvrt_mat <- t(K_res$PCs)     # MatrixEQTL wants k x n_samples
     obj_K_meta <- list(K = K_res$K, K_method = K_res$method, K_source = "auto_PCAForQTL")
   } else {
