@@ -85,9 +85,21 @@ loopQTL_setup <- function(samples,
     VariantAnnotation::scanVcfHeader(vcf)
   )
   missing_in_vcf <- setdiff(sample_ids, vcf_samples)
-  if (length(missing_in_vcf) > 0L)
-    stop("Samples in `samples` not present in VCF: ",
-         paste(missing_in_vcf, collapse = ", "))
+  if (length(missing_in_vcf) > 0L) {
+    message("Dropping ", length(missing_in_vcf),
+            " samplesheet sample(s) not in VCF: ",
+            paste(missing_in_vcf, collapse = ", "))
+    keep <- !(sample_ids %in% missing_in_vcf)
+    sample_ids <- sample_ids[keep]
+    hic_paths  <- hic_paths[keep]
+    loop_paths <- loop_paths[keep]
+    if (!is.null(user_cis)) user_cis <- user_cis[keep]
+  }
+  if (length(sample_ids) < 2L)
+    stop("Fewer than 2 samples overlap between samplesheet and VCF; ",
+         "cannot build consensus / run QTL.")
+  message("Proceeding with ", length(sample_ids),
+          " sample(s) present in both samplesheet and VCF.")
 
   # ---- Per-.hic metadata + resolution / NONE check (header reads only) ----
   # Also build per-sample chromosome-naming normalizers so we can map a
