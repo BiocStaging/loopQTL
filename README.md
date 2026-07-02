@@ -11,27 +11,17 @@ loopQTL_setup()      -> validate VCF + .hic headers, read loop BEDPEs, build the
                         exact-coordinate consensus loop set (loops kept when they
                         appear in >= min_samples samples). Optionally auto-computes
                         per-sample cis depth from .hic.
+                        After running this step, the loopQTL S4 class object will be set up along with the consensus loops set stored.
 
 loopQTL_normalize()  -> per-chromosome whole-genome straw pull (parallel), then
                         one of:
-                          * BNBC   -- log-CPM depth correction + band-wise
-                                      quantile normalization across samples
-                          * DESeq2 -- size-factor normalization on consensus
-                                      loop counts, then log2(x + 1)
-                        Fills obj@phenotype. RINT is deferred to run_QTL().
-
-loopQTL_choose_K()   -> PCAForQTL selection of K phenotype PCs (elbow or BE).
+                          * BNBC   -- log-CPM depth correction + band-wise quantile normalization across samples, adapted from [Kipper et al, 2024](https://pmc.ncbi.nlm.nih.gov/articles/PMC11074651/).
+                          * DESeq2 -- A computationally convenient alternative method to perform the normalization. If this seeting is choosen, the raw count interaction matrix will be directly subsetted to the consensus loops set up in loopQTL_setup() step and normalized using DESeq2 method.
+                        After running this step, the normalized matrix will be saved in obj@phenotype.
 
 run_QTL()            -> targeted tabix VCF read of anchor SNPs, then MatrixEQTL
-                        once per anchor; results merged with anchor = A / B / both.
-                        Writes obj@results.
-
-loopQTL_annotate()   -> gene / peak annotation of QTL results via a GTF and
-                        optional peak file.
-
-loopQTL_pair_data()      / loopQTL_plot_pair()       -> genotype-stratified boxplot
-loopQTL_plot_snp_window() -> per-pixel SNP-effect heatmap on the Hi-C matrix
-                              around each in-loop SNP
+                        once per anchor.
+                        After running this step, the loopQTL results will be saved in obj@results.
 ```
 
 A single `loopQTL` S4 object is threaded through all functions; sample order is an invariant so matrices always stay aligned.
