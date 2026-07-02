@@ -11,12 +11,17 @@ loopQTL_setup()      -> validate VCF + .hic headers, read loop BEDPEs, build the
                         exact-coordinate consensus loop set (loops kept when they
                         appear in >= min_samples samples). Optionally auto-computes
                         per-sample cis depth from .hic.
-                        After running this step, the loopQTL S4 class object will be set up along with the consensus loops set stored.
+                        After running this step, the loopQTL S4 class object will be
+                        set up along with the consensus loops set stored.
 
 loopQTL_normalize()  -> per-chromosome whole-genome straw pull (parallel), then
                         one of:
-                          * BNBC   -- log-CPM depth correction + band-wise quantile normalization across samples, adapted from [Kipper et al, 2024](https://pmc.ncbi.nlm.nih.gov/articles/PMC11074651/).
-                          * DESeq2 -- A computationally convenient alternative method to perform the normalization. If this seeting is choosen, the raw count interaction matrix will be directly subsetted to the consensus loops set up in loopQTL_setup() step and normalized using DESeq2 method.
+                          * BNBC   -- log-CPM depth correction + band-wise quantile
+                          normalization across samples, adapted from Kipper et al, 2024.
+                          * DESeq2 -- A computationally convenient alternative method to
+                        perform the normalization. If this seeting is choosen, the raw count
+                        interaction matrix will be directly subsetted to the consensus loops
+                        set up in loopQTL_setup() step and normalized using DESeq2 method.
                         After running this step, the normalized matrix will be saved in obj@phenotype.
 
 run_QTL()            -> targeted tabix VCF read of anchor SNPs, then MatrixEQTL
