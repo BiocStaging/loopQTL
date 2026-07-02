@@ -11,15 +11,12 @@
 #'    Fletez-Brant et al. 2021. Normalized values are looked up at consensus
 #'    bin-pairs. Sparse triplet implementation; the `bnbc` Bioconductor
 #'    package is not used. Per-chromosome work is dispatched via
-#'    `BiocParallel`; supports per-chrom SLURM array tasks via the `chroms`
-#'    argument.
+#'    `BiocParallel`.
 #'  * `method = "DESeq2"`: pulls raw consensus contact counts at each loop's
 #'    bin-pair (much lighter than the BNBC whole-chrom pull), assembles a
 #'    `(loops x samples)` integer count matrix, applies DESeq2 size factors
 #'    (`estimateSizeFactorsForMatrix()`), divides, and applies `log2(x + 1)`.
-#'    Single-call (no per-chrom array workflow — size factors are computed
-#'    over the full count matrix). Recommended when BNBC's whole-genome cost
-#'    is prohibitive.
+#'    Recommended when BNBC's whole-genome cost is prohibitive.
 #'
 #' **No RINT is applied here** — the phenotype slot stores normalize's output
 #' directly. RINT is applied just before regression in `run_QTL()`
@@ -28,36 +25,92 @@
 #' @param obj A [loopQTL-class] from [loopQTL_setup()].
 #' @param method Normalization method. Default `"BNBC"`. The other choice is
 #'   `"DESeq2"`.
-#' @param chroms (BNBC only) Optional character vector of chromosome names to
-#'   normalize. Default `NULL` = all chromosomes present in `obj@loops`. When
-#'   a subset is passed, only those chroms' loop rows are filled in
-#'   `obj@phenotype`; rows for other chroms stay `NA`. Use this to split a
-#'   large run across SLURM array tasks (one chrom per task), then combine
-#'   the per-chrom objects with [loopQTL_combine_normalized()]. Ignored for
-#'   `method = "DESeq2"` (single-call).
 #' @param BPPARAM A [BiocParallel::BiocParallelParam] for parallelization
 #'   over chromosomes (BNBC) or over `(sample, chrom)` extraction (DESeq2).
 #'   Default [BiocParallel::SerialParam()].
+#' @param save_windows Logical. If `TRUE`, also save a local contact submatrix
+#'   around each in-loop SNP for downstream per-pixel SNP-correlation maps
+#'   (Shi et al. 2025). BNBC only — values are sliced from the band-QN'd
+#'   per-chrom matrix in the same pass that fills the phenotype, so they
+#'   inherit the same depth correction + cross-sample QN. Purely descriptive
+#'   output; does not feed back into `obj@phenotype` or `run_QTL()`.
+#' @param windows_out Required when `save_windows = TRUE`. Path to a `.rds`
+#'   file the per-SNP windows are written to (xz-compressed). The file
+#'   contains `list(cells, cell_coords, snp_index, samples, resolution)`;
+#'   see Details.
+#' @param window Minimum window extent in bp around each in-loop SNP.
+#'   Default 1e6. The actual window is
+#'   `max(window, span(SNP_pos U all partner anchors of loops the SNP
+#'   participates in))`, centered on the bounding interval. Guarantees the
+#'   partner anchor stays in-frame even for ~2 Mb Mustache loops. Ignored
+#'   when `save_windows = FALSE`.
+#' @param snp_window Bp flank added to each consensus anchor when selecting
+#'   in-loop SNPs from the VCF. Default 0 (anchor-bin SNPs only — matches
+#'   `run_QTL()`'s default). Ignored when `save_windows = FALSE`.
 #'
 #' @return The input object with `phenotype` filled and
-#'   `meta$normalize_method` recorded.
+#'   `meta$normalize_method` recorded. When `save_windows = TRUE`,
+#'   `meta$windows_out` records the file path and `meta$n_windows_saved` the
+#'   SNP count.
+#'
+#' @details
+#' **Saved windows file format (`.rds`):** a list with
+#' \describe{
+#'   \item{`cells`}{numeric matrix `samples x N_cells`. One column per
+#'     `(chrom, bin_i, bin_j)` cell in the union of every in-loop SNP's
+#'     window box. Values are post-band-QN, pre-RINT (contact-scale).
+#'     `NA -> 0` fill matches loop extraction. Sample axis follows `samples`.}
+#'   \item{`cell_coords`}{data.frame with `chrom`, `bin_i`, `bin_j` per
+#'     column of `cells`.}
+#'   \item{`snp_index`}{data.frame with one row per SNP: `snp_id`, `chrom`,
+#'     `pos`, `ref`, `alt`, `bin_lo`, `bin_hi`, `n_loops_anchored`, plus a
+#'     list-column `col_indices` of integer column indices into `cells`.}
+#'   \item{`samples`}{character vector matching the rows of `cells`.}
+#'   \item{`resolution`}{integer; bin size in bp.}
+#' }
 #'
 #' @export
 loopQTL_normalize <- function(obj,
                               method        = c("BNBC", "DESeq2"),
-                              chroms        = NULL,
-                              BPPARAM       = BiocParallel::SerialParam()) {
+                              BPPARAM       = BiocParallel::SerialParam(),
+                              save_windows  = FALSE,
+                              windows_out   = NULL,
+                              window        = 1e6,
+                              snp_window    = 0L) {
   stopifnot(methods::is(obj, "loopQTL"))
   method <- match.arg(method)
 
-  # ---- DESeq2 path: single call, no per-chrom array workflow ----
+  # save_windows validation: BNBC only, path required
+  if (isTRUE(save_windows)) {
+    if (method != "BNBC")
+      stop("save_windows = TRUE requires method = 'BNBC' (DESeq2 has no ",
+           "band-QN matrix to slice from). Open a feature request if you ",
+           "want DESeq2-cell windows.")
+    if (is.null(windows_out) || !is.character(windows_out) ||
+        length(windows_out) != 1L || !nzchar(windows_out))
+      stop("save_windows = TRUE requires `windows_out`: a single .rds path")
+    stopifnot(is.numeric(window),     length(window)     == 1L, window     > 0,
+              is.numeric(snp_window), length(snp_window) == 1L, snp_window >= 0)
+    window     <- as.numeric(window)
+    snp_window <- as.integer(snp_window)
+    # Best-effort writable check (touch the file)
+    ok_touch <- tryCatch({
+      con <- file(windows_out, open = "wb"); close(con); file.remove(windows_out); TRUE
+    }, error = function(e) FALSE, warning = function(w) FALSE)
+    if (!ok_touch)
+      stop("Cannot write to windows_out path: ", windows_out)
+    if (is.null(obj@vcf_path) || is.na(obj@vcf_path) || !nzchar(obj@vcf_path))
+      stop("obj@vcf_path is not set; cannot read SNPs for windows")
+  } else if (!is.null(windows_out)) {
+    warning("`windows_out` is ignored when save_windows = FALSE")
+  }
+
+  # DESeq2 path
   if (method == "DESeq2") {
-    if (!is.null(chroms))
-      warning("`chroms` argument is ignored for method = 'DESeq2' (single-call).")
     return(.normalize_DESeq2(obj, BPPARAM = BPPARAM))
   }
 
-  # ---- BNBC always applies logCPM depth correction, which requires cis ----
+  # BNBC always applies logCPM depth correction, which requires cis
   if (method == "BNBC") {
     if (length(obj@cis) == 0L) {
       stop("BNBC requires per-sample cis depth in ",
@@ -101,21 +154,50 @@ loopQTL_normalize <- function(obj,
   }
   loop_key <- paste(loop_chr, loop_binA, loop_binB, sep = ":")
 
-  all_chroms <- unique(loop_chr)
-  if (is.null(chroms)) {
-    chroms_to_run <- all_chroms
-  } else {
-    chroms_to_run <- intersect(as.character(chroms), all_chroms)
-    missing <- setdiff(as.character(chroms), all_chroms)
-    if (length(missing) > 0L)
-      warning("These `chroms` are not present in obj@loops and will be ignored: ",
-              paste(missing, collapse = ", "))
-    if (length(chroms_to_run) == 0L)
-      stop("No requested `chroms` overlap obj@loops' chromosomes")
-  }
+  chroms_to_run <- unique(loop_chr)
   loop_idx_by_chr <- split(seq_along(loop_chr), loop_chr)
 
-  # ---- worker: normalize one chromosome, return (consensus_rows, values matrix) ----
+  # Per-sample chrom-naming normalizers so BNBC straw calls translate the
+  # anchor-side chrom ("chr10") to whatever each .hic file uses ("10" or
+  # "chr10"). Without this, BEDPE-vs-hic naming mismatch makes straw
+  # silently return empty data -> all-zero phenotype -> all-NA after RINT.
+  chrom_norm_BNBC <- lapply(hic_paths, function(p) {
+    .make_chrom_normalizer(strawr::readHicChroms(p)$name)
+  })
+
+  # save_windows: precompute SNP -> (chrom, cells to slice)
+  windows_ctx <- NULL
+  if (isTRUE(save_windows)) {
+    windows_ctx <- .compute_snp_windows(
+      vcf_path   = obj@vcf_path,
+      anchorA    = anchorA,
+      anchorB    = anchorB,
+      snp_window = snp_window,
+      window     = window,
+      resolution = resolution
+    )
+    if (is.null(windows_ctx)) {
+      message("[", format(Sys.time()), "] save_windows: nothing to save; ",
+              "continuing without window output")
+      save_windows <- FALSE
+    } else {
+      # Sanity check: every SNP's chrom must be in our chroms_to_run
+      win_chroms <- names(windows_ctx$cells_by_chrom)
+      missing_chr <- setdiff(win_chroms, chroms_to_run)
+      if (length(missing_chr) > 0L)
+        stop("save_windows: SNP chrom(s) not in normalize's chroms_to_run: ",
+             paste(missing_chr, collapse = ", "))
+      n_total_cells <- sum(vapply(windows_ctx$cells_by_chrom,
+                                  nrow, integer(1L)))
+      est_mb <- n_total_cells * length(samples_vec) * 8 / 1024^2
+      message(sprintf(
+        "[%s] save_windows: %d SNP(s), %d unique cells across %d chrom(s); estimated ~%.1f MB in memory (8 bytes x cells x samples)",
+        format(Sys.time()), nrow(windows_ctx$snps_df),
+        n_total_cells, length(win_chroms), est_mb))
+    }
+  }
+
+  # worker: normalize one chromosome, return (consensus_rows, values matrix)
   per_chr_worker <- function(chr) {
     rows <- loop_idx_by_chr[[chr]]
     want_keys <- loop_key[rows]
@@ -123,8 +205,10 @@ loopQTL_normalize <- function(obj,
 
     # 1. Pull whole-genome (i.e. whole-chrom) straw per sample
     sparse_list <- lapply(seq_len(n_samples), function(si) {
+      chr_in_hic <- chrom_norm_BNBC[[si]](chr)
       dat <- tryCatch(
-        strawr::straw("NONE", hic_paths[si], chr, chr, "BP", resolution),
+        strawr::straw("NONE", hic_paths[si], chr_in_hic, chr_in_hic,
+                      "BP", resolution),
         error = function(e) NULL
       )
       if (is.null(dat) || nrow(dat) == 0L) {
@@ -141,10 +225,24 @@ loopQTL_normalize <- function(obj,
     # on this chrom; QN math is still computed over the full band, only the
     # final triplet emission is restricted, which keeps the dcast wide-pivot
     # from blowing past R's integer.max on large chroms with many samples.
+    # When save_windows is on, also include the SNP window cells in the keep
+    # set so a single BNBC pass emits both consensus + window cells.
     keep_pairs_chr <- cbind(loop_binA[rows], loop_binB[rows])
+    window_cells_chr <- NULL
+    if (isTRUE(save_windows) && !is.null(windows_ctx) &&
+        !is.null(windows_ctx$cells_by_chrom[[chr]])) {
+      window_cells_chr <- windows_ctx$cells_by_chrom[[chr]]
+      combined <- rbind(
+        keep_pairs_chr,
+        cbind(window_cells_chr$bin_i, window_cells_chr$bin_j)
+      )
+      keep_pairs_pass <- unique(combined)
+    } else {
+      keep_pairs_pass <- keep_pairs_chr
+    }
     cis_arg <- obj@cis
     norm_vals <- .normalize_BNBC(sparse_list, chr,
-                                 keep_pairs = keep_pairs_chr,
+                                 keep_pairs = keep_pairs_pass,
                                  cis = cis_arg)
     # norm_vals: data.table(chr, region1, region2, IF_1, ..., IF_n)
 
@@ -160,44 +258,138 @@ loopQTL_normalize <- function(obj,
       vals[is.na(vals)] <- 0
       chrom_mat[, j] <- vals
     }
-    list(rows = rows, mat = chrom_mat)
+
+    # 4. (save_windows) Index window cells into a (samples x n_cells) matrix
+    windows_mat <- NULL
+    if (!is.null(window_cells_chr)) {
+      win_keys <- paste(chr, window_cells_chr$bin_i, window_cells_chr$bin_j,
+                        sep = ":")
+      mw <- match(win_keys, norm_keys)
+      windows_mat <- matrix(0, nrow = n_samples, ncol = nrow(window_cells_chr),
+                            dimnames = list(samples_vec, NULL))
+      for (j in seq_len(n_samples)) {
+        v <- norm_vals[[if_cols[j]]]
+        vals <- ifelse(is.na(mw), 0, v[mw])
+        vals[is.na(vals)] <- 0
+        windows_mat[j, ] <- vals
+      }
+    }
+    list(rows = rows, mat = chrom_mat,
+         windows_mat = windows_mat,
+         window_cells_chr = window_cells_chr)
   }
 
   chrom_results <- BiocParallel::bplapply(chroms_to_run, per_chr_worker, BPPARAM = BPPARAM)
+  names(chrom_results) <- chroms_to_run
 
-  # ---- Assemble per-chrom slices into the full (loops x samples) phenotype ----
-  # Rows for chroms we did NOT process are left as NA, so a partial run produces
-  # an obj that can be combined with sibling per-chrom runs via
-  # loopQTL_combine_normalized().
+  # Assemble per-chrom slices into the full (loops x samples) phenotype
   pheno <- matrix(NA_real_, nrow = length(loops_gi), ncol = length(samples_vec),
                   dimnames = list(NULL, samples_vec))
-  processed_rows <- integer(0)
   for (r in chrom_results) {
     pheno[r$rows, ] <- r$mat
-    processed_rows <- c(processed_rows, r$rows)
   }
 
-  # cis is set authoritatively at setup time (either from samplesheet or via
-  # the auto-compute pass) and is genome-wide. Normalize does NOT touch it —
-  # touching it from per-chrom array tasks would overwrite the genome-wide
-  # value with a per-chrom partial.
+  # cis is set authoritatively at setup time and is genome-wide; normalize
+  # does not touch it.
 
   # No RINT here — that's run_QTL()'s job (so obj@phenotype always stores the
-  # pre-RINT BNBC/fastlo output, available for QC/comparison).
+  # pre-RINT BNBC output, available for QC/comparison).
   obj@phenotype <- pheno
-  obj@meta$normalize_method   <- method
-  obj@meta$normalize_order    <- method
-  obj@meta$chroms_normalized  <- chroms_to_run
+  obj@meta$normalize_method <- method
+  obj@meta$normalize_order  <- method
+
+  # Stitch per-chrom window outputs and write .rds
+  if (isTRUE(save_windows) && !is.null(windows_ctx)) {
+    # Per-chrom column offsets into the genome-wide cells matrix
+    chr_order <- intersect(chroms_to_run, names(windows_ctx$cells_by_chrom))
+    n_cells_per_chr <- vapply(chr_order, function(chr) {
+      r <- chrom_results[[chr]]
+      if (is.null(r$windows_mat)) 0L else ncol(r$windows_mat)
+    }, integer(1L))
+    if (sum(n_cells_per_chr) == 0L) {
+      message("[", format(Sys.time()), "] save_windows: every per-chrom ",
+              "window slice came back empty; nothing to write")
+    } else {
+      total_cells <- sum(n_cells_per_chr)
+      cells <- matrix(0, nrow = length(samples_vec), ncol = total_cells,
+                      dimnames = list(samples_vec, NULL))
+      cell_coords <- data.frame(
+        chrom = character(total_cells),
+        bin_i = integer(total_cells),
+        bin_j = integer(total_cells),
+        stringsAsFactors = FALSE
+      )
+      offset <- 0L
+      chrom_col_offset <- setNames(integer(length(chr_order)), chr_order)
+      for (chr in chr_order) {
+        r <- chrom_results[[chr]]
+        if (is.null(r$windows_mat) || ncol(r$windows_mat) == 0L) {
+          chrom_col_offset[chr] <- NA_integer_
+          next
+        }
+        ncol_chr <- ncol(r$windows_mat)
+        rng <- seq.int(offset + 1L, offset + ncol_chr)
+        cells[, rng] <- r$windows_mat
+        cell_coords$chrom[rng] <- chr
+        cell_coords$bin_i[rng] <- r$window_cells_chr$bin_i
+        cell_coords$bin_j[rng] <- r$window_cells_chr$bin_j
+        chrom_col_offset[chr]  <- offset
+        offset <- offset + ncol_chr
+      }
+
+      # Per-SNP col_indices: local within-chrom indices + that chrom's offset
+      snp_chrom <- windows_ctx$snps_df$chrom_orig
+      n_snp <- nrow(windows_ctx$snps_df)
+      col_indices <- vector("list", n_snp)
+      for (i in seq_len(n_snp)) {
+        chr <- snp_chrom[i]
+        off <- chrom_col_offset[chr]
+        loc <- windows_ctx$snp_cells_local[[i]]
+        col_indices[[i]] <- if (is.na(off) || length(loc) == 0L) integer(0)
+                            else as.integer(loc + off)
+      }
+
+      snp_index <- windows_ctx$snps_df
+      snp_index$chrom <- snp_index$chrom_orig
+      snp_index$chrom_orig <- NULL
+      snp_index$chrom_vcf  <- NULL
+      snp_index$col_indices <- I(col_indices)
+      snp_index <- snp_index[, c("snp_id", "chrom", "pos", "ref", "alt",
+                                  "bin_lo", "bin_hi", "n_loops_anchored",
+                                  "col_indices")]
+
+      saveRDS(
+        list(
+          cells       = cells,
+          cell_coords = cell_coords,
+          snp_index   = snp_index,
+          samples     = samples_vec,
+          resolution  = resolution
+        ),
+        file = windows_out,
+        compress = "xz"
+      )
+      message(sprintf(
+        "[%s] save_windows: wrote %s (%.1f MB)",
+        format(Sys.time()), windows_out,
+        file.info(windows_out)$size / 1024^2))
+
+      obj@meta$windows_out      <- windows_out
+      obj@meta$n_windows_saved  <- nrow(snp_index)
+      obj@meta$n_window_cells   <- total_cells
+      obj@meta$window_bp        <- as.numeric(window)
+      obj@meta$snp_window_bp    <- as.integer(snp_window)
+    }
+  }
+
   methods::validObject(obj)
   obj
 }
 
-# -------------------------------------------------------------------------- #
 # Internal: DESeq2 normalization on the consensus loop count matrix.
 # Pulls raw counts per (sample, chrom) at consensus bin-pairs only (much
 # lighter than the BNBC whole-chrom pull), assembles a (loops x samples)
 # integer count matrix, applies DESeq2 size factors, then log2(x + 1).
-# -------------------------------------------------------------------------- #
 .normalize_DESeq2 <- function(obj, BPPARAM = BiocParallel::SerialParam()) {
   if (!requireNamespace("DESeq2", quietly = TRUE))
     stop("DESeq2 is required for method = 'DESeq2'; install via ",
@@ -235,7 +427,7 @@ loopQTL_normalize <- function(obj,
   })
   names(chrom_keys_by_chr) <- names(by_chr)
 
-  # ---- Extract counts: one straw call per (sample, chrom) ----
+  # Extract counts: one straw call per (sample, chrom)
   grid <- expand.grid(sample_i = seq_along(samples_vec),
                       chrom    = names(by_chr),
                       stringsAsFactors = FALSE,
@@ -276,7 +468,7 @@ loopQTL_normalize <- function(obj,
                       dimnames = list(NULL, samples_vec))
   for (r in results) count_mat[r$rows, r$sample_i] <- r$counts
 
-  # ---- DESeq2 size factors + log2 ----
+  # DESeq2 size factors + log2
   message("[", format(Sys.time()), "] DESeq2 estimateSizeFactorsForMatrix ...")
   sf <- DESeq2::estimateSizeFactorsForMatrix(count_mat)
   norm_mat <- t(t(count_mat) / sf)
@@ -284,15 +476,13 @@ loopQTL_normalize <- function(obj,
   dimnames(pheno) <- list(NULL, samples_vec)
 
   obj@phenotype <- pheno
-  obj@meta$normalize_method  <- "DESeq2"
-  obj@meta$normalize_order   <- "DESeq2"
-  obj@meta$chroms_normalized <- names(by_chr)
+  obj@meta$normalize_method    <- "DESeq2"
+  obj@meta$normalize_order     <- "DESeq2"
   obj@meta$DESeq2_size_factors <- sf
   methods::validObject(obj)
   obj
 }
 
-# -------------------------------------------------------------------------- #
 # Internal: BNBC band-wise quantile normalization, one chrom across samples.
 # Skips ComBat. Sparse triplet implementation (no dense per-sample matrices).
 # QN math is delegated to preprocessCore::normalize.quantiles(), the canonical
@@ -325,7 +515,6 @@ loopQTL_normalize <- function(obj,
 # which equals mean(per-band minima); since most band positions are all-zero
 # for chr-scale Hi-C, that reference is ~0). Bin-pairs non-zero in at least
 # one sample are processed in full.
-# -------------------------------------------------------------------------- #
 .normalize_BNBC <- function(sparse_list, chr, keep_pairs = NULL, cis = NULL) {
   n_samples <- length(sparse_list)
   empty_out <- function() {
@@ -348,11 +537,13 @@ loopQTL_normalize <- function(obj,
     keep_set <- paste(kp_i, kp_j, sep = "_")
   }
 
-  # ---- 0. logCPM depth correction (exact bnbc formula) ----
-  # bnbc/R/contactGroup_utils.R::logCPM:
-  #   libs <- (librarySize + 1) / 1e6
-  #   c.   <- abs(1/min(libs) - 1/max(libs))      # stability offset
-  #   log((count + 0.5) / libs + c.)
+  # 0. logCPM depth correction (exact bnbc formula)  # bnbc/R/contactGroup_utils.R::logCPM:
+  # 
+  libs <- (librarySize + 1) / 1e6
+  # 
+  c.   <- abs(1/min(libs) - 1/max(libs))      # stability offset
+  # 
+  log((count + 0.5) / libs + c.)
   # natural log, not log2; (count + 0.5) not (count + 1).
   # When cis is NULL we fall back to log2(count + 1) (no depth correction).
   if (!is.null(cis)) {
@@ -369,7 +560,7 @@ loopQTL_normalize <- function(obj,
     }
   }
 
-  # ---- 1. per-sample triplets, depth-corrected log, upper-triangle, keyed by band ----
+  # 1. per-sample triplets, depth-corrected log, upper-triangle, keyed by band
   per_sample_dt <- vector("list", n_samples)
   for (s in seq_len(n_samples)) {
     d <- sparse_list[[s]]
@@ -393,13 +584,13 @@ loopQTL_normalize <- function(obj,
     per_sample_dt[[s]] <- dt
   }
 
-  # ---- 2. set of distinct bands across all samples ----
+  # 2. set of distinct bands across all samples
   all_bands <- sort(unique(unlist(
     lapply(per_sample_dt, function(dt) unique(dt$d))
   )))
   if (length(all_bands) == 0L) return(empty_out())
 
-  # ---- 3. per-band quantile normalization ----
+  # 3. per-band quantile normalization
   output_chunks <- vector("list", length(all_bands))
   for (k in seq_along(all_bands)) {
     b <- all_bands[k]
@@ -472,12 +663,12 @@ loopQTL_normalize <- function(obj,
   rm(per_sample_dt)
   invisible(gc(verbose = FALSE))
 
-  # ---- 4. combine all output chunks into long form ----
+  # 4. combine all output chunks into long form
   out_long <- data.table::rbindlist(output_chunks, fill = TRUE)
   rm(output_chunks)
   if (nrow(out_long) == 0L) return(empty_out())
 
-  # ---- 5. pivot wide on (i, j) -> one IF column per sample ----
+  # 5. pivot wide on (i, j) -> one IF column per sample
   wide <- data.table::dcast(out_long, i + j ~ s, value.var = "x", fill = 0)
   rm(out_long); invisible(gc(verbose = FALSE))
   data.table::setnames(wide, c("i", "j"), c("region1", "region2"))

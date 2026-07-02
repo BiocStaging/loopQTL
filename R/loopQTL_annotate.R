@@ -16,12 +16,20 @@
 #'       \item `"WithinTSS"` — SNP overlaps any gene's TSS (± `TSS_window`).
 #'         Short-circuits all other annotation when `remove_TSS = TRUE`.
 #'       \item `"rs-gene"` — SNP not in TSS, has a target gene at the partner anchor.
-#'       \item `"rs-O"` — SNP not in TSS, no target gene at the partner anchor.
+#'       \item `"rs-<peak_annotation>"` — SNP not in TSS, no gene at partner,
+#'         but partner anchor overlaps a peak (only when `peak` is supplied).
+#'         e.g. `"rs-Enhancer"`.
+#'       \item `"rs-O"` — SNP not in TSS, no gene AND no peak at the partner anchor.
 #'       \item `"rs(<peak_annotation>)-gene"` — additionally overlaps a peak
 #'         (only when `peak` is supplied), has a target gene. e.g.
 #'         `"rs(Enhancer)-gene"`.
-#'       \item `"rs(<peak_annotation>)-O"` — overlaps a peak but no target gene.
+#'       \item `"rs(<peak_annotation>)-<peak_annotation>"` — SNP overlaps peak,
+#'         partner overlaps peak, no gene at partner.
+#'         e.g. `"rs(Enhancer)-Enhancer"`.
+#'       \item `"rs(<peak_annotation>)-O"` — overlaps a peak but no target gene
+#'         and no peak at partner.
 #'     }
+#'     Partner-side priority: `gene` > peak > `O`.
 #'   }
 #' }
 #'
@@ -82,7 +90,7 @@ loopQTL_annotate <- function(obj,
   TSS_window    <- as.integer(TSS_window)
   anchor_window <- as.integer(anchor_window)
 
-  # ---- 1. Read GTF, extract gene entries, derive TSS ----
+  # 1. Read GTF, extract gene entries, derive TSS
   message("[", format(Sys.time()), "] reading GTF: ", gtf)
   gtf_gr <- rtracklayer::import(gtf)
   type_col <- if ("type" %in% names(S4Vectors::mcols(gtf_gr))) "type" else
@@ -121,8 +129,7 @@ loopQTL_annotate <- function(obj,
   message("[", format(Sys.time()), "] ", length(tss_regions),
           " gene TSS regions (±", TSS_window, " bp)")
 
-  # ---- 2. Chrom-naming normalizer for THIS GTF -------------------------
-  # GTF may use "chr1" (GENCODE) or "1" (Ensembl); loop anchors may use
+  # 2. Chrom-naming normalizer for THIS GTF  # GTF may use "chr1" (GENCODE) or "1" (Ensembl); loop anchors may use
   # either depending on the BEDPE caller (Mustache uses "1"). Build a
   # function that converts any chrom string to whatever the GTF uses.
   gtf_chroms <- unique(as.character(GenomicRanges::seqnames(tss_regions)))
@@ -133,7 +140,7 @@ loopQTL_annotate <- function(obj,
     else              sub("^chr", "", x)
   }
 
-  # ---- 3. Optional: read peaks, filter by TSS if remove_TSS ----
+  # 3. Optional: read peaks, filter by TSS if remove_TSS
   peaks_gr <- NULL
   if (!is.null(peak)) {
     message("[", format(Sys.time()), "] reading peaks: ", peak)
@@ -157,8 +164,7 @@ loopQTL_annotate <- function(obj,
     }
   }
 
-  # ---- 4. Per-loop gene lists at anchor A and anchor B ----
-  # Critical: normalize anchor seqnames to the GTF's convention BEFORE
+  # 4. Per-loop gene lists at anchor A and anchor B  # Critical: normalize anchor seqnames to the GTF's convention BEFORE
   # findOverlaps. Without this, anchor seqnames like "1" silently fail to
   # match TSS seqnames like "chr1", producing zero gene assignments. (This
   # was the cause of the original "no rs-gene at all" bug.)
@@ -195,7 +201,16 @@ loopQTL_annotate <- function(obj,
   genes_at_A <- build_gene_lists(padded_A)
   genes_at_B <- build_gene_lists(padded_B)
 
-  # ---- 5. Per-row annotation in obj@results ----
+  # Per-anchor peak overlap (logical vector, length = n_loops). NULL when no
+  # peak file was supplied -- then partner-side never gets a peak label.
+  peak_at_A <- if (!is.null(peaks_gr)) {
+    GenomicRanges::countOverlaps(padded_A, peaks_gr) > 0L
+  } else NULL
+  peak_at_B <- if (!is.null(peaks_gr)) {
+    GenomicRanges::countOverlaps(padded_B, peaks_gr) > 0L
+  } else NULL
+
+  # 5. Per-row annotation in obj@results
   res <- obj@results
   loop_idx <- match(res$loop_id, loop_ids_all)
 
@@ -218,14 +233,21 @@ loopQTL_annotate <- function(obj,
 
   # Resolve partner-anchor genes per row
   partner_genes <- vector("list", nrow(res))
+  partner_has_peak <- rep(FALSE, nrow(res))
   for (i in seq_len(nrow(res))) {
     li <- loop_idx[i]
     anc <- res$anchor[i]
     g <- character(0)
-    if (anc == "A")        g <- genes_at_B[[li]]
-    else if (anc == "B")   g <- genes_at_A[[li]]
+    if (anc == "A")         g <- genes_at_B[[li]]
+    else if (anc == "B")    g <- genes_at_A[[li]]
     else if (anc == "both") g <- unique(c(genes_at_A[[li]], genes_at_B[[li]]))
     partner_genes[[i]] <- if (is.null(g)) character(0) else g
+    if (!is.null(peak_at_A)) {
+      partner_has_peak[i] <-
+        if (anc == "A")         peak_at_B[li]
+        else if (anc == "B")    peak_at_A[li]
+        else                    (peak_at_A[li] || peak_at_B[li])
+    }
   }
 
   gene_col <- vapply(partner_genes,
@@ -233,20 +255,17 @@ loopQTL_annotate <- function(obj,
                      character(1L))
   has_gene <- nchar(gene_col) > 0L
 
-  # Build Type column
-  type_col <- character(nrow(res))
-  if (!is.null(peaks_gr)) {
-    # With peak
-    type_col[!snp_in_tss & snp_in_peak  & has_gene]  <-
-      paste0("rs(", peak_annotation, ")-gene")
-    type_col[!snp_in_tss & snp_in_peak  & !has_gene] <-
-      paste0("rs(", peak_annotation, ")-O")
-    type_col[!snp_in_tss & !snp_in_peak & has_gene]  <- "rs-gene"
-    type_col[!snp_in_tss & !snp_in_peak & !has_gene] <- "rs-O"
+  # Build Type column. Partner-side priority: gene > peak > O.
+  rs_prefix <- if (!is.null(peaks_gr)) {
+    ifelse(snp_in_peak, paste0("rs(", peak_annotation, ")"), "rs")
   } else {
-    type_col[!snp_in_tss & has_gene]  <- "rs-gene"
-    type_col[!snp_in_tss & !has_gene] <- "rs-O"
+    rep("rs", nrow(res))
   }
+  partner_suffix <- ifelse(
+    has_gene, "gene",
+    ifelse(partner_has_peak, peak_annotation, "O")
+  )
+  type_col <- paste0(rs_prefix, "-", partner_suffix)
   type_col[snp_in_tss] <- "WithinTSS"
 
   res$gene <- gene_col

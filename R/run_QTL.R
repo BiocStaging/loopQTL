@@ -33,8 +33,8 @@
 #'
 #' @return The input `obj` with `obj@results` filled — a data.frame with one
 #'   row per tested (loop, SNP) pair: `loop_id`, `snp_id`, `chrom`, `pos`,
-#'   `ref`, `alt`, `anchor`, `beta`, `se`, `t`, `p`, `FDR_cis`, `n_used`,
-#'   `maf`. Access via `obj@results`. The wrapper `loopQTL_pair_data()` and
+#'   `ref`, `alt`, `anchor`, `beta`, `se`, `t`, `p`, `n_used`, `maf`.
+#'   Access via `obj@results`. The wrapper `loopQTL_pair_data()` and
 #'   `loopQTL_plot_pair()` consume this slot directly.
 #'
 #' @export
@@ -60,15 +60,15 @@ run_QTL <- function(obj,
   anchorA <- InteractionSet::anchors(loops_gi, type = "first")
   anchorB <- InteractionSet::anchors(loops_gi, type = "second")
 
-  # ---- Apply RINT if requested. obj@phenotype is left untouched (the local
-  # `phenotype` variable is what flows into MatrixEQTL and PCA). ----
+  # Apply RINT if requested. obj@phenotype is left untouched (the local
+  # `phenotype` variable is what flows into MatrixEQTL and PCA).
   phenotype <- if (normal) .rint_matrix(obj@phenotype) else obj@phenotype
   n_zero_var <- sum(rowSums(!is.na(phenotype)) == 0L) -
                 sum(rowSums(!is.na(obj@phenotype)) == 0L)
   # n_zero_var = loops newly NA'd by RINT (had data but constant after RINT).
   # Originally-NA loops aren't counted here.
 
-  # ---- Build union of (anchor +- window) target ranges for the VCF read ----
+  # Build union of (anchor +- window) target ranges for the VCF read
   pad <- function(gr) {
     GenomicRanges::GRanges(
       seqnames = GenomicRanges::seqnames(gr),
@@ -103,7 +103,7 @@ run_QTL <- function(obj,
     )
   )
 
-  # ---- Single targeted VCF read ----
+  # Single targeted VCF read
   param <- VariantAnnotation::ScanVcfParam(
     which = read_targets, geno = "GT", info = NA_character_
   )
@@ -147,7 +147,7 @@ run_QTL <- function(obj,
   maf_kept      <- maf_all[snp_keep]
   rownames(dosage) <- snp_id
 
-  # ---- Resolve covariates ----
+  # Resolve covariates
   if (is.null(covariates)) {
     # Use the already-RINT'd-or-not `phenotype` matrix to avoid double-RINT.
     K_res <- .pca_for_qtl(phenotype, samples = samples_vec,
@@ -174,7 +174,7 @@ run_QTL <- function(obj,
   obj@meta$run_QTL_normal   <- normal
   obj@meta$run_QTL_n_zero_var <- max(0L, n_zero_var)
 
-  # ---- Build SlicedData inputs for MatrixEQTL ----
+  # Build SlicedData inputs for MatrixEQTL
   snps_sd <- .as_sliced(dosage)
   gene_sd <- .as_sliced(phenotype, rownames_default = loop_ids)
   cvrt_sd <- .as_sliced(cvrt_mat)
@@ -204,7 +204,7 @@ run_QTL <- function(obj,
     stringsAsFactors = FALSE
   )
 
-  # ---- Run MatrixEQTL twice ----
+  # Run MatrixEQTL twice
   out_A <- .run_matrix_eqtl(snps_sd, gene_sd, cvrt_sd,
                             snpspos, genepos_A,
                             cisDist = window,
@@ -232,7 +232,7 @@ run_QTL <- function(obj,
 
   # Final column order
   out <- out[, c("loop_id", "snp_id", "chrom", "pos", "ref", "alt", "anchor",
-                 "beta", "se", "t", "p", "FDR_cis", "n_used", "maf")]
+                 "beta", "se", "t", "p", "n_used", "maf")]
   rownames(out) <- NULL
 
   # Write to slot and return the obj instead of the raw data.frame.
@@ -240,9 +240,7 @@ run_QTL <- function(obj,
   obj
 }
 
-# -------------------------------------------------------------------------- #
 # Internal helpers
-# -------------------------------------------------------------------------- #
 
 .empty_qtl_result <- function() {
   data.frame(
@@ -251,7 +249,7 @@ run_QTL <- function(obj,
     ref = character(0), alt = character(0),
     anchor = character(0),
     beta = numeric(0), se = numeric(0), t = numeric(0), p = numeric(0),
-    FDR_cis = numeric(0), n_used = integer(0), maf = numeric(0),
+    n_used = integer(0), maf = numeric(0),
     stringsAsFactors = FALSE
   )
 }
@@ -312,10 +310,10 @@ run_QTL <- function(obj,
     return(data.frame(
       loop_id = character(0), snp_id = character(0),
       beta = numeric(0), se = numeric(0), t = numeric(0),
-      p = numeric(0), FDR_cis = numeric(0),
+      p = numeric(0),
       stringsAsFactors = FALSE
     ))
-  # MatrixEQTL columns: snps, gene, statistic, pvalue, FDR, beta
+  # MatrixEQTL columns: snps, gene, statistic, pvalue, beta (FDR ignored)
   # Some versions also include `se` directly; if not, derive: se = beta / statistic.
   se_col <- if ("se" %in% names(cis)) cis$se else cis$beta / cis$statistic
   data.frame(
@@ -325,7 +323,6 @@ run_QTL <- function(obj,
     se      = as.numeric(se_col),
     t       = as.numeric(cis$statistic),
     p       = as.numeric(cis$pvalue),
-    FDR_cis = as.numeric(cis$FDR),
     stringsAsFactors = FALSE
   )
 }
@@ -339,7 +336,7 @@ run_QTL <- function(obj,
       loop_id = character(0), snp_id = character(0),
       anchor = character(0),
       beta = numeric(0), se = numeric(0), t = numeric(0),
-      p = numeric(0), FDR_cis = numeric(0),
+      p = numeric(0),
       stringsAsFactors = FALSE
     ))
   key <- function(d) paste(d$loop_id, d$snp_id, sep = "::")

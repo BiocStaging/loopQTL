@@ -1,11 +1,11 @@
 export(loopQTL_setup)
 export(loopQTL_normalize)
-export(loopQTL_combine_normalized)
 export(loopQTL_choose_K)
 export(run_QTL)
 export(loopQTL_pair_data)
 export(loopQTL_plot_pair)
 export(loopQTL_annotate)
+export(loopQTL_plot_snp_window)
 exportClasses(loopQTL)
 exportMethods(show)
 
@@ -31,4 +31,3 @@ importFrom(data.table, data.table, setnames, setkey, ":=", as.data.table)
 importFrom(preprocessCore, normalize.quantiles)
 
 importFrom(DESeq2, estimateSizeFactorsForMatrix)
-importFrom(mariner, mergePairs, clusters)

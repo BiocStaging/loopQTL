@@ -27,7 +27,7 @@ loopQTL_plot_pair <- function(obj, loop_id, snp_id,
   if (nrow(obj@results) == 0L)
     stop("obj@results is empty. Run run_QTL(obj) first.")
 
-  # ---- Look up the (loop, SNP) row in obj@results for stats ----
+  # Look up the (loop, SNP) row in obj@results for stats
   hit <- obj@results[obj@results$loop_id == loop_id &
                      obj@results$snp_id  == snp_id, , drop = FALSE]
   if (nrow(hit) == 0L)
@@ -38,7 +38,7 @@ loopQTL_plot_pair <- function(obj, loop_id, snp_id,
                    paste0(ref, "/", alt),
                    paste0(alt, "/", alt))
 
-  # ---- Pull per-sample pair data ----
+  # Pull per-sample pair data
   d <- loopQTL_pair_data(obj, loop_id, snp_id, normal = normal)
   d$geno_factor <- factor(d$genotype, levels = c(0, 1, 2), labels = geno_labels)
   d <- d[!is.na(d$geno_factor) & !is.na(d$phenotype), , drop = FALSE]

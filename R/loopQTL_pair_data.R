@@ -37,7 +37,7 @@ loopQTL_pair_data <- function(obj, loop_id, snp_id, normal = TRUE) {
   if (length(miss_snps) > 0L)
     stop("snp_id(s) not in obj@results: ", paste(miss_snps, collapse = ", "))
 
-  # ---- SNP info from obj@results (positions + ref/alt) ----
+  # SNP info from obj@results (positions + ref/alt)
   snp_info <- unique(obj@results[
     obj@results$snp_id %in% snp_id,
     c("snp_id", "chrom", "pos", "ref", "alt"),
@@ -45,8 +45,7 @@ loopQTL_pair_data <- function(obj, loop_id, snp_id, normal = TRUE) {
   ])
   snp_info <- snp_info[match(snp_id, snp_info$snp_id), , drop = FALSE]
 
-  # ---- Genotypes via targeted tabix read ----
-  # Normalize chrom naming to whatever the VCF uses.
+  # Genotypes via targeted tabix read  # Normalize chrom naming to whatever the VCF uses.
   tab <- Rsamtools::TabixFile(obj@vcf_path)
   vcf_chroms <- Rsamtools::headerTabix(tab)$seqnames
   vcf_norm <- .make_chrom_normalizer(vcf_chroms)
@@ -85,13 +84,13 @@ loopQTL_pair_data <- function(obj, loop_id, snp_id, normal = TRUE) {
   rownames(dosage) <- snp_id
   colnames(dosage) <- obj@samples
 
-  # ---- Phenotype matrix for the requested loops ----
+  # Phenotype matrix for the requested loops
   loop_idx <- match(loop_id, loop_ids_all)
   pheno_full <- if (normal) .rint_matrix(obj@phenotype) else obj@phenotype
   pheno_sub <- pheno_full[loop_idx, , drop = FALSE]
   rownames(pheno_sub) <- loop_id
 
-  # ---- Build long table: n_samples x n_loops x n_snps rows ----
+  # Build long table: n_samples x n_loops x n_snps rows
   n_samples <- length(obj@samples)
   grid <- expand.grid(
     sample_idx = seq_len(n_samples),

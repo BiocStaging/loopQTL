@@ -14,7 +14,7 @@
 #' @slot results QTL result table written by `run_QTL()`. Empty data.frame
 #'   before `run_QTL()` runs. Carries one row per tested (loop, SNP) pair
 #'   with columns `loop_id`, `snp_id`, `chrom`, `pos`, `ref`, `alt`,
-#'   `anchor`, `beta`, `se`, `t`, `p`, `FDR_cis`, `n_used`, `maf`. After
+#'   `anchor`, `beta`, `se`, `t`, `p`, `n_used`, `maf`. After
 #'   `loopQTL_annotate()`, also carries `gene`, `peak` (if peak supplied),
 #'   and `Type`.
 #' @slot meta Free-form run metadata (counts of dropped loops, zero-var rows, ...).
