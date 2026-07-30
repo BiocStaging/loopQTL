@@ -457,11 +457,9 @@ loopQTLplotLocus <- function(obj, snp_id,
     ggplot2::scale_x_continuous(labels = ax_fmt, expand = c(0, 0)) +
     ggplot2::labs(y = "SNP") +
     ggplot2::theme_classic(base_size = 10) +
-    ggplot2::theme(axis.text.y  = ggplot2::element_blank(),
-                   axis.ticks.y = ggplot2::element_blank(),
+    ggplot2::theme(axis.text = ggplot2::element_blank(),
+                   axis.ticks = ggplot2::element_blank(),
                    axis.title.x = ggplot2::element_blank(),
-                   axis.text.x  = ggplot2::element_blank(),
-                   axis.ticks.x = ggplot2::element_blank(),
                    axis.line.x  = ggplot2::element_blank())
 }
 
