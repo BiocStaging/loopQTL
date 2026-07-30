@@ -211,14 +211,13 @@ loopQTLplotLocus <- function(obj, snp_id,
   li <- match(loops_df$loop_id, loop_ids_all)
   if (values == "normalized") {
     if (length(obj@phenotype) == 0L)
-      stop("values = 'normalized' needs obj@phenotype; run loopQTLnormalize() first.")
+      stop("loopQTLnormalize() must be run before using the values = \"normalize\" option.")
     return(obj@phenotype[li, obj@samples, drop = FALSE])
   }
   # cpm / raw modes need windows data
   w <- .resolve_windows(obj, windows)
   if (is.null(w$cells_raw))
-    stop("values = '", values, "' needs `cells_raw` in the windows file; ",
-         "re-run loopQTLnormalize(save_windows = TRUE).")
+    stop("loopQTLnormalize() must have been run with save_windows set to TRUE to use values = \"", values, "\".")
   res <- obj@resolution
   n_loops <- nrow(loops_df)
   out <- matrix(0, nrow = n_loops, ncol = length(obj@samples),
