@@ -81,9 +81,6 @@ loopQTLannotate <- function(obj,
   if (!is.null(peak)) {
     stopifnot(is.character(peak), length(peak) == 1L, file.exists(peak))
   }
-  if (!requireNamespace("rtracklayer", quietly = TRUE))
-    stop("rtracklayer is required for loopQTLannotate(); install via ",
-         "BiocManager::install('rtracklayer').")
   if (nrow(obj@results) == 0L)
     stop("obj@results is empty. Run runQTL(obj) first.")
 

@@ -118,12 +118,6 @@ loopQTLplotSnpWindow <- function(obj, snp_id,
   metric    <- match.arg(metric)
   values    <- match.arg(values)
   axis_unit <- match.arg(axis_unit)
-  if (!requireNamespace("ggplot2", quietly = TRUE))
-    stop("ggplot2 is required for loopQTLplotSnpWindow(); install it ",
-         "with install.packages('ggplot2').")
-  if (!requireNamespace("scales", quietly = TRUE))
-    stop("scales is required for loopQTLplotSnpWindow(); install it ",
-         "with install.packages('scales').")
 
   # 1. Resolve the windows source
   w <- .resolve_windows(obj, windows)

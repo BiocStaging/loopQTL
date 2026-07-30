@@ -65,9 +65,6 @@ loopQTLplotLocus <- function(obj, snp_id,
   )
   values    <- match.arg(values)
   axis_unit <- match.arg(axis_unit)
-  for (pkg in c("ggplot2", "patchwork", "rtracklayer", "scales"))
-    if (!requireNamespace(pkg, quietly = TRUE))
-      stop(pkg, " is required for loopQTLplotLocus(); install it first.")
   if (nrow(obj@results) == 0L)
     stop("obj@results is empty. Run runQTL(obj) first.")
 

@@ -21,9 +21,6 @@ loopQTLplotPair <- function(obj, loop_id, snp_id,
     is.character(loop_id), length(loop_id) == 1L,
     is.character(snp_id),  length(snp_id)  == 1L
   )
-  if (!requireNamespace("ggplot2", quietly = TRUE))
-    stop("ggplot2 is required for loopQTLplotPair(); install it with ",
-         "install.packages('ggplot2').")
   if (nrow(obj@results) == 0L)
     stop("obj@results is empty. Run runQTL(obj) first.")
 
