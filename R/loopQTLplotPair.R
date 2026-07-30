@@ -4,7 +4,7 @@
 #' REF/ALT alleles) and adds a title showing snp_id, loop_id, REF/ALT, p-value,
 #' and beta — drawn from the pair's row in `obj@results`.
 #'
-#' @param obj A [loopQTL-class] with `obj@results` populated by `run_QTL()`.
+#' @param obj A [loopQTL-class] with `obj@results` populated by `runQTL()`.
 #' @param loop_id Single loop_id to plot.
 #' @param snp_id Single snp_id to plot.
 #' @param normal Use RINT'd phenotype values (default `TRUE`, matching what
@@ -14,7 +14,7 @@
 #' @return A `ggplot` object.
 #'
 #' @export
-loopQTL_plot_pair <- function(obj, loop_id, snp_id,
+loopQTLplotPair <- function(obj, loop_id, snp_id,
                               normal = TRUE, jitter = TRUE) {
   stopifnot(
     methods::is(obj, "loopQTL"),
@@ -22,10 +22,10 @@ loopQTL_plot_pair <- function(obj, loop_id, snp_id,
     is.character(snp_id),  length(snp_id)  == 1L
   )
   if (!requireNamespace("ggplot2", quietly = TRUE))
-    stop("ggplot2 is required for loopQTL_plot_pair(); install it with ",
+    stop("ggplot2 is required for loopQTLplotPair(); install it with ",
          "install.packages('ggplot2').")
   if (nrow(obj@results) == 0L)
-    stop("obj@results is empty. Run run_QTL(obj) first.")
+    stop("obj@results is empty. Run runQTL(obj) first.")
 
   # Look up the (loop, SNP) row in obj@results for stats
   hit <- obj@results[obj@results$loop_id == loop_id &
@@ -39,7 +39,7 @@ loopQTL_plot_pair <- function(obj, loop_id, snp_id,
                    paste0(alt, "/", alt))
 
   # Pull per-sample pair data
-  d <- loopQTL_pair_data(obj, loop_id, snp_id, normal = normal)
+  d <- loopQTLpairData(obj, loop_id, snp_id, normal = normal)
   d$geno_factor <- factor(d$genotype, levels = c(0, 1, 2), labels = geno_labels)
   d <- d[!is.na(d$geno_factor) & !is.na(d$phenotype), , drop = FALSE]
   if (nrow(d) == 0L)

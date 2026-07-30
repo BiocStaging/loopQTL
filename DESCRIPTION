@@ -6,9 +6,9 @@ Authors@R: person("Zexun", "Wu", role = c("aut", "cre"), email = "zexunwu@usc.ed
 Description: Maps chromatin loop QTLs by testing whether genotype at a loop's
     anchors associates with the loop's contact strength across samples. Reads
     .hic files via strawr, builds an exact-coordinate consensus loop set,
-    normalizes contact strength across samples (band-wise quantile
-    normalization in the style of BNBC via preprocessCore, or DESeq2 size
-    factors), and runs anchor-restricted SNP-by-loop regressions with
+    normalizes contact strength across samples via band-wise quantile
+    normalization in the style of BNBC (implemented on top of
+    preprocessCore), and runs anchor-restricted SNP-by-loop regressions with
     MatrixEQTL. Intra-chromosomal loops only; no FDR or lead-SNP selection
     (left to the user).
 URL: https://github.com/rhielab/loopQTL
@@ -23,7 +23,6 @@ Imports:
     stats,
     utils,
     strawr,
-    DESeq2,
     preprocessCore,
     MatrixEQTL,
     PCAForQTL,

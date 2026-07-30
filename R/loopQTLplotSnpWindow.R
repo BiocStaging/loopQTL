@@ -1,11 +1,11 @@
 #' Per-pixel SNP-effect (beta) heatmap for one SNP
 #'
 #' For a SNP whose contact window was saved by
-#' [loopQTL_normalize()] (with `save_windows = TRUE`), fits a per-cell
+#' [loopQTLnormalize()] (with `save_windows = TRUE`), fits a per-cell
 #' linear regression `contact_value ~ dosage [+ covariates]` and renders
 #' the regression slope (`beta`) as a heatmap.
 #'
-#' Same units as the `beta` column in `obj@results` from [run_QTL()] —
+#' Same units as the `beta` column in `obj@results` from [runQTL()] —
 #' so with `normal = TRUE, covariates = "auto"` the cell at the loop's
 #' (binA, binB) returns a beta that matches the QTL row directly (no
 #' `r -> t` conversion needed). With `normal = FALSE, covariates = NULL`,
@@ -17,7 +17,7 @@
 #' zoom on a specific region (e.g. just the loop arc).
 #'
 #' @param obj A [loopQTL-class] with `meta$windows_out` populated by
-#'   `loopQTL_normalize(save_windows = TRUE)`.
+#'   `loopQTLnormalize(save_windows = TRUE)`.
 #' @param snp_id Single snp_id present in the saved windows file.
 #' @param chrom Optional chrom for verification. If supplied, must match
 #'   the SNP's chrom in the windows file (helps catch a wrong snp_id).
@@ -35,21 +35,21 @@
 #'   are returned NA. Default 3.
 #' @param normal Apply RINT (Blom-offset rank-inverse-normal transform) per
 #'   cell across samples before fitting. Matches the `normal = TRUE`
-#'   default in [run_QTL()]. Default `FALSE` (regression on raw BNBC).
+#'   default in [runQTL()]. Default `FALSE` (regression on raw BNBC).
 #' @param covariates Covariate handling for the regression:
 #'   \describe{
 #'     \item{`NULL`}{Default. Fit `cell ~ dosage` per cell (no covariates).}
 #'     \item{`"auto"`}{Auto-pick K phenotype PCs via PCAForQTL on
 #'       `obj@phenotype` (RINT'd if `normal = TRUE`), then fit
-#'       `cell ~ dosage + PCs` per cell. Matches what [run_QTL()] tested,
+#'       `cell ~ dosage + PCs` per cell. Matches what [runQTL()] tested,
 #'       so beta here equals the `beta` column in `obj@results`.}
 #'     \item{matrix/data.frame}{User-supplied `samples x k` covariates;
 #'       partial regression as above. Rownames or matched order required.}
 #'   }
 #' @param K_method `"elbow"` (default) or `"BE"`. Passed through to
-#'   [loopQTL_choose_K()] when `covariates = "auto"`. Ignored otherwise.
+#'   [loopQTLchooseK()] when `covariates = "auto"`. Ignored otherwise.
 #' @param K_max Hard cap on the auto-chosen K when `covariates = "auto"`.
-#'   Default `length(obj@samples) - 2L` (same as [run_QTL()]). Pass a
+#'   Default `length(obj@samples) - 2L` (same as [runQTL()]). Pass a
 #'   smaller value (e.g. `floor(n_samples / 4)`) for a more conservative
 #'   covariate set.
 #' @param limit Symmetric color-scale limit on beta. Values beyond
@@ -69,13 +69,26 @@
 #'     \item{`"beta"`}{Raw regression slope β (same units as
 #'       `obj@results$beta` when `normal = TRUE, covariates = "auto"`).}
 #'   }
+#' @param values Which cell values to run the regression on:
+#'   \describe{
+#'     \item{`"normalized"`}{Default. Post-BNBC values (`w$cells`). Uses the
+#'       same normalization applied to `obj@phenotype`, so with
+#'       `normal = TRUE, covariates = "auto"` the cell at the loop matches
+#'       `obj@results$beta` exactly.}
+#'     \item{`"cpm"`}{Counts per million: `w$cells_raw / (obj@cis / 1e6)`
+#'       per sample. Depth-corrected but no cross-sample QN. Requires
+#'       `obj@cis` to be populated (was set at setup).}
+#'     \item{`"raw"`}{Raw straw counts (`w$cells_raw`) — no depth correction,
+#'       no QN. β is on the raw-count scale and is NOT comparable to
+#'       `obj@results$beta`.}
+#'   }
 #' @param axis_unit `"Mb"` (default) or `"bp"`. Tick labels are formatted
 #'   accordingly. The underlying coordinates are bp either way.
 #'
 #' @return A `ggplot` object.
 #'
 #' @export
-loopQTL_plot_snp_window <- function(obj, snp_id,
+loopQTLplotSnpWindow <- function(obj, snp_id,
                                     chrom      = NULL,
                                     start      = NULL,
                                     end        = NULL,
@@ -89,6 +102,7 @@ loopQTL_plot_snp_window <- function(obj, snp_id,
                                     limit      = NULL,
                                     palette    = "RdBu",
                                     metric     = c("beta_logp", "beta"),
+                                    values     = c("normalized", "cpm", "raw"),
                                     axis_unit  = c("Mb", "bp")) {
   stopifnot(
     methods::is(obj, "loopQTL"),
@@ -102,12 +116,13 @@ loopQTL_plot_snp_window <- function(obj, snp_id,
   }
   K_method  <- match.arg(K_method)
   metric    <- match.arg(metric)
+  values    <- match.arg(values)
   axis_unit <- match.arg(axis_unit)
   if (!requireNamespace("ggplot2", quietly = TRUE))
-    stop("ggplot2 is required for loopQTL_plot_snp_window(); install it ",
+    stop("ggplot2 is required for loopQTLplotSnpWindow(); install it ",
          "with install.packages('ggplot2').")
   if (!requireNamespace("scales", quietly = TRUE))
-    stop("scales is required for loopQTL_plot_snp_window(); install it ",
+    stop("scales is required for loopQTLplotSnpWindow(); install it ",
          "with install.packages('scales').")
 
   # 1. Resolve the windows source
@@ -151,7 +166,7 @@ loopQTL_plot_snp_window <- function(obj, snp_id,
     if (crop_lo != crop_lo_req || crop_hi != crop_hi_req) {
       warning(sprintf(
         paste0("Requested [%d, %d] was clipped to [%d, %d] (the saved window ",
-               "for %s covers [%d, %d]; widen `window` in loopQTL_normalize() ",
+               "for %s covers [%d, %d]; widen `window` in loopQTLnormalize() ",
                "to enlarge it)."),
         as.integer(start), as.integer(end),
         crop_lo, crop_hi + res, snp_id, bin_lo, bin_hi + res))
@@ -166,14 +181,35 @@ loopQTL_plot_snp_window <- function(obj, snp_id,
                            samples_vec = w$samples)
 
   # 5. Per-cell regression slope (beta)
-  # Three modes, matching run_QTL()'s semantics:
+  # Three modes, matching runQTL()'s semantics:
   #   normal = FALSE, covariates = NULL          -> marginal beta on raw BNBC
   #   normal = TRUE,  covariates = NULL          -> marginal beta on RINT'd cells
-  #   normal = TRUE,  covariates = "auto"/matrix -> partial beta matching run_QTL()
+  #   normal = TRUE,  covariates = "auto"/matrix -> partial beta matching runQTL()
   # By Frisch-Waugh-Lovell, the partial slope equals the slope from
   # lm(cell ~ dose + cvrt), so we residualize both cell-value and dose
   # against [1, cvrt] then take slope = sum(Y_res * d_res) / sum(d_res^2).
-  cells_for_snp <- w$cells[, cols, drop = FALSE]
+  # Select the cell values matrix based on the `values` arg
+  cells_mat <- switch(values,
+    normalized = w$cells,
+    raw = {
+      if (is.null(w$cells_raw))
+        stop("This windows file has no `cells_raw` matrix (was written by an ",
+             "older version of loopQTL). Re-run loopQTLnormalize(save_windows = TRUE).")
+      w$cells_raw
+    },
+    cpm = {
+      if (is.null(w$cells_raw))
+        stop("This windows file has no `cells_raw` matrix (was written by an ",
+             "older version of loopQTL). Re-run loopQTLnormalize(save_windows = TRUE).")
+      if (length(obj@cis) == 0L)
+        stop("values = 'cpm' requires obj@cis (per-sample cis depth). ",
+             "Set the `cis` column in the samplesheet at loopQTLsetup() or ",
+             "let setup auto-compute it from .hic.")
+      lib_M <- obj@cis[w$samples] / 1e6
+      sweep(w$cells_raw, 1, lib_M, "/")
+    }
+  )
+  cells_for_snp <- cells_mat[, cols, drop = FALSE]
   rownames(cells_for_snp) <- w$samples
 
   Y <- cells_for_snp
@@ -188,7 +224,7 @@ loopQTL_plot_snp_window <- function(obj, snp_id,
   if (identical(covariates, "auto")) {
     cvrt_mode <- "auto"
     if (length(obj@phenotype) == 0L)
-      stop("covariates = 'auto' needs obj@phenotype; run loopQTL_normalize() first")
+      stop("covariates = 'auto' needs obj@phenotype; run loopQTLnormalize() first")
     Y_for_pca <- if (isTRUE(normal)) .rint_matrix(obj@phenotype) else obj@phenotype
     K_res <- .pca_for_qtl(Y_for_pca, samples = obj@samples,
                           K_method = K_method, K_max = K_max)
@@ -305,6 +341,7 @@ loopQTL_plot_snp_window <- function(obj, snp_id,
   )
   if (cvrt_mode == "auto")  mode_str <- paste0(mode_str, sprintf(" | K=%d auto PCs", ncol(cvrt)))
   if (cvrt_mode == "user")  mode_str <- paste0(mode_str, sprintf(" | %d user cvrt", ncol(cvrt)))
+  mode_str <- paste0(mode_str, " | ", values, " values")
 
   metric_label <- switch(metric,
     beta_logp = expression(beta %*% -log[10](p)),
@@ -364,7 +401,7 @@ loopQTL_plot_snp_window <- function(obj, snp_id,
   if (is.null(windows)) {
     p <- obj@meta$windows_out
     if (is.null(p) || !nzchar(p))
-      stop("obj@meta$windows_out is empty. Run loopQTL_normalize(",
+      stop("obj@meta$windows_out is empty. Run loopQTLnormalize(",
            "save_windows = TRUE, windows_out = ...) first, or pass the ",
            "`windows` argument explicitly.")
     if (!file.exists(p))

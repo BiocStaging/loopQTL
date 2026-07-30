@@ -4,21 +4,21 @@
 #' snp_id)` combination, carrying the per-sample genotype dosage, the
 #' phenotype value at that loop, and the per-sample cis depth.
 #'
-#' Requires `obj@results` to be populated (i.e., `run_QTL()` has run), since
+#' Requires `obj@results` to be populated (i.e., `runQTL()` has run), since
 #' SNP positions are looked up from the result table to fetch genotypes.
 #'
-#' @param obj A [loopQTL-class] with `run_QTL()` results in `obj@results`.
+#' @param obj A [loopQTL-class] with `runQTL()` results in `obj@results`.
 #' @param loop_id Character vector of loop_ids to extract.
 #' @param snp_id Character vector of snp_ids to extract.
 #' @param normal Apply RINT per loop before returning phenotype values
-#'   (default `TRUE`, matching `run_QTL()`'s default — the values plotted
+#'   (default `TRUE`, matching `runQTL()`'s default — the values plotted
 #'   then match what the regression actually used).
 #'
 #' @return data.frame with columns `sample`, `loop_id`, `snp_id`, `genotype`
 #'   (0/1/2 dosage; NA for missing), `phenotype`, `cis`.
 #'
 #' @export
-loopQTL_pair_data <- function(obj, loop_id, snp_id, normal = TRUE) {
+loopQTLpairData <- function(obj, loop_id, snp_id, normal = TRUE) {
   stopifnot(
     methods::is(obj, "loopQTL"),
     is.character(loop_id), length(loop_id) > 0L,
@@ -26,7 +26,7 @@ loopQTL_pair_data <- function(obj, loop_id, snp_id, normal = TRUE) {
     is.logical(normal), length(normal) == 1L
   )
   if (nrow(obj@results) == 0L)
-    stop("obj@results is empty. Run run_QTL(obj) first to populate it.")
+    stop("obj@results is empty. Run runQTL(obj) first to populate it.")
 
   loop_ids_all <- S4Vectors::mcols(obj@loops)$loop_id
   miss_loops <- setdiff(loop_id, loop_ids_all)

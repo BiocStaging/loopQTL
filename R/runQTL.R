@@ -16,12 +16,12 @@
 #' form (RINT'd or not) the regression will use. Otherwise the user-supplied
 #' matrix is used as-is.
 #'
-#' @param obj A [loopQTL-class] after [loopQTL_normalize()].
+#' @param obj A [loopQTL-class] after [loopQTLnormalize()].
 #' @param window Bp flank added to each anchor bin when matching SNPs. Default 0.
 #' @param covariates Optional `samples x k` matrix/data.frame. If `NULL`,
 #'   auto-chosen via PCAForQTL.
 #' @param normal Apply RINT per loop before regression. Default `TRUE`.
-#' @param K_method `"elbow"` or `"BE"`; passed to [loopQTL_choose_K()] when
+#' @param K_method `"elbow"` or `"BE"`; passed to [loopQTLchooseK()] when
 #'   covariates is `NULL`. Default `"elbow"`.
 #' @param K_max Hard cap on the auto-chosen K. Default
 #'   `length(obj@samples) - 2L`, the largest K that still leaves degrees of
@@ -34,11 +34,11 @@
 #' @return The input `obj` with `obj@results` filled — a data.frame with one
 #'   row per tested (loop, SNP) pair: `loop_id`, `snp_id`, `chrom`, `pos`,
 #'   `ref`, `alt`, `anchor`, `beta`, `se`, `t`, `p`, `n_used`, `maf`.
-#'   Access via `obj@results`. The wrapper `loopQTL_pair_data()` and
-#'   `loopQTL_plot_pair()` consume this slot directly.
+#'   Access via `obj@results`. The wrapper `loopQTLpairData()` and
+#'   `loopQTLplotPair()` consume this slot directly.
 #'
 #' @export
-run_QTL <- function(obj,
+runQTL <- function(obj,
                     window            = 0L,
                     covariates        = NULL,
                     normal            = TRUE,
@@ -170,9 +170,9 @@ run_QTL <- function(obj,
     colnames(cvrt_mat) <- samples_vec
     obj_K_meta <- list(K = nrow(cvrt_mat), K_method = NA_character_, K_source = "user")
   }
-  obj@meta$run_QTL_K        <- obj_K_meta
-  obj@meta$run_QTL_normal   <- normal
-  obj@meta$run_QTL_n_zero_var <- max(0L, n_zero_var)
+  obj@meta$runQTL_K        <- obj_K_meta
+  obj@meta$runQTL_normal   <- normal
+  obj@meta$runQTL_n_zero_var <- max(0L, n_zero_var)
 
   # Build SlicedData inputs for MatrixEQTL
   snps_sd <- .as_sliced(dosage)

@@ -9,7 +9,7 @@
 #' was washing out significant QTL hits by collapsing distinct loops.
 #'
 #' Also validates per-sample `.hic` metadata and the VCF header, and
-#' records the per-sample `.hic` paths needed by [loopQTL_normalize()].
+#' records the per-sample `.hic` paths needed by [loopQTLnormalize()].
 #'
 #' When the samplesheet does not provide a `cis` column, per-sample cis
 #' depth is unconditionally auto-computed from the `.hic` files via a
@@ -38,7 +38,7 @@
 #'   `phenotype` is an empty placeholder until normalize fills it.
 #'
 #' @export
-loopQTL_setup <- function(samples,
+loopQTLsetup <- function(samples,
                           vcf,
                           resolution,
                           min_samples = 2L,

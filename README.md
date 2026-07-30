@@ -14,15 +14,11 @@ loopQTLsetup()      -> validate VCF + .hic headers, read loop BEDPEs, build the
                         After running this step, the loopQTL S4 class object will be
                         set up along with the consensus loops set stored.
 
-loopQTLnormalize()  -> per-chromosome whole-genome straw pull (parallel), then
-                        one of:
-                          * BNBC   -- log-CPM depth correction + band-wise quantile
-                          normalization across samples, adapted from Kipper et al, 2024.
-                          * DESeq2 -- A computationally convenient alternative method to
-                        perform the normalization. If this seeting is choosen, the raw count
-                        interaction matrix will be directly subsetted to the consensus loops
-                        set up in loopQTLsetup() step and normalized using DESeq2 method.
-                        After running this step, the normalized matrix will be saved in obj@phenotype.
+loopQTLnormalize()  -> per-chromosome whole-genome straw pull (parallel):
+                        log-CPM depth correction + band-wise quantile
+                        normalization across samples, adapted from Kipper et al, 2024.
+                        After running this step, the normalized matrix will be saved
+                        in obj@phenotype.
 
 runQTL()            -> targeted tabix VCF read of anchor SNPs, then MatrixEQTL
                         once per anchor.
@@ -38,7 +34,7 @@ Bioconductor + CRAN dependencies:
 ```r
 if (!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocManager")
 BiocManager::install(c(
-  "strawr", "DESeq2", "preprocessCore",
+  "strawr", "preprocessCore",
   "GenomicRanges", "IRanges", "InteractionSet",
   "S4Vectors", "VariantAnnotation", "Rsamtools",
   "SummarizedExperiment", "BiocParallel", "rtracklayer"
@@ -81,7 +77,6 @@ obj <- loopQTLsetup(
 
 obj <- loopQTLnormalize(
   obj,
-  method  = "BNBC",                  # or "DESeq2"
   BPPARAM = BiocParallel::MulticoreParam(workers = 8)
 )
 # obj@phenotype now holds the pre-RINT normalized output (inspect for QC)
@@ -117,12 +112,11 @@ head(obj@results[, c("snp_id", "loop_id", "anchor", "gene", "peak", "Type")])
 
 ## Save per-SNP contact submatrices for SNP-correlation maps
 
-Pass `save_windows = TRUE` to `loopQTLnormalize()` (BNBC only) to also save a `.rds` containing a `samples × cells` matrix of post-band-QN contact values around each in-loop SNP. Values are sliced from the per-chrom matrix that fills the phenotype, so no recomputation. This is a diagnostic/visualization output — it does not affect `obj@phenotype` or `runQTL()`.
+Pass `save_windows = TRUE` to `loopQTLnormalize()` to also save a `.rds` containing a `samples × cells` matrix of post-band-QN contact values around each in-loop SNP. Values are sliced from the per-chrom matrix that fills the phenotype, so no recomputation. This is a diagnostic/visualization output — it does not affect `obj@phenotype` or `runQTL()`.
 
 ```r
 obj <- loopQTLnormalize(
   obj,
-  method       = "BNBC",
   save_windows = TRUE,
   windows_out  = "loop_snp_windows.rds",
   window       = 1e6,       # minimum window extent in bp
@@ -150,7 +144,7 @@ ggplot2::ggsave("rs123456_snp_window.pdf", p, width = 8, height = 8)
 
 ## Run in parallel
 
-Inside a single call, both `loopQTLsetup()` (when auto-computing per-sample cis from `.hic`) and `loopQTLnormalize()` (one worker per chromosome for BNBC; one per `(sample, chrom)` extraction for DESeq2) dispatch work via `BiocParallel::bplapply`. Pick the backend via `BPPARAM`:
+Inside a single call, both `loopQTLsetup()` (when auto-computing per-sample cis from `.hic`) and `loopQTLnormalize()` (one worker per chromosome) dispatch work via `BiocParallel::bplapply`. Pick the backend via `BPPARAM`:
 
 ```r
 BPPARAM = BiocParallel::MulticoreParam(workers = 16)   # workstation / single node

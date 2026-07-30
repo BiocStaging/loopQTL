@@ -1,15 +1,15 @@
-#' Choose the number of phenotype PCs to use as covariates for `run_QTL()`
+#' Choose the number of phenotype PCs to use as covariates for `runQTL()`
 #'
 #' Wraps [PCAForQTL] (Zhou et al.) to pick how many phenotype PCs to include
 #' as `cvrt` in MatrixEQTL. Default `K_method = "elbow"` (fast); `"BE"` is the
 #' Buja-Eyuboglu permutation-based method (slower, more rigorous).
 #'
 #' `normal` controls whether RINT is applied to the phenotype before PCA.
-#' Default `TRUE` matches `run_QTL()`'s default, so the PCs reflect the same
+#' Default `TRUE` matches `runQTL()`'s default, so the PCs reflect the same
 #' phenotype form that the regression will use. Pass `normal = FALSE` to PCA
 #' the raw (BNBC/fastlo) phenotype instead.
 #'
-#' @param obj A [loopQTL-class] with `phenotype` populated by `loopQTL_normalize()`.
+#' @param obj A [loopQTL-class] with `phenotype` populated by `loopQTLnormalize()`.
 #' @param K_method `"elbow"` (default) or `"BE"`.
 #' @param normal Apply RINT per loop before PCA. Default `TRUE`.
 #' @param K_max Hard cap on the number of PCs returned. Default
@@ -28,7 +28,7 @@
 #'   }
 #'
 #' @export
-loopQTL_choose_K <- function(obj,
+loopQTLchooseK <- function(obj,
                              K_method = c("elbow", "BE"),
                              normal   = TRUE,
                              K_max    = NULL,
@@ -50,7 +50,7 @@ loopQTL_choose_K <- function(obj,
 }
 
 # Internal: PCA + K selection on a (loops x samples) matrix. Shared by
-# loopQTL_choose_K() and run_QTL() (so we don't RINT twice when run_QTL
+# loopQTLchooseK() and runQTL() (so we don't RINT twice when runQTL
 # already RINT'd the matrix it's passing).
 .pca_for_qtl <- function(Y,
                          samples,

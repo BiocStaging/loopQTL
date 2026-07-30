@@ -33,7 +33,7 @@
 #'   }
 #' }
 #'
-#' @param obj A [loopQTL-class] with `obj@results` populated by `run_QTL()`.
+#' @param obj A [loopQTL-class] with `obj@results` populated by `runQTL()`.
 #' @param gtf Path to a GTF/GFF file with `gene` entries. TSS is taken as
 #'   the gene's `start` on + strand, `end` on - strand. Read via
 #'   `rtracklayer::import()`.
@@ -63,7 +63,7 @@
 #'   (when applicable), and `Type` columns.
 #'
 #' @export
-loopQTL_annotate <- function(obj,
+loopQTLannotate <- function(obj,
                              gtf,
                              peak            = NULL,
                              TSS_window      = 2000L,
@@ -82,10 +82,10 @@ loopQTL_annotate <- function(obj,
     stopifnot(is.character(peak), length(peak) == 1L, file.exists(peak))
   }
   if (!requireNamespace("rtracklayer", quietly = TRUE))
-    stop("rtracklayer is required for loopQTL_annotate(); install via ",
+    stop("rtracklayer is required for loopQTLannotate(); install via ",
          "BiocManager::install('rtracklayer').")
   if (nrow(obj@results) == 0L)
-    stop("obj@results is empty. Run run_QTL(obj) first.")
+    stop("obj@results is empty. Run runQTL(obj) first.")
 
   TSS_window    <- as.integer(TSS_window)
   anchor_window <- as.integer(anchor_window)
