@@ -2,10 +2,10 @@
 #'
 #' Stacks three tracks over a shared genomic-coordinate axis:
 #'
-#' 1. **Gene track** — genes from `gtf` overlapping `[start, end]`, drawn as
+#' 1. **Gene track** - genes from `gtf` overlapping `[start, end]`, drawn as
 #'    strand-oriented rectangles with labels.
-#' 2. **SNP track** — vertical marker at the SNP's position.
-#' 3. **Loop arcs** — one panel per genotype class (0, 1, 2). For each
+#' 2. **SNP track** - vertical marker at the SNP's position.
+#' 3. **Loop arcs** - one panel per genotype class (0, 1, 2). For each
 #'    significant loop anchored by the SNP (per `obj@results`), a Bezier
 #'    arc connects the two anchor midpoints, colored by the loop's mean
 #'    contact strength across samples in that genotype class.

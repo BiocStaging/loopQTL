@@ -11,7 +11,7 @@
 #' @param loop_id Character vector of loop_ids to extract.
 #' @param snp_id Character vector of snp_ids to extract.
 #' @param normal Apply RINT per loop before returning phenotype values
-#'   (default `TRUE`, matching `runQTL()`'s default — the values plotted
+#'   (default `TRUE`, matching `runQTL()`'s default - the values plotted
 #'   then match what the regression actually used).
 #'
 #' @return data.frame with columns `sample`, `loop_id`, `snp_id`, `genotype`

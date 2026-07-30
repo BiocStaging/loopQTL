@@ -13,20 +13,20 @@
 #'     before this overlap check (so promoter-like peaks don't count).}
 #'   \item{`Type`}{One of:
 #'     \itemize{
-#'       \item `"WithinTSS"` — SNP overlaps any gene's TSS (± `TSS_window`).
+#'       \item `"WithinTSS"` - SNP overlaps any gene's TSS (± `TSS_window`).
 #'         Short-circuits all other annotation when `remove_TSS = TRUE`.
-#'       \item `"rs-gene"` — SNP not in TSS, has a target gene at the partner anchor.
-#'       \item `"rs-<peak_annotation>"` — SNP not in TSS, no gene at partner,
+#'       \item `"rs-gene"` - SNP not in TSS, has a target gene at the partner anchor.
+#'       \item `"rs-<peak_annotation>"` - SNP not in TSS, no gene at partner,
 #'         but partner anchor overlaps a peak (only when `peak` is supplied).
 #'         e.g. `"rs-Enhancer"`.
-#'       \item `"rs-O"` — SNP not in TSS, no gene AND no peak at the partner anchor.
-#'       \item `"rs(<peak_annotation>)-gene"` — additionally overlaps a peak
+#'       \item `"rs-O"` - SNP not in TSS, no gene AND no peak at the partner anchor.
+#'       \item `"rs(<peak_annotation>)-gene"` - additionally overlaps a peak
 #'         (only when `peak` is supplied), has a target gene. e.g.
 #'         `"rs(Enhancer)-gene"`.
-#'       \item `"rs(<peak_annotation>)-<peak_annotation>"` — SNP overlaps peak,
+#'       \item `"rs(<peak_annotation>)-<peak_annotation>"` - SNP overlaps peak,
 #'         partner overlaps peak, no gene at partner.
 #'         e.g. `"rs(Enhancer)-Enhancer"`.
-#'       \item `"rs(<peak_annotation>)-O"` — overlaps a peak but no target gene
+#'       \item `"rs(<peak_annotation>)-O"` - overlaps a peak but no target gene
 #'         and no peak at partner.
 #'     }
 #'     Partner-side priority: `gene` > peak > `O`.

@@ -4,7 +4,7 @@
 #' per-sample BEDPE calls: a loop is "the same" across samples only if both
 #' anchors' (start, end) coordinates match exactly. Counts the number of
 #' distinct samples each unique loop appears in, and retains those with
-#' support >= `min_samples`. No jitter tolerance, no merging — the
+#' support >= `min_samples`. No jitter tolerance, no merging - the
 #' previously-used mariner clustering step is gone; experience showed it
 #' was washing out significant QTL hits by collapsing distinct loops.
 #'
@@ -14,7 +14,7 @@
 #' When the samplesheet does not provide a `cis` column, per-sample cis
 #' depth is unconditionally auto-computed from the `.hic` files via a
 #' one-pass straw aggregation (sums of counts per `(sample, chrom)`, no
-#' consensus indexing) — needed by the BNBC logCPM step downstream. If you
+#' consensus indexing) - needed by the BNBC logCPM step downstream. If you
 #' precompute `cis` per sample yourself (e.g. from a Hi-C QC report) and
 #' put it in the samplesheet, that value is used as-is and the .hic pass
 #' is skipped.

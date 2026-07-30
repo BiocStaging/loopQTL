@@ -5,7 +5,7 @@
 #' linear regression `contact_value ~ dosage [+ covariates]` and renders
 #' the regression slope (`beta`) as a heatmap.
 #'
-#' Same units as the `beta` column in `obj@results` from [runQTL()] —
+#' Same units as the `beta` column in `obj@results` from [runQTL()] -
 #' so with `normal = TRUE, covariates = "auto"` the cell at the loop's
 #' (binA, binB) returns a beta that matches the QTL row directly (no
 #' `r -> t` conversion needed). With `normal = FALSE, covariates = NULL`,
@@ -78,7 +78,7 @@
 #'     \item{`"cpm"`}{Counts per million: `w$cells_raw / (obj@cis / 1e6)`
 #'       per sample. Depth-corrected but no cross-sample QN. Requires
 #'       `obj@cis` to be populated (was set at setup).}
-#'     \item{`"raw"`}{Raw straw counts (`w$cells_raw`) — no depth correction,
+#'     \item{`"raw"`}{Raw straw counts (`w$cells_raw`) - no depth correction,
 #'       no QN. β is on the raw-count scale and is NOT comparable to
 #'       `obj@results$beta`.}
 #'   }

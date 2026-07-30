@@ -10,7 +10,7 @@
 #' Bioconductor package is not used. Per-chromosome work is dispatched via
 #' `BiocParallel`.
 #'
-#' **No RINT is applied here** — the phenotype slot stores normalize's output
+#' **No RINT is applied here** - the phenotype slot stores normalize's output
 #' directly. RINT is applied just before regression in `runQTL()`
 #' (`normal = TRUE` default).
 #'
@@ -34,7 +34,7 @@
 #'   partner anchor stays in-frame even for ~2 Mb Mustache loops. Ignored
 #'   when `save_windows = FALSE`.
 #' @param snp_window Bp flank added to each consensus anchor when selecting
-#'   in-loop SNPs from the VCF. Default 0 (anchor-bin SNPs only — matches
+#'   in-loop SNPs from the VCF. Default 0 (anchor-bin SNPs only - matches
 #'   `runQTL()`'s default). Ignored when `save_windows = FALSE`.
 #'
 #' @return The input object with `phenotype` filled. When `save_windows = TRUE`,
@@ -122,7 +122,7 @@ loopQTLnormalize <- function(obj,
   anchorA <- InteractionSet::anchors(loops_gi, type = "first")
   anchorB <- InteractionSet::anchors(loops_gi, type = "second")
   loop_chr  <- as.character(GenomicRanges::seqnames(anchorA))
-  # Floor each anchor's midpoint to the bin containing it — straw returns
+  # Floor each anchor's midpoint to the bin containing it - straw returns
   # bin-based contacts, so we look up at bin granularity even when the consensus
   # key is exact-coord.
   loop_binA <- .bin_anchor(GenomicRanges::start(anchorA),
@@ -291,7 +291,7 @@ loopQTLnormalize <- function(obj,
   # cis is set authoritatively at setup time and is genome-wide; normalize
   # does not touch it.
 
-  # No RINT here — that's runQTL()'s job (so obj@phenotype always stores the
+  # No RINT here - that's runQTL()'s job (so obj@phenotype always stores the
   # pre-RINT BNBC output, available for QC/comparison).
   obj@phenotype <- pheno
 
@@ -513,11 +513,11 @@ loopQTLnormalize <- function(obj,
     active_i <- sort(unique(unlist(lapply(samp_data, function(sd) sd$i))))
     L <- length(active_i)
     if (L == 0L) next
-    # Note: L = 1 is OK — preprocessCore returns all samples equal to the mean.
+    # Note: L = 1 is OK - preprocessCore returns all samples equal to the mean.
     # That degenerate cell will have zero variance downstream and be skipped.
 
     # Build L x n_samples dense block. The "missing" fill is the per-sample
-    # logCPM transform of raw-count=0 (not literally 0) — because not having
+    # logCPM transform of raw-count=0 (not literally 0) - because not having
     # a triplet at (i, i+b) means the underlying raw count was 0, and
     # log((0+0.5)/libs[s] + c_offset) is a small negative value, not 0.
     zero_fill <- vapply(seq_len(n_samples), function(s) transform_sample(0, s),

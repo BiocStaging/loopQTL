@@ -2,7 +2,7 @@
 
 An R package for mapping chromatin loop QTLs from Hi-C: **does genotype at a loop's anchors associate with the loop's contact strength across samples?**
 
-Unlike peak-centric window-scan tools (e.g. QTLtools), `loopQTL` only tests SNPs that fall inside a loop's **anchor bins** — because for a given loop, SNPs elsewhere in a wide cis-window are biologically unrelated to whether that loop forms. Intra-chromosomal loops only. No FDR or lead-SNP selection inside the package (returned as a full per-(loop, SNP) table so users can apply their own correction).
+Unlike peak-centric window-scan tools (e.g. QTLtools), `loopQTL` only tests SNPs that fall inside a loop's **anchor bins** - because for a given loop, SNPs elsewhere in a wide cis-window are biologically unrelated to whether that loop forms. Intra-chromosomal loops only. No FDR or lead-SNP selection inside the package (returned as a full per-(loop, SNP) table so users can apply their own correction).
 
 ## Pipeline overview
 
@@ -96,9 +96,9 @@ head(obj@results)
 
 `loopQTLannotate()` adds three columns to `obj@results`:
 
-- **`gene`** — comma-separated gene names whose TSS (± `TSS_window`) sits in the SNP's *partner* anchor
-- **`peak`** — logical: does the SNP overlap any peak from a user-supplied peak file (with optional TSS filtering)
-- **`Type`** — one of `WithinTSS`, `rs-gene`, `rs-<peak_label>`, `rs-O`, `rs(<peak_label>)-gene`, `rs(<peak_label>)-<peak_label>`, `rs(<peak_label>)-O`
+- **`gene`** - comma-separated gene names whose TSS (± `TSS_window`) sits in the SNP's *partner* anchor
+- **`peak`** - logical: does the SNP overlap any peak from a user-supplied peak file (with optional TSS filtering)
+- **`Type`** - one of `WithinTSS`, `rs-gene`, `rs-<peak_label>`, `rs-O`, `rs(<peak_label>)-gene`, `rs(<peak_label>)-<peak_label>`, `rs(<peak_label>)-O`
 
 ```r
 obj <- loopQTLannotate(
@@ -112,7 +112,7 @@ head(obj@results[, c("snp_id", "loop_id", "anchor", "gene", "peak", "Type")])
 
 ## Save per-SNP contact submatrices for SNP-correlation maps
 
-Pass `save_windows = TRUE` to `loopQTLnormalize()` to also save a `.rds` containing a `samples × cells` matrix of post-band-QN contact values around each in-loop SNP. Values are sliced from the per-chrom matrix that fills the phenotype, so no recomputation. This is a diagnostic/visualization output — it does not affect `obj@phenotype` or `runQTL()`.
+Pass `save_windows = TRUE` to `loopQTLnormalize()` to also save a `.rds` containing a `samples × cells` matrix of post-band-QN contact values around each in-loop SNP. Values are sliced from the per-chrom matrix that fills the phenotype, so no recomputation. This is a diagnostic/visualization output - it does not affect `obj@phenotype` or `runQTL()`.
 
 ```r
 obj <- loopQTLnormalize(

@@ -2,7 +2,7 @@
 #'
 #' Stratifies the loop's phenotype by genotype dosage (0/1/2, labeled with the
 #' REF/ALT alleles) and adds a title showing snp_id, loop_id, REF/ALT, p-value,
-#' and beta — drawn from the pair's row in `obj@results`.
+#' and beta - drawn from the pair's row in `obj@results`.
 #'
 #' @param obj A [loopQTL-class] with `obj@results` populated by `runQTL()`.
 #' @param loop_id Single loop_id to plot.

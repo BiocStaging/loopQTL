@@ -1,7 +1,7 @@
 #' Anchor-restricted loop-by-SNP association tests via MatrixEQTL
 #'
 #' Reads anchor-window SNPs from the VCF in a single targeted tabix pass, then
-#' runs MatrixEQTL twice — once with anchor-A as the gene position and once
+#' runs MatrixEQTL twice - once with anchor-A as the gene position and once
 #' with anchor-B. Results are outer-joined on `(loop_id, snp_id)` and labeled
 #' `anchor = A / B / both`.
 #'
@@ -31,7 +31,7 @@
 #' @param pvOutputThreshold MatrixEQTL p-value threshold. Default 1 (return
 #'   every pair). Lower it to shrink the output for very large runs.
 #'
-#' @return The input `obj` with `obj@results` filled — a data.frame with one
+#' @return The input `obj` with `obj@results` filled - a data.frame with one
 #'   row per tested (loop, SNP) pair: `loop_id`, `snp_id`, `chrom`, `pos`,
 #'   `ref`, `alt`, `anchor`, `beta`, `se`, `t`, `p`, `n_used`, `maf`.
 #'   Access via `obj@results`. The wrapper `loopQTLpairData()` and

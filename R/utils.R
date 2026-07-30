@@ -52,7 +52,7 @@
 # Internal: compute per-SNP window cells for save_windows in loopQTLnormalize().
 #
 # For each VCF SNP that overlaps any consensus loop anchor (within `snp_window`
-# bp flank), build the SNP's "window box" — a square (bin_lo..bin_hi)^2 region
+# bp flank), build the SNP's "window box" - a square (bin_lo..bin_hi)^2 region
 # centered on the bounding interval of the SNP position and every partner
 # anchor of every loop the SNP participates in, expanded symmetrically so its
 # span is at least `window` bp. Returns the per-SNP metadata plus per-chrom
