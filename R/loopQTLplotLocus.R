@@ -475,7 +475,7 @@ loopQTLplotLocus <- function(obj, snp_id,
   span <- abs(x2 - x1)
   data.frame(
     x = x1 + t * (x2 - x1),
-    y = 4 * t * (1 - t) * span * height_scale
+    y = (4 - 4 * t * (1 - t)) * span * height_scale
   )
 }
 
