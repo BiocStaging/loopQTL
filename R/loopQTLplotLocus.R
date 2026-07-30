@@ -469,20 +469,20 @@ loopQTLplotLocus <- function(obj, snp_id,
                    axis.line.x  = ggplot2::element_blank())
 }
 
-# Parabolic arcs (t in [0, 1]; y = 4*t*(1-t) scaled by loop span).
-.arc_path <- function(x1, x2, n_pts = 60L, height_scale = 1) {
-  t <- seq(0, 1, length.out = n_pts)
-  span <- abs(x2 - x1)
-  data.frame(
-    x = x1 + t * (x2 - x1),
-    y = 4 - (4 * t * (1 - t) * span * height_scale)
-  )
+.arc_path <- function(x1, x2) {
+  loop_size <- abs(x2 - x1)
+
+  return(data.frame(
+    x = c(x1, mean(x1, x2), x2),
+    y = c(4, 4 - loop_size, 4)
+  ))
 }
 
 .build_arc_panel <- function(arc_df, start, end, ax_fmt,
                               eff_lo, eff_hi, strong_color, weak_color,
                               panel_title, show_x = FALSE) {
-  # Expand each arc into a path of points
+  # Expand each loop into a set of three points which will be interpolated by
+  # geom_curve.
   paths <- do.call(rbind, lapply(seq_len(nrow(arc_df)), function(i) {
     p <- .arc_path(arc_df$x1[i], arc_df$x2[i])
     p$loop_id <- arc_df$loop_id[i]
@@ -494,7 +494,7 @@ loopQTLplotLocus <- function(obj, snp_id,
   gg <- ggplot2::ggplot(paths, ggplot2::aes(x = .data$x, y = .data$y,
                                             group = .data$loop_id,
                                             color = .data$value)) +
-    ggplot2::geom_path(linewidth = 0.9, na.rm = TRUE) +
+    ggplot2::geom_curve(linewidth = 0.9, na.rm = TRUE) +
     ggplot2::scale_color_gradient(low = weak_color, high = strong_color,
                                   limits = c(eff_lo, eff_hi),
                                   oob = scales::squish,
