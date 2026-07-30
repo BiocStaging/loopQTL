@@ -74,35 +74,35 @@ loopQTLplotLocus <- function(obj, snp_id,
   start <- as.integer(start); end <- as.integer(end)
 
   # 1. Filter obj@results to (this SNP, p <= threshold) and to loops in the region
-  res_snp <- obj@results[obj@results$snp_id == snp_id, , drop = FALSE]
-  if (nrow(res_snp) == 0L)
+  resultsForThisSNP <- obj@results[obj@results$snp_id == snp_id, , drop = FALSE]
+  if (nrow(resultsForThisSNP) == 0L)
     stop("SNP ", snp_id, " not found in obj@results")
-  if (!identical(unique(as.character(res_snp$chrom)), chrom))
+  if (!identical(unique(as.character(resultsForThisSNP$chrom)), chrom))
     stop("Supplied chrom = '", chrom, "' does not match the SNP's chrom ('",
-         res_snp$chrom[1], "') in obj@results")
-  snp_pos <- res_snp$pos[1]
-  snp_ref <- res_snp$ref[1]
-  snp_alt <- res_snp$alt[1]
+         resultsForThisSNP$chrom[1], "') in obj@results")
+  snp_pos <- resultsForThisSNP$pos[1]
+  snp_ref <- resultsForThisSNP$ref[1]
+  snp_alt <- resultsForThisSNP$alt[1]
 
-  res_sig <- res_snp[res_snp$p <= p_threshold & is.finite(res_snp$p), ,
+  significantResults <- resultsForThisSNP[resultsForThisSNP$p <= p_threshold & is.finite(resultsForThisSNP$p), ,
                      drop = FALSE]
-  if (nrow(res_sig) == 0L)
+  if (nrow(significantResults) == 0L)
     stop("No significant (p <= ", p_threshold, ") loops for SNP ", snp_id)
 
   # Look up anchor coords for each significant loop; filter to region
   loop_ids_all <- S4Vectors::mcols(obj@loops)$loop_id
   ancA_all <- InteractionSet::anchors(obj@loops, "first")
   ancB_all <- InteractionSet::anchors(obj@loops, "second")
-  li <- match(res_sig$loop_id, loop_ids_all)
+  li <- match(significantResults$loop_id, loop_ids_all)
   loops_df <- data.frame(
-    loop_id = res_sig$loop_id,
+    loop_id = significantResults$loop_id,
     chrom   = as.character(GenomicRanges::seqnames(ancA_all[li])),
     ancA_start = GenomicRanges::start(ancA_all[li]),
     ancA_end   = GenomicRanges::end(ancA_all[li]),
     ancB_start = GenomicRanges::start(ancB_all[li]),
     ancB_end   = GenomicRanges::end(ancB_all[li]),
-    beta = res_sig$beta,
-    p    = res_sig$p,
+    beta = significantResults$beta,
+    p    = significantResults$p,
     row_i = li,
     stringsAsFactors = FALSE
   )
