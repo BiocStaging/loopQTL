@@ -49,7 +49,7 @@
   out
 }
 
-# Internal: compute per-SNP window cells for save_windows in loopQTL_normalize().
+# Internal: compute per-SNP window cells for save_windows in loopQTLnormalize().
 #
 # For each VCF SNP that overlaps any consensus loop anchor (within `snp_window`
 # bp flank), build the SNP's "window box" — a square (bin_lo..bin_hi)^2 region

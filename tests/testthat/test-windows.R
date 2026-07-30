@@ -2,7 +2,7 @@
 #
 # We avoid a real .hic by exercising the .compute_snp_windows helper directly
 # with synthetic anchors and a small tabix-indexed VCF. The full end-to-end
-# pass through loopQTL_normalize() is covered implicitly by the integration
+# pass through loopQTLnormalize() is covered implicitly by the integration
 # checks in test-setup.R / test-normalize.R when strawr's toy data is present.
 
 make_tiny_vcf <- function(dir, snps) {

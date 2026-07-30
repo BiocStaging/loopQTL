@@ -1,12 +1,12 @@
-# End-to-end smoke test of loopQTL_setup against strawr's toy .hic.
+# End-to-end smoke test of loopQTLsetup against strawr's toy .hic.
 # Skips if strawr toy data isn't available in this install.
 #
 # v3 semantics:
 #   - setup does NOT pull straw contacts; obj@contacts is empty by default
 #   - obj@cis is empty unless samplesheet provides a `cis` column
-#   - obj@meta$hic_paths is populated (loopQTL_normalize needs it)
+#   - obj@meta$hic_paths is populated (loopQTLnormalize needs it)
 
-test_that("loopQTL_setup builds consensus loops without pulling contacts", {
+test_that("loopQTLsetup builds consensus loops without pulling contacts", {
   hic <- toy_hic_path()
   td <- tempfile("loopQTL_toy_"); dir.create(td)
   bedpe <- write_toy_loops(td)
@@ -32,7 +32,7 @@ test_that("loopQTL_setup builds consensus loops without pulling contacts", {
     stringsAsFactors = FALSE
   )
 
-  obj <- loopQTL_setup(
+  obj <- loopQTLsetup(
     samples     = samples_df,
     vcf         = vcf_gz,
     resolution  = 250000L,
@@ -81,7 +81,7 @@ test_that("samplesheet cis column populates obj@cis", {
     cis    = c(1e7, 2e7),
     stringsAsFactors = FALSE
   )
-  obj <- loopQTL_setup(samples_df, vcf_gz, resolution = 250000L, min_samples = 1L)
+  obj <- loopQTLsetup(samples_df, vcf_gz, resolution = 250000L, min_samples = 1L)
   expect_equal(unname(obj@cis), c(1e7, 2e7))
   expect_equal(names(obj@cis), c("A", "B"))
   expect_equal(obj@meta$cis_source, "user_provided")

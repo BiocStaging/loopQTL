@@ -11,11 +11,11 @@
 #' @slot resolution Analysis bin size (bp).
 #' @slot phenotype Model-ready phenotype (loops x samples) after normalize();
 #'   length-0 matrix before normalization.
-#' @slot results QTL result table written by `run_QTL()`. Empty data.frame
-#'   before `run_QTL()` runs. Carries one row per tested (loop, SNP) pair
+#' @slot results QTL result table written by `runQTL()`. Empty data.frame
+#'   before `runQTL()` runs. Carries one row per tested (loop, SNP) pair
 #'   with columns `loop_id`, `snp_id`, `chrom`, `pos`, `ref`, `alt`,
 #'   `anchor`, `beta`, `se`, `t`, `p`, `n_used`, `maf`. After
-#'   `loopQTL_annotate()`, also carries `gene`, `peak` (if peak supplied),
+#'   `loopQTLannotate()`, also carries `gene`, `peak` (if peak supplied),
 #'   and `Type`.
 #' @slot meta Free-form run metadata (counts of dropped loops, zero-var rows, ...).
 #'
