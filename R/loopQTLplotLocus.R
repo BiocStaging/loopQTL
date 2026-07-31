@@ -468,7 +468,7 @@ loopQTLplotLocus <- function(obj, snp_id,
 
   return(data.frame(
     x = c(x1, mean(x1, x2), x2),
-    y = c(4, 4 - loop_size, 4)
+    y = c(0, -loop_size, 0)
   ))
 }
 
@@ -476,25 +476,25 @@ loopQTLplotLocus <- function(obj, snp_id,
                               eff_lo, eff_hi, strong_color, weak_color,
                               panel_title, show_x = FALSE) {
   # Expand each loop into a set of three points which will be interpolated by
-  # geom_curve.
+  # geom_path
   paths <- do.call(rbind, lapply(seq_len(nrow(arc_df)), function(i) {
     p <- .arc_path(arc_df$x1[i], arc_df$x2[i])
     p$loop_id <- arc_df$loop_id[i]
     p$value   <- arc_df$value[i]
     p
   }))
-  y_max <- max(paths$y, na.rm = TRUE)
-  if (!is.finite(y_max) || y_max <= 0) y_max <- 1
+  y_min <- min(paths$y, na.rm = TRUE)
+  if (!is.finite(y_min) || y_min >= 0) y_min <- -1
   gg <- ggplot2::ggplot(paths, ggplot2::aes(x = .data$x, y = .data$y,
                                             group = .data$loop_id,
                                             color = .data$value)) +
-    ggplot2::geom_curve(linewidth = 0.9, na.rm = TRUE) +
+    ggplot2::geom_path(linewidth = 0.9, na.rm = TRUE) +
     ggplot2::scale_color_gradient(low = weak_color, high = strong_color,
                                   limits = c(eff_lo, eff_hi),
                                   oob = scales::squish,
                                   na.value = weak_color) +
     ggplot2::coord_cartesian(xlim = c(start, end),
-                             ylim = c(0, y_max * 1.1)) +
+                             ylim = c(y_min * 1.1, 0)) +
     ggplot2::scale_x_continuous(labels = ax_fmt, expand = c(0, 0)) +
     ggplot2::labs(y = panel_title, color = "Mean strength") +
     ggplot2::theme_classic(base_size = 10) +
