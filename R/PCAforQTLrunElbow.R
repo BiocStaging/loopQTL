@@ -2,26 +2,11 @@
 
 # Implements the elbow method for choosing K in PCA (based on distance to the diagonal line)
 
-#Given X, the data matrix (must be observation by feature),
-#and/or prcompResult, the output from running prcomp() on X,
+#Given prcompResult, the output from running prcomp() on X,
 #select the number of PCs by maximizing the distance to the diagonal line (see our 2022 paper or below for details).
-#Either X or prcompResult must be provided. If both are provided, then only prcompResult will be used.
-#We recommend only providing prcompResult because it's faster.
-.PCAforQTLrunElbow<-function(X=NULL,
-                   prcompResult=NULL){
-
-  #Obtain prcompResult.
-  if(is.null(prcompResult)){
-    if(is.null(X)){
-      stop("Please input X or prcompResult.")
-    }else{
-      cat("Running PCA...\n")
-      prcompResult<-prcomp(X,center=TRUE,scale.=TRUE) #This may take a moment.
-    }
-  }else{
-    if(class(prcompResult)!="prcomp"){
-      stop("prcompResult must be a prcomp object returned by the function prcomp().")
-    }
+.PCAforQTLrunElbow<-function(prcompResult){
+  if(class(prcompResult)!="prcomp"){
+    stop("prcompResult must be a prcomp object returned by the function prcomp().")
   }
 
   importanceTable<-summary(prcompResult)$importance
