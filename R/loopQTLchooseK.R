@@ -18,7 +18,7 @@
 #'   When the auto-selected K exceeds `K_max`, K is capped and a message
 #'   is emitted. Pass a smaller value (e.g. `floor(n_samples / 4)`) to
 #'   force a more conservative covariate set.
-#' @param ... Forwarded to `PCAForQTL::runElbow` or `PCAForQTL::runBE`.
+#' @param ... Forwarded to PCAForQTL's `runElbow` or `runBE` function.
 #'
 #' @return A list:
 #'   \describe{
@@ -69,8 +69,8 @@ loopQTLchooseK <- function(obj,
 
   K_raw <- switch(
     K_method,
-    elbow = PCAForQTL::runElbow(prcompResult = pca_res, ...),
-    BE    = PCAForQTL::runBE(prcompResult = pca_res, ...)
+    elbow = .PCAForQTLrunElbow(prcompResult = pca_res, ...),
+    BE    = .PCAForQTLrunBE(prcompResult = pca_res, ...)
   )
   K_raw <- as.integer(K_raw)
   if (is.na(K_raw) || K_raw < 1L) K_raw <- 1L

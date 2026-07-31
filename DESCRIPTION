@@ -13,7 +13,7 @@ Description: Maps chromatin loop QTLs by testing whether genotype at a loop's
     (left to the user).
 URL: https://github.com/rhielab/loopQTL
 BugReports: https://github.com/rhielab/loopQTL/issues
-License: MIT + file LICENSE
+License: GPLv3 + file LICENSE
 Encoding: UTF-8
 LazyData: false
 Depends:
@@ -25,7 +25,6 @@ Imports:
     strawr,
     preprocessCore,
     MatrixEQTL,
-    PCAForQTL,
     GenomicRanges,
     IRanges,
     InteractionSet,
@@ -37,13 +36,12 @@ Imports:
     data.table,
     ggplot2,
     scales,
-    rtracklayer
+    rtracklayer,
+    parallel
 Suggests:
     testthat (>= 3.0.0),
     knitr,
     rmarkdown,
     patchwork
-Remotes:
-    heatherjzhou/PCAForQTL
 Config/testthat/edition: 3
 RoxygenNote: 7.3.1
