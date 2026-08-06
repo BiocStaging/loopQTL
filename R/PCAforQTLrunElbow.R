@@ -2,32 +2,32 @@
 
 # Implements the elbow method for choosing K in PCA (based on distance to the diagonal line)
 
-#Given prcompResult, the output from running prcomp() on X,
-#select the number of PCs by maximizing the distance to the diagonal line (see our 2022 paper or below for details).
-.PCAforQTLrunElbow<-function(prcompResult){
-  if(class(prcompResult)!="prcomp"){
-    stop("prcompResult must be a prcomp object returned by the function prcomp().")
-  }
+# Given prcompResult, the output from running prcomp() on X,
+# select the number of PCs by maximizing the distance to the diagonal line (see our 2022 paper or below for details).
+.PCAforQTLrunElbow <- function(prcompResult) {
+    if (class(prcompResult) != "prcomp") {
+        stop("prcompResult must be a prcomp object returned by the function prcomp().")
+    }
 
-  importanceTable<-summary(prcompResult)$importance
-  x<-1:ncol(importanceTable) #PC indices.
-  y<-importanceTable[2,] #PVEs.
+    importanceTable <- summary(prcompResult)$importance
+    x <- 1:ncol(importanceTable) # PC indices.
+    y <- importanceTable[2, ] # PVEs.
 
-  #Given x  and y, calculate the distance between each point and the diagonal line (the line connecting the first and last points).
-  x1<-x[1] #First point.
-  y1<-y[1] #First point.
+    # Given x  and y, calculate the distance between each point and the diagonal line (the line connecting the first and last points).
+    x1 <- x[1] # First point.
+    y1 <- y[1] # First point.
 
-  x2<-x[length(x)] #Last point.
-  y2<-y[length(y)] #Last point.
+    x2 <- x[length(x)] # Last point.
+    y2 <- y[length(y)] # Last point.
 
-  x0<-x
-  y0<-y
+    x0 <- x
+    y0 <- y
 
-  distancesDenominator<-sqrt((x2-x1)^2+(y2-y1)^2)
-  distancesNumerator<-abs((x2-x1)*(y1-y0)-(x1-x0)*(y2-y1))
-  distances<-distancesNumerator/distancesDenominator
+    distancesDenominator <- sqrt((x2 - x1)^2 + (y2 - y1)^2)
+    distancesNumerator <- abs((x2 - x1) * (y1 - y0) - (x1 - x0) * (y2 - y1))
+    distances <- distancesNumerator / distancesDenominator
 
-  numOfPCsChosen<-which.max(distances) #12.
-  names(numOfPCsChosen)<-NULL
-  return(numOfPCsChosen)
+    numOfPCsChosen <- which.max(distances) # 12.
+    names(numOfPCsChosen) <- NULL
+    return(numOfPCsChosen)
 }

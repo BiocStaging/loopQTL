@@ -29,24 +29,26 @@
 #'
 #' @export
 loopQTLchooseK <- function(obj,
-                             K_method = c("elbow", "BE"),
-                             normal   = TRUE,
-                             K_max    = NULL,
-                             ...) {
-  stopifnot(
-    methods::is(obj, "loopQTL"),
-    length(obj@phenotype) > 0L
-  )
-  K_method <- match.arg(K_method)
+                           K_method = c("elbow", "BE"),
+                           normal = TRUE,
+                           K_max = NULL,
+                           ...) {
+    stopifnot(
+        methods::is(obj, "loopQTL"),
+        length(obj@phenotype) > 0L
+    )
+    K_method <- match.arg(K_method)
 
-  if (is.null(K_max)) K_max <- max(1L, length(obj@samples) - 2L)
-  K_max <- as.integer(K_max)
+    if (is.null(K_max)) K_max <- max(1L, length(obj@samples) - 2L)
+    K_max <- as.integer(K_max)
 
-  Y <- obj@phenotype
-  if (normal) Y <- .rint_matrix(Y)
+    Y <- obj@phenotype
+    if (normal) Y <- .rint_matrix(Y)
 
-  .pca_for_qtl(Y, samples = obj@samples, K_method = K_method,
-               K_max = K_max, ...)
+    .pca_for_qtl(Y,
+        samples = obj@samples, K_method = K_method,
+        K_max = K_max, ...
+    )
 }
 
 # Internal: PCA + K selection on a (loops x samples) matrix. Shared by
@@ -55,37 +57,38 @@ loopQTLchooseK <- function(obj,
 .pca_for_qtl <- function(Y,
                          samples,
                          K_method = c("elbow", "BE"),
-                         K_max    = NULL,
+                         K_max = NULL,
                          ...) {
-  K_method <- match.arg(K_method)
-  if (is.null(K_max)) K_max <- max(1L, length(samples) - 2L)
-  K_max <- as.integer(K_max)
+    K_method <- match.arg(K_method)
+    if (is.null(K_max)) K_max <- max(1L, length(samples) - 2L)
+    K_max <- as.integer(K_max)
 
-  keep_rows <- stats::complete.cases(Y)
-  if (sum(keep_rows) < 2L)
-    stop("Not enough non-NA loops to run PCA")
-  Yt <- t(Y[keep_rows, , drop = FALSE])
-  pca_res <- stats::prcomp(Yt, center = TRUE, scale. = FALSE)
+    keep_rows <- stats::complete.cases(Y)
+    if (sum(keep_rows) < 2L) {
+        stop("Not enough non-NA loops to run PCA")
+    }
+    Yt <- t(Y[keep_rows, , drop = FALSE])
+    pca_res <- stats::prcomp(Yt, center = TRUE, scale. = FALSE)
 
-  K_raw <- switch(
-    K_method,
-    elbow = .PCAForQTLrunElbow(prcompResult = pca_res, ...),
-    BE    = .PCAForQTLrunBE(prcompResult = pca_res, ...)
-  )
-  K_raw <- as.integer(K_raw)
-  if (is.na(K_raw) || K_raw < 1L) K_raw <- 1L
-  K_raw <- min(K_raw, ncol(pca_res$x))
+    K_raw <- switch(K_method,
+        elbow = .PCAForQTLrunElbow(prcompResult = pca_res, ...),
+        BE    = .PCAForQTLrunBE(prcompResult = pca_res, ...)
+    )
+    K_raw <- as.integer(K_raw)
+    if (is.na(K_raw) || K_raw < 1L) K_raw <- 1L
+    K_raw <- min(K_raw, ncol(pca_res$x))
 
-  K <- min(K_raw, K_max)
-  if (K < K_raw) {
-    message(sprintf(
-      "PCAForQTL %s chose K = %d, capped to K_max = %d (n_samples - 2 leaves df for intercept + genotype).",
-      K_method, K_raw, K))
-  }
+    K <- min(K_raw, K_max)
+    if (K < K_raw) {
+        message(sprintf(
+            "PCAForQTL %s chose K = %d, capped to K_max = %d (n_samples - 2 leaves df for intercept + genotype).",
+            K_method, K_raw, K
+        ))
+    }
 
-  PCs <- pca_res$x[, seq_len(K), drop = FALSE]
-  rownames(PCs) <- samples
-  colnames(PCs) <- paste0("PC", seq_len(K))
+    PCs <- pca_res$x[, seq_len(K), drop = FALSE]
+    rownames(PCs) <- samples
+    colnames(PCs) <- paste0("PC", seq_len(K))
 
-  list(K = K, PCs = PCs, method = K_method, K_raw = K_raw, K_max = K_max)
+    list(K = K, PCs = PCs, method = K_method, K_raw = K_raw, K_max = K_max)
 }

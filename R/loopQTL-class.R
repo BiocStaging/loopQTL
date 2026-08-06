@@ -23,76 +23,92 @@
 #' @rdname loopQTL-class
 #' @exportClass loopQTL
 setClass(
-  "loopQTL",
-  representation(
-    samples    = "character",
-    loops      = "GInteractions",
-    cis        = "numeric",
-    vcf_path   = "character",
-    resolution = "integer",
-    phenotype  = "matrix",
-    results    = "data.frame",
-    meta       = "list"
-  ),
-  prototype(
-    samples    = character(0),
-    cis        = numeric(0),
-    vcf_path   = NA_character_,
-    resolution = NA_integer_,
-    phenotype  = matrix(numeric(0), 0, 0),
-    results    = data.frame(),
-    meta       = list()
-  )
+    "loopQTL",
+    representation(
+        samples    = "character",
+        loops      = "GInteractions",
+        cis        = "numeric",
+        vcf_path   = "character",
+        resolution = "integer",
+        phenotype  = "matrix",
+        results    = "data.frame",
+        meta       = "list"
+    ),
+    prototype(
+        samples    = character(0),
+        cis        = numeric(0),
+        vcf_path   = NA_character_,
+        resolution = NA_integer_,
+        phenotype  = matrix(numeric(0), 0, 0),
+        results    = data.frame(),
+        meta       = list()
+    )
 )
 
 setValidity("loopQTL", function(object) {
-  errs <- character(0)
+    errs <- character(0)
 
-  if (length(object@samples) == 0L)
-    errs <- c(errs, "samples must be non-empty")
+    if (length(object@samples) == 0L) {
+        errs <- c(errs, "samples must be non-empty")
+    }
 
-  if (anyDuplicated(object@samples))
-    errs <- c(errs, "samples must be unique")
+    if (anyDuplicated(object@samples)) {
+        errs <- c(errs, "samples must be unique")
+    }
 
-  # cis is optional. When present (length > 0), must align to samples.
-  if (length(object@cis) > 0L) {
-    if (length(object@cis) != length(object@samples) ||
-        !identical(names(object@cis), object@samples))
-      errs <- c(errs, "names(cis) must equal samples")
-  }
+    # cis is optional. When present (length > 0), must align to samples.
+    if (length(object@cis) > 0L) {
+        if (length(object@cis) != length(object@samples) ||
+            !identical(names(object@cis), object@samples)) {
+            errs <- c(errs, "names(cis) must equal samples")
+        }
+    }
 
-  if (length(object@phenotype) > 0L) {
-    if (!identical(colnames(object@phenotype), object@samples))
-      errs <- c(errs, "colnames(phenotype) must equal samples")
-    if (nrow(object@phenotype) != length(object@loops))
-      errs <- c(errs, "phenotype must have one row per loop")
-  }
+    if (length(object@phenotype) > 0L) {
+        if (!identical(colnames(object@phenotype), object@samples)) {
+            errs <- c(errs, "colnames(phenotype) must equal samples")
+        }
+        if (nrow(object@phenotype) != length(object@loops)) {
+            errs <- c(errs, "phenotype must have one row per loop")
+        }
+    }
 
-  if (length(errs) == 0L) TRUE else errs
+    if (length(errs) == 0L) TRUE else errs
 })
 
 #' @rdname loopQTL-class
 #' @param object a loopQTL object
 #' @export
 setMethod("show", "loopQTL", function(object) {
-  cat("loopQTL object\n")
-  cat("  samples   :", length(object@samples),
-      "(", paste(utils::head(object@samples, 4), collapse = ", "),
-      if (length(object@samples) > 4) ", ..." else "", ")\n")
-  cat("  loops     :", length(object@loops), "consensus intra-chrom loops\n")
-  cat("  resolution:", object@resolution, "bp\n")
-  cat("  phenotype :",
-      if (length(object@phenotype) > 0L)
-        paste(nrow(object@phenotype), "x", ncol(object@phenotype))
-      else "not yet computed", "\n")
-  cat("  results   :",
-      if (nrow(object@results) > 0L)
-        paste(nrow(object@results), "(loop, SNP) tests")
-      else "not yet computed", "\n")
-  if (length(object@meta) > 0L) {
-    cat("  meta      :\n")
-    for (nm in names(object@meta))
-      cat("    ", nm, "=", paste(object@meta[[nm]], collapse = ", "), "\n")
-  }
-  invisible(NULL)
+    cat("loopQTL object\n")
+    cat(
+        "  samples   :", length(object@samples),
+        "(", paste(utils::head(object@samples, 4), collapse = ", "),
+        if (length(object@samples) > 4) ", ..." else "", ")\n"
+    )
+    cat("  loops     :", length(object@loops), "consensus intra-chrom loops\n")
+    cat("  resolution:", object@resolution, "bp\n")
+    cat(
+        "  phenotype :",
+        if (length(object@phenotype) > 0L) {
+            paste(nrow(object@phenotype), "x", ncol(object@phenotype))
+        } else {
+            "not yet computed"
+        }, "\n"
+    )
+    cat(
+        "  results   :",
+        if (nrow(object@results) > 0L) {
+            paste(nrow(object@results), "(loop, SNP) tests")
+        } else {
+            "not yet computed"
+        }, "\n"
+    )
+    if (length(object@meta) > 0L) {
+        cat("  meta      :\n")
+        for (nm in names(object@meta)) {
+            cat("    ", nm, "=", paste(object@meta[[nm]], collapse = ", "), "\n")
+        }
+    }
+    invisible(NULL)
 })
