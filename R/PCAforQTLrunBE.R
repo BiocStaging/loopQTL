@@ -1,12 +1,16 @@
 # Modified based on https://github.com/heatherjzhou/PCAForQTL/blob/b8f7d09e77cb5b50dd712ad99f3fbccab899b73d/R/22.01.04_main1.2_runBE.R (retrieved 2026/07/31) - license: GPLv3
 
-# Implements the BE algorithm, a permutation-based approach for choosing K in PCA. Intuitively, the BE algorithm retains PCs that explain more variance in the data than by random chance and discards those that do not.
+## Implements the BE algorithm, a permutation-based approach for choosing K in
+## PCA. Intuitively, the BE algorithm retains PCs that explain more variance in
+## the data than by random chance and discards those that do not.
 
-# Given X, the data matrix (must be observation by feature),
-# B, the number of permutations (default is 20),
-# and alpha, the significance level (default is 0.05),
-# run BE and return p-values, alpha, and numOfPCsChosen.
-# For reproducibility, make sure to change the RNG type (necessary unless mc.cores is 1) and set the seed before using this function.
+## Given X, the data matrix (must be observation by feature),
+## B, the number of permutations (default is 20),
+## and alpha, the significance level (default is 0.05),
+## run BE and return p-values, alpha, and numOfPCsChosen.
+
+## FIXME: For reproducibility, make sure to change the RNG type (necessary 
+## unless mc.cores is 1) and set the seed before using this function.
 
 # FIXME: use BiocParallel
 
@@ -23,33 +27,36 @@
 
     if (verbose) cat("Running PCA on permuted data...\n")
 
-    results <- parallel::mclapply(1:B, FUN = function(b) {
-        # b<-3
+    results <- parallel::mclapply(seq_len(B), FUN = function(b) {
         if (verbose) cat("b=", b, " out of ", B, " permutations...\n", sep = "")
 
         # Permute each column of X. That is, permute the observations in each feature.
         XPermuted <- matrix(data = NA, nrow = n, ncol = p)
-        for (j in 1:p) {
-            # j<-7
+        for (j in seq_len(p)) {
             XPermuted[, j] <- sample(x = X[, j], size = n, replace = FALSE)
         }
 
-        prcompResultPerm <- prcomp(x = XPermuted, center = TRUE, scale. = TRUE) # Key step.
+        prcompResultPerm <- prcomp(x = XPermuted, center = TRUE, scale. = TRUE) # Key step
         importanceTablePerm <- summary(prcompResultPerm)$importance
         PVEsPerm <- importanceTablePerm[2, ]
         return(PVEsPerm)
-    }, mc.cores = mc.cores) # results is a list of vectors.
+    }, mc.cores = mc.cores) 
+    ## results is a list of vectors
     temp <- unlist(results)
-    testStatsPerm <- matrix(data = temp, nrow = d, byrow = FALSE) # PC by permutation.
+    testStatsPerm <- matrix(data = temp, nrow = d, byrow = FALSE) # PC by permutation
 
     if (verbose) cat("Running PCA on the unpermuted data...\n")
-    prcompResult <- prcomp(x = X, center = TRUE, scale. = TRUE) # Key step.
+    prcompResult <- prcomp(x = X, center = TRUE, scale. = TRUE) # Key step
     importanceTable <- summary(prcompResult)$importance
     PVEs <- importanceTable[2, ]
-    # Compare PVEs to testStatsPerm.
-    pValues <- (rowSums(testStatsPerm >= PVEs) + 1) / (B + 1) # The p-value for the jth PC is calculated as, roughly speaking, the proportion of permutations where the PVE of the jth PC is greater than or equal to PVE_j.
-
-    for (j in 2:d) { # Enforce monotone increase of the p-values.
+    ## Compare PVEs to testStatsPerm
+    pValues <- (rowSums(testStatsPerm >= PVEs) + 1) / (B + 1) 
+    
+    ## The p-value for the jth PC is calculated as, roughly speaking, the
+    ## proportion of permutations where the PVE of the jth PC is greater than or 
+    ## equal to PVE_j.
+    for (j in 2:d) {
+        ## Enforce monotone increase of the p-values.
         if (pValues[j] < pValues[j - 1]) {
             pValues[j] <- pValues[j - 1]
         }
