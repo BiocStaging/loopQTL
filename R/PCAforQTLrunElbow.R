@@ -1,33 +1,38 @@
-# Modified based on https://github.com/heatherjzhou/PCAForQTL/blob/b8f7d09e77cb5b50dd712ad99f3fbccab899b73d/R/22.01.04_main1.1_runElbow.R (retrieved 2026/07/31) - license: GPLv3
+## Modified based on https://github.com/heatherjzhou/PCAForQTL/blob/b8f7d09e77cb5b50dd712ad99f3fbccab899b73d/R/22.01.04_main1.1_runElbow.R
+## Retrieved 2026/07/31 - license: GPLv3
 
-# Implements the elbow method for choosing K in PCA (based on distance to the diagonal line)
+## Implements the elbow method for choosing K in PCA
 
-# Given prcompResult, the output from running prcomp() on X,
-# select the number of PCs by maximizing the distance to the diagonal line (see our 2022 paper or below for details).
+## Given the output from running prcomp() on X, select the number of PCs by 
+## maximizing the distance to the diagonal line (see below for details, or the 
+## paper: Zhou HJ, Li L, Li Y, Li W, Li JJ. PCA outperforms popular hidden
+## variable inference methods for molecular QTL mapping. Genome Biol. 2022 Oct
+## 11;23(1):210. doi: 10.1186/s13059-022-02761-4. PMID: 36221136; PMCID:
+## PMC9552461.).
 .PCAforQTLrunElbow <- function(prcompResult) {
-    if (class(prcompResult) != "prcomp") {
+    if (!isa(prcompResult, "prcomp")) {
         stop("prcompResult must be a prcomp object returned by the function prcomp().")
     }
 
     importanceTable <- summary(prcompResult)$importance
-    x <- 1:ncol(importanceTable) # PC indices.
-    y <- importanceTable[2, ] # PVEs.
+    x <- seq_len(ncol(importanceTable)) # PC indices
+    y <- importanceTable[2, ] # PVEs
 
-    # Given x  and y, calculate the distance between each point and the diagonal line (the line connecting the first and last points).
-    x1 <- x[1] # First point.
-    y1 <- y[1] # First point.
+    ## Given x and y, calculate the distance between each point and the diagonal
+    ## line (the line connecting the first and last points).
+    diagonalLineStartX <- x[1]
+    diagonalLineStartY <- y[1]
+    diagonalLineEndX <- x[length(x)]
+    diagonalLineEndY <- y[length(y)]
+    
+    diagonalLineWidth <- diagonalLineEndX - diagonalLineStartX
+    diagonalLineHeight <- diagonalLineEndY - diagonalLineStartY
 
-    x2 <- x[length(x)] # Last point.
-    y2 <- y[length(y)] # Last point.
+    diagonalLineLength <- sqrt(diagonalLineWidth^2 + diagonalLineHeight^2)
+    ## diagonalLineLength <- dist(cbind(c(diagonalLineEndX, diagonalLineStartX), c(diagonalLineEndY, diagonalLineStartY)), method = "euclidean")
+    distancesNumerator <- abs(diagonalLineWidth * (diagonalLineStartY - y) - (diagonalLineStartX - x) * diagonalLineHeight)
+    distances <- distancesNumerator / diagonalLineLength
 
-    x0 <- x
-    y0 <- y
-
-    distancesDenominator <- sqrt((x2 - x1)^2 + (y2 - y1)^2)
-    distancesNumerator <- abs((x2 - x1) * (y1 - y0) - (x1 - x0) * (y2 - y1))
-    distances <- distancesNumerator / distancesDenominator
-
-    numOfPCsChosen <- which.max(distances) # 12.
-    names(numOfPCsChosen) <- NULL
+    numOfPCsChosen <- unname(which.max(distances))
     return(numOfPCsChosen)
 }
