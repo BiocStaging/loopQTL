@@ -58,7 +58,7 @@
 #'   unbounded, unlike Pearson r, so there is no universally meaningful
 #'   fixed limit). Pass an explicit numeric (e.g. `1.0`) to lock the
 #'   scale across multiple SNPs for comparability.
-#' @param palette ColorBrewer palette name for the divergent gradient.
+#' @param palette RColorBrewer palette name for the divergent gradient.
 #'   Default `"RdBu"` (reversed so + value = red, - value = blue).
 #' @param metric What to render per cell:
 #'   \describe{
