@@ -160,10 +160,9 @@ loopQTLnormalize <- function(obj,
     chroms_to_run <- unique(loop_chr)
     loop_idx_by_chr <- split(seq_along(loop_chr), loop_chr)
 
-    ## Per-sample chrom-naming normalizers so BNBC straw calls translate the
-    ## anchor-side chrom ("chr10") to whatever each .hic file uses ("10" or
-    ## "chr10"). Without this, BEDPE-vs-hic naming mismatch makes straw
-    ## silently return empty data -> all-zero phenotype -> all-NA after RINT.
+    ## Make a list of functions that adjust chromosome names to match each .hic
+    ## file (1 vs chr1). This allows different input HiC files to use different
+    ## naming conventions.
     chrom_norm_BNBC <- lapply(hic_paths, function(p) {
         .make_chrom_normalizer(strawr::readHicChroms(p)$name)
     })
