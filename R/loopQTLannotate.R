@@ -162,7 +162,7 @@ loopQTLannotate <- function(obj,
             seqnames = peak_chroms_norm,
             ranges   = IRanges::ranges(peaks_gr)
         )
-        if (isTRUE(remove_TSS)) {
+        if (remove_TSS) {
             hits <- GenomicRanges::findOverlaps(peaks_gr, tss_regions)
             peaks_in_tss <- unique(S4Vectors::queryHits(hits))
             n_dropped <- length(peaks_in_tss)
@@ -241,7 +241,7 @@ loopQTLannotate <- function(obj,
         ranges   = IRanges::IRanges(start = res$pos, end = res$pos)
     )
 
-    snp_in_tss <- if (isTRUE(remove_TSS)) {
+    snp_in_tss <- if (remove_TSS) {
         GenomicRanges::countOverlaps(snp_gr, tss_regions) > 0L
     } else {
         rep(FALSE, nrow(res))

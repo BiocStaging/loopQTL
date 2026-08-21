@@ -238,7 +238,7 @@ loopQTLplotSnpWindow <- function(obj, snp_id,
         if (length(obj@phenotype) == 0L) { # FIXME: replace all @s
             .stopNoCall("covariates = 'auto' needs obj@phenotype; run loopQTLnormalize() first")
         }
-        Y_for_pca <- if (isTRUE(normal)) .rint_matrix(obj@phenotype) else obj@phenotype
+        Y_for_pca <- if (normal) .rint_matrix(obj@phenotype) else obj@phenotype
         K_res <- .pca_for_qtl(Y_for_pca,
             samples = obj@samples,
             K_method = K_method, K_max = K_max
@@ -364,7 +364,7 @@ loopQTLplotSnpWindow <- function(obj, snp_id,
     mode_str <- sprintf(
         "%s%s",
         if (cvrt_mode == "none") "marginal β" else "partial β",
-        if (isTRUE(normal)) ", RINT" else ""
+        if (normal) ", RINT" else ""
     )
     if (cvrt_mode == "auto") mode_str <- paste0(mode_str, sprintf(" | K=%d auto PCs", ncol(cvrt)))
     if (cvrt_mode == "user") mode_str <- paste0(mode_str, sprintf(" | %d user cvrt", ncol(cvrt)))

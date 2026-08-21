@@ -57,7 +57,7 @@ loopQTLplotPair <- function(obj, loop_id, snp_id,
         "REF=%s   ALT=%s   |   p = %.3g   |   beta = %.3g",
         ref, alt, hit$p, hit$beta
     )
-    y_lab <- if (isTRUE(normal)) "Loop phenotype (RINT)" else "Loop phenotype (normalized)"
+    y_lab <- if (normal) "Loop phenotype (RINT)" else "Loop phenotype (normalized)"
 
     p <- ggplot2::ggplot(d, ggplot2::aes(.data$geno_factor, .data$phenotype)) +
         ggplot2::geom_boxplot(

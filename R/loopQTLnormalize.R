@@ -73,7 +73,7 @@ loopQTLnormalize <- function(obj,
     stopifnot(methods::is(obj, "loopQTL"))
 
     # save_windows validation: path required, VCF must be set
-    if (isTRUE(save_windows)) {
+    if (save_windows) {
         if (is.null(windows_out) || !is.character(windows_out) ||
             length(windows_out) != 1L || !nzchar(windows_out)) {
             .stopNoCall("save_windows = TRUE requires `windows_out`: a single .rds path")
@@ -170,7 +170,7 @@ loopQTLnormalize <- function(obj,
 
     # save_windows: precompute SNP -> (chrom, cells to slice)
     windows_ctx <- NULL
-    if (isTRUE(save_windows)) {
+    if (save_windows) {
         windows_ctx <- .compute_snp_windows(
             vcf_path   = obj@vcf_path,
             anchorA    = anchorA,
@@ -248,7 +248,7 @@ loopQTLnormalize <- function(obj,
         # set so a single BNBC pass emits both consensus + window cells.
         keep_pairs_chr <- cbind(loop_binA[rows], loop_binB[rows])
         window_cells_chr <- NULL
-        if (isTRUE(save_windows) && !is.null(windows_ctx) &&
+        if (save_windows && !is.null(windows_ctx) &&
             !is.null(windows_ctx$cells_by_chrom[[chr]])) {
             window_cells_chr <- windows_ctx$cells_by_chrom[[chr]]
             combined <- rbind(
@@ -347,7 +347,7 @@ loopQTLnormalize <- function(obj,
     obj@phenotype <- pheno
 
     # Stitch per-chrom window outputs and write .rds
-    if (isTRUE(save_windows) && !is.null(windows_ctx)) {
+    if (save_windows && !is.null(windows_ctx)) {
         # Per-chrom column offsets into the genome-wide cells matrix
         chr_order <- intersect(chroms_to_run, names(windows_ctx$cells_by_chrom))
         n_cells_per_chr <- vapply(chr_order, function(chr) {
