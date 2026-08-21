@@ -55,21 +55,21 @@ loopQTLsetup <- function(samples,
 
     sample_ids <- as.character(samples$Sample)
     if (anyDuplicated(sample_ids)) {
-        stop("Sample IDs must be unique")
+        .stopNoCall("Sample IDs must be unique")
     }
     hic_paths <- as.character(samples$hic)
     loop_paths <- as.character(samples$loops)
     user_cis <- if ("cis" %in% names(samples)) as.numeric(samples$cis) else NULL
 
     for (p in c(hic_paths, loop_paths)) {
-        if (!file.exists(p)) stop("File not found: ", p)
+        if (!file.exists(p)) .stopNoCall("File not found: ", p)
     }
 
     # VCF validation (header only)
-    if (!file.exists(vcf)) stop("VCF not found: ", vcf)
+    if (!file.exists(vcf)) .stopNoCall("VCF not found: ", vcf)
     tbi <- paste0(vcf, ".tbi")
     if (!file.exists(tbi)) {
-        stop(
+        .stopNoCall(
             "Tabix index not found: ", tbi,
             "\nPlease bgzip + tabix-index your VCF (e.g. `tabix -p vcf my.vcf.gz`)."
         )
@@ -92,7 +92,7 @@ loopQTLsetup <- function(samples,
         if (!is.null(user_cis)) user_cis <- user_cis[keep]
     }
     if (length(sample_ids) < 2L) {
-        stop(
+        .stopNoCall(
             "Fewer than 2 samples overlap between samplesheet and VCF; ",
             "cannot build consensus / run QTL."
         )
@@ -112,13 +112,13 @@ loopQTLsetup <- function(samples,
         bp_res <- strawr::readHicBpResolutions(hic_paths[i])
         norms <- strawr::readHicNormTypes(hic_paths[i])
         if (!(resolution %in% bp_res)) {
-            stop(
+            .stopNoCall(
                 "Resolution ", resolution, " not available in ", hic_paths[i],
                 " (available: ", paste(bp_res, collapse = ", "), ")"
             )
         }
         if (!("NONE" %in% norms)) {
-            stop("Normalization 'NONE' not available in ", hic_paths[i])
+            .stopNoCall("Normalization 'NONE' not available in ", hic_paths[i])
         }
         chrom_norm_per_sample[[i]] <- .make_chrom_normalizer(chroms_i)
         hic_chroms_per_sample[[i]] <- chroms_i
@@ -160,7 +160,7 @@ loopQTLsetup <- function(samples,
 
     per_sample_n <- vapply(per_sample_loops, nrow, integer(1L))
     if (sum(per_sample_n > 0L) < 2L) {
-        stop("Need at least 2 samples with at least one intra-chrom loop call")
+        .stopNoCall("Need at least 2 samples with at least one intra-chrom loop call")
     }
     if (any(per_sample_n == 0L)) {
         message(
@@ -201,7 +201,7 @@ loopQTLsetup <- function(samples,
         length(keep_keys), " survive min_samples = ", min_samples
     )
     if (length(keep_keys) == 0L) {
-        stop("No consensus loops survived min_samples = ", min_samples)
+        .stopNoCall("No consensus loops survived min_samples = ", min_samples)
     }
 
     # Pick the first occurrence of each kept key for its coords
@@ -250,7 +250,7 @@ loopQTLsetup <- function(samples,
 
     cis_vec <- if (!is.null(user_cis)) {
         if (anyNA(user_cis) || any(user_cis <= 0)) {
-            stop("`samples$cis` must be positive numeric with no NAs")
+            .stopNoCall("`samples$cis` must be positive numeric with no NAs")
         }
         setNames(as.numeric(user_cis), sample_ids)
     } else {

@@ -82,7 +82,7 @@ loopQTLannotate <- function(obj,
         stopifnot(is.character(peak), length(peak) == 1L, file.exists(peak))
     }
     if (nrow(obj@results) == 0L) {
-        stop("obj@results is empty. Run runQTL(obj) first.")
+        .stopNoCall("obj@results is empty. Run runQTL(obj) first.")
     }
 
     TSS_window <- as.integer(TSS_window)
@@ -99,11 +99,11 @@ loopQTLannotate <- function(obj,
         NULL
     }
     if (is.null(type_col)) {
-        stop("GTF has neither `type` nor `feature` column; cannot find gene entries")
+        .stopNoCall("GTF has neither `type` nor `feature` column; cannot find gene entries")
     }
     gene_gr <- gtf_gr[S4Vectors::mcols(gtf_gr)[[type_col]] == "gene"]
     if (length(gene_gr) == 0L) {
-        stop("No `gene` entries in GTF")
+        .stopNoCall("No `gene` entries in GTF")
     }
 
     gene_names <- if ("gene_name" %in% names(S4Vectors::mcols(gene_gr))) {
@@ -111,7 +111,7 @@ loopQTLannotate <- function(obj,
     } else if ("gene_id" %in% names(S4Vectors::mcols(gene_gr))) {
         as.character(gene_gr$gene_id)
     } else {
-        stop("GTF gene entries lack both `gene_name` and `gene_id`")
+        .stopNoCall("GTF gene entries lack both `gene_name` and `gene_id`")
     }
     # Some GTFs have NA gene_name for novel/predicted; fall back to gene_id.
     if ("gene_id" %in% names(S4Vectors::mcols(gene_gr))) {

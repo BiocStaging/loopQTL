@@ -65,7 +65,7 @@ loopQTLchooseK <- function(obj,
 
     keep_rows <- stats::complete.cases(Y)
     if (sum(keep_rows) < 2L) {
-        stop("Not enough non-NA loops to run PCA")
+        .stopNoCall("Not enough non-NA loops to run PCA")
     }
     Yt <- t(Y[keep_rows, , drop = FALSE])
     pca_res <- stats::prcomp(Yt, center = TRUE, scale. = FALSE)

@@ -76,7 +76,7 @@ loopQTLnormalize <- function(obj,
     if (isTRUE(save_windows)) {
         if (is.null(windows_out) || !is.character(windows_out) ||
             length(windows_out) != 1L || !nzchar(windows_out)) {
-            stop("save_windows = TRUE requires `windows_out`: a single .rds path")
+            .stopNoCall("save_windows = TRUE requires `windows_out`: a single .rds path")
         }
         stopifnot(
             is.numeric(window), length(window) == 1L, window > 0,
@@ -96,18 +96,18 @@ loopQTLnormalize <- function(obj,
             warning = function(w) FALSE
         )
         if (!ok_touch) {
-            stop("Cannot write to windows_out path: ", windows_out)
+            .stopNoCall("Cannot write to windows_out path: ", windows_out)
         }
         if (is.null(obj@vcf_path) || is.na(obj@vcf_path) || !nzchar(obj@vcf_path)) {
-            stop("obj@vcf_path is not set; cannot read SNPs for windows")
+            .stopNoCall("obj@vcf_path is not set; cannot read SNPs for windows")
         }
     } else if (!is.null(windows_out)) {
-        warning("`windows_out` is ignored when save_windows = FALSE")
+        .warningNoCall("`windows_out` is ignored when save_windows = FALSE")
     }
 
     # BNBC's logCPM depth correction requires cis
     if (length(obj@cis) == 0L) {
-        stop(
+        .stopNoCall(
             "Normalize requires per-sample cis depth in obj@cis, but it is ",
             "empty. Options:\n",
             "  1. Include a `cis` column in the samplesheet at loopQTLsetup(), or\n",
@@ -118,7 +118,7 @@ loopQTLnormalize <- function(obj,
     }
     if (length(obj@cis) != length(obj@samples) ||
         !identical(names(obj@cis), obj@samples)) {
-        stop(
+        .stopNoCall(
             "obj@cis must be a named numeric vector with one entry per sample, ",
             "names matching obj@samples"
         )
@@ -130,7 +130,7 @@ loopQTLnormalize <- function(obj,
 
     # Per-sample per-chrom hic paths from meta (we re-derive from setup invariants)
     if (is.null(obj@meta$hic_paths)) {
-        stop("obj@meta$hic_paths missing; loopQTLsetup must record the per-sample .hic paths")
+        .stopNoCall("obj@meta$hic_paths missing; loopQTLsetup must record the per-sample .hic paths")
     }
     hic_paths <- obj@meta$hic_paths
 
@@ -190,7 +190,7 @@ loopQTLnormalize <- function(obj,
             win_chroms <- names(windows_ctx$cells_by_chrom)
             missing_chr <- setdiff(win_chroms, chroms_to_run)
             if (length(missing_chr) > 0L) {
-                stop(
+                .stopNoCall(
                     "save_windows: SNP chrom(s) not in normalize's chroms_to_run: ",
                     paste(missing_chr, collapse = ", ")
                 )
@@ -530,7 +530,7 @@ loopQTLnormalize <- function(obj,
     if (!is.null(cis)) {
         libs <- (as.numeric(cis) + 1) / 1e6
         if (any(!is.finite(libs)) || any(libs <= 0)) {
-            stop("Invalid cis values: must be positive and finite")
+            .stopNoCall("Invalid cis values: must be positive and finite")
         }
         c_offset <- abs(1 / min(libs) - 1 / max(libs))
         transform_sample <- function(counts, s) {

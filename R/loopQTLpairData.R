@@ -26,18 +26,18 @@ loopQTLpairData <- function(obj, loop_id, snp_id, normal = TRUE) {
         is.logical(normal), length(normal) == 1L
     )
     if (nrow(obj@results) == 0L) {
-        stop("obj@results is empty. Run runQTL(obj) first to populate it.")
+        .stopNoCall("obj@results is empty. Run runQTL(obj) first to populate it.")
     }
 
     loop_ids_all <- S4Vectors::mcols(obj@loops)$loop_id
     miss_loops <- setdiff(loop_id, loop_ids_all)
     if (length(miss_loops) > 0L) {
-        stop("loop_id(s) not in obj@loops: ", paste(miss_loops, collapse = ", "))
+        .stopNoCall("loop_id(s) not in obj@loops: ", paste(miss_loops, collapse = ", "))
     }
 
     miss_snps <- setdiff(snp_id, obj@results$snp_id)
     if (length(miss_snps) > 0L) {
-        stop("snp_id(s) not in obj@results: ", paste(miss_snps, collapse = ", "))
+        .stopNoCall("snp_id(s) not in obj@results: ", paste(miss_snps, collapse = ", "))
     }
 
     # SNP info from obj@results (positions + ref/alt)
@@ -72,7 +72,7 @@ loopQTLpairData <- function(obj, loop_id, snp_id, normal = TRUE) {
     snp_key <- paste(snp_chrom_vcf, snp_info$pos, snp_info$ref, sep = ":")
     m_vcf <- match(snp_key, vcf_key)
     if (anyNA(m_vcf)) {
-        stop(
+        .stopNoCall(
             "Could not find SNP(s) in VCF at expected (chrom, pos, ref): ",
             paste(snp_id[is.na(m_vcf)], collapse = ", ")
         )
@@ -83,7 +83,7 @@ loopQTLpairData <- function(obj, loop_id, snp_id, normal = TRUE) {
     # Reorder VCF samples to canonical
     sm <- match(obj@samples, colnames(gt))
     if (anyNA(sm)) {
-        stop(
+        .stopNoCall(
             "VCF missing samples: ",
             paste(obj@samples[is.na(sm)], collapse = ", ")
         )

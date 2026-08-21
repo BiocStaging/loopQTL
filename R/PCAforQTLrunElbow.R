@@ -11,7 +11,7 @@
 ## PMC9552461.).
 .PCAforQTLrunElbow <- function(prcompResult) {
     if (!isa(prcompResult, "prcomp")) {
-        stop("prcompResult must be a prcomp object returned by the function prcomp().")
+        .stopNoCall("prcompResult must be a prcomp object returned by the function prcomp().")
     }
 
     importanceTable <- summary(prcompResult)$importance

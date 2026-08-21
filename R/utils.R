@@ -1,5 +1,3 @@
-# Internal helpers. Not exported.
-
 ## Internal function to display a warning without showing the function call
 .warningNoCall <- function(...) {
     warning(..., call. = FALSE)
@@ -94,14 +92,14 @@
 .compute_snp_windows <- function(vcf_path, anchorA, anchorB,
                                  snp_window, window, resolution) {
     if (!file.exists(vcf_path)) {
-        stop("VCF not found: ", vcf_path)
+        .stopNoCall("VCF not found: ", vcf_path)
     }
 
     # VCF chrom-naming normalizer
     tab <- Rsamtools::TabixFile(vcf_path)
     vcf_chroms <- Rsamtools::headerTabix(tab)$seqnames
     if (length(vcf_chroms) == 0L) {
-        stop("Could not read chromosome names from VCF tabix index")
+        .stopNoCall("Could not read chromosome names from VCF tabix index")
     }
     vcf_norm <- .make_chrom_normalizer(vcf_chroms)
 
@@ -317,7 +315,7 @@
 # files with or without a `loop_id` column.
 .read_loops_bedpe <- function(path) {
     if (!file.exists(path)) {
-        stop("Loop file not found: ", path)
+        .stopNoCall("Loop file not found: ", path)
     }
     hdr <- readLines(path, n = 1L, warn = FALSE)
     has_header <- grepl("^#?chr", hdr, ignore.case = TRUE) &&
@@ -331,7 +329,7 @@
     if (!has_header) {
         # assume positional: chrA startA endA chrB startB endB [loop_id]
         if (ncol(df) < 6L) {
-            stop("Loop file ", path, " must have at least 6 columns")
+            .stopNoCall("Loop file ", path, " must have at least 6 columns")
         }
         base_names <- c("chrA", "startA", "endA", "chrB", "startB", "endB")
         if (ncol(df) == 6L) {
@@ -354,7 +352,7 @@
     need <- c("chrA", "startA", "endA", "chrB", "startB", "endB")
     miss <- setdiff(need, names(df))
     if (length(miss) > 0L) {
-        stop(
+        .stopNoCall(
             "Loop file ", path, " missing required columns: ",
             paste(miss, collapse = ", ")
         )

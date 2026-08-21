@@ -66,7 +66,7 @@ loopQTLplotLocus <- function(obj, snp_id,
     values <- match.arg(values)
     axis_unit <- match.arg(axis_unit)
     if (nrow(obj@results) == 0L) {
-        stop("obj@results is empty. Run runQTL(obj) first.")
+        .stopNoCall("obj@results is empty. Run runQTL(obj) first.")
     }
 
     start <- as.integer(start)
@@ -75,10 +75,10 @@ loopQTLplotLocus <- function(obj, snp_id,
     # 1. Filter obj@results to (this SNP, p <= threshold) and to loops in the region
     resultsForThisSNP <- obj@results[obj@results$snp_id == snp_id, , drop = FALSE]
     if (nrow(resultsForThisSNP) == 0L) {
-        stop("SNP ", snp_id, " not found in obj@results")
+        .stopNoCall("SNP ", snp_id, " not found in obj@results")
     }
     if (!identical(unique(as.character(resultsForThisSNP$chrom)), chrom)) {
-        stop(
+        .stopNoCall(
             "Supplied chrom = '", chrom, "' does not match the SNP's chrom ('",
             resultsForThisSNP$chrom[1], "') in obj@results"
         )
@@ -91,7 +91,7 @@ loopQTLplotLocus <- function(obj, snp_id,
         drop = FALSE
     ]
     if (nrow(significantResults) == 0L) {
-        stop("No significant (p <= ", p_threshold, ") loops for SNP ", snp_id)
+        .stopNoCall("No significant (p <= ", p_threshold, ") loops for SNP ", snp_id)
     }
 
     # Look up anchor coords for each significant loop; filter to region
@@ -116,7 +116,7 @@ loopQTLplotLocus <- function(obj, snp_id,
         pmax(loops_df$ancA_end, loops_df$ancB_end) <= end
     loops_df <- loops_df[in_region, , drop = FALSE]
     if (nrow(loops_df) == 0L) {
-        stop(
+        .stopNoCall(
             "No significant loops fully inside [", start, ", ", end,
             "] for SNP ", snp_id
         )
@@ -241,14 +241,14 @@ loopQTLplotLocus <- function(obj, snp_id,
     li <- match(loops_df$loop_id, loop_ids_all)
     if (values == "normalized") {
         if (length(obj@phenotype) == 0L) {
-            stop("loopQTLnormalize() must be run before using the values = \"normalize\" option.")
+            .stopNoCall("loopQTLnormalize() must be run before using the values = \"normalize\" option.")
         }
         return(obj@phenotype[li, obj@samples, drop = FALSE])
     }
     # cpm / raw modes need windows data
     w <- .resolve_windows(obj, windows)
     if (is.null(w$cells_raw)) {
-        stop("loopQTLnormalize() must have been run with save_windows set to TRUE to use values = \"", values, "\".")
+        .stopNoCall("loopQTLnormalize() must have been run with save_windows set to TRUE to use values = \"", values, "\".")
     }
     res <- obj@resolution
     n_loops <- nrow(loops_df)
@@ -268,7 +268,7 @@ loopQTLplotLocus <- function(obj, snp_id,
         raw_vals <- w$cells_raw[obj@samples, hit[1]]
         if (values == "cpm") {
             if (length(obj@cis) == 0L) {
-                stop("values = 'cpm' needs obj@cis (per-sample cis depth).")
+                .stopNoCall("values = 'cpm' needs obj@cis (per-sample cis depth).")
             }
             raw_vals <- raw_vals / (obj@cis[obj@samples] / 1e6)
         }
@@ -286,11 +286,11 @@ loopQTLplotLocus <- function(obj, snp_id,
     } else if ("feature" %in% names(S4Vectors::mcols(gr))) {
         "feature"
     } else {
-        stop("GTF has neither `type` nor `feature` column")
+        .stopNoCall("GTF has neither `type` nor `feature` column")
     }
     filteredGRanges <- gr[S4Vectors::mcols(gr)[[type_col]] == feature_type]
     if (length(filteredGRanges) == 0L) {
-        stop("No ", feature_type, " entries in GTF")
+        .stopNoCall("No ", feature_type, " entries in GTF")
     }
 
     gtf_chroms <- unique(as.character(GenomicRanges::seqnames(filteredGRanges)))
@@ -308,7 +308,7 @@ loopQTLplotLocus <- function(obj, snp_id,
         NULL
     }
     if (is.null(name_col)) {
-        stop("Unable to find gene name/ID column in GTF")
+        .stopNoCall("Unable to find gene name/ID column in GTF")
     }
 
     if (!is.na(gene_names)) {

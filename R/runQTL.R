@@ -90,7 +90,7 @@ runQTL <- function(obj,
     tab <- Rsamtools::TabixFile(obj@vcf_path)
     vcf_chroms <- Rsamtools::headerTabix(tab)$seqnames
     if (length(vcf_chroms) == 0L) {
-        stop("Could not read chromosome names from VCF tabix index")
+        .stopNoCall("Could not read chromosome names from VCF tabix index")
     }
     vcf_norm <- .make_chrom_normalizer(vcf_chroms)
     rt_chroms_vcf <- vcf_norm(as.character(GenomicRanges::seqnames(read_targets)))
@@ -118,7 +118,7 @@ runQTL <- function(obj,
     vcf_sample_names <- colnames(VariantAnnotation::geno(vcf)$GT)
     m <- match(samples_vec, vcf_sample_names)
     if (anyNA(m)) {
-        stop(
+        .stopNoCall(
             "VCF missing samples that were validated at setup: ",
             paste(samples_vec[is.na(m)], collapse = ", ")
         )
@@ -176,14 +176,14 @@ runQTL <- function(obj,
         if (!is.null(rownames(cov_df))) {
             mm <- match(samples_vec, rownames(cov_df))
             if (anyNA(mm)) {
-                stop(
+                .stopNoCall(
                     "`covariates` missing rows for samples: ",
                     paste(samples_vec[is.na(mm)], collapse = ", ")
                 )
             }
             cov_df <- cov_df[mm, , drop = FALSE]
         } else if (nrow(cov_df) != length(samples_vec)) {
-            stop(
+            .stopNoCall(
                 "`covariates` has ", nrow(cov_df), " rows but ",
                 length(samples_vec), " samples; provide rownames or matched order"
             )

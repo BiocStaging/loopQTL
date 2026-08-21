@@ -18,7 +18,7 @@
                             mc.cores = min(B, parallel::detectCores() - 1),
                             verbose = FALSE) {
     if (alpha < 0 || alpha > 1) {
-        stop("alpha must be between 0 and 1.")
+        .stopNoCall("alpha must be between 0 and 1.")
     }
 
     n <- nrow(X) # Number of observations.

@@ -123,22 +123,22 @@ loopQTLplotSnpWindow <- function(obj, snp_id,
     # 2. Look up the SNP row
     i <- match(snp_id, w$snp_index$snp_id)
     if (is.na(i)) {
-        stop("snp_id not found in windows file: ", snp_id)
+        .stopNoCall("snp_id not found in windows file: ", snp_id)
     }
     row <- w$snp_index[i, , drop = FALSE]
     cols <- row$col_indices[[1L]]
     if (length(cols) == 0L) {
-        stop(
+        .stopNoCall(
             "No cells were saved for snp_id = ", snp_id,
             " (likely on a chrom that had an empty window slice)."
         )
     }
     if (!is.null(chrom)) {
         if (length(chrom) != 1L || !is.character(chrom)) {
-            stop("`chrom` must be a single character string")
+            .stopNoCall("`chrom` must be a single character string")
         }
         if (!identical(chrom, row$chrom)) {
-            stop(
+            .stopNoCall(
                 "Supplied chrom = '", chrom, "' does not match the SNP's chrom ('",
                 row$chrom, "') in the windows file"
             )
@@ -155,20 +155,20 @@ loopQTLplotSnpWindow <- function(obj, snp_id,
         if (is.null(end)) end <- binEnd + res
         if (!is.numeric(start) || !is.numeric(end) ||
             length(start) != 1L || length(end) != 1L || start >= end) {
-            stop("`start` and `end` must be single numerics with start < end")
+            .stopNoCall("`start` and `end` must be single numerics with start < end")
         }
         crop_lo_req <- as.integer(floor(start / res) * res)
         crop_hi_req <- as.integer(floor((end - 1L) / res) * res)
         crop_lo <- max(crop_lo_req, binStart)
         crop_hi <- min(crop_hi_req, binEnd)
         if (crop_lo > crop_hi) {
-            stop(
+            .stopNoCall(
                 "Crop range [", start, ", ", end, "] does not overlap the saved ",
                 "window [", binStart, ", ", binEnd + res, "] for SNP ", snp_id
             )
         }
         if (crop_lo != crop_lo_req || crop_hi != crop_hi_req) {
-            warning(sprintf(
+            .warningNoCall(sprintf(
                 paste0(
                     "Requested [%d, %d] was clipped to [%d, %d] (the saved window ",
                     "for %s covers [%d, %d]; widen `window` in loopQTLnormalize() ",
@@ -211,8 +211,8 @@ loopQTLplotSnpWindow <- function(obj, snp_id,
         raw = w$cells_raw,
         cpm = {
             if (length(obj@cis) == 0L) {
-                stop(
-                    "values = 'cpm' requires obj@cis (per-sample cis depth). ",
+                .stopNoCall(
+                    "values = 'cpm' requires per-sample cis depth. ",
                     "Set the `cis` column in the samplesheet at loopQTLsetup() or ",
                     "let setup auto-compute it from .hic."
                 )
@@ -235,8 +235,8 @@ loopQTLplotSnpWindow <- function(obj, snp_id,
     cvrt <- NULL
     if (identical(covariates, "auto")) {
         cvrt_mode <- "auto"
-        if (length(obj@phenotype) == 0L) {
-            stop("covariates = 'auto' needs obj@phenotype; run loopQTLnormalize() first")
+        if (length(obj@phenotype) == 0L) { # FIXME: replace all @s
+            .stopNoCall("covariates = 'auto' needs obj@phenotype; run loopQTLnormalize() first")
         }
         Y_for_pca <- if (isTRUE(normal)) .rint_matrix(obj@phenotype) else obj@phenotype
         K_res <- .pca_for_qtl(Y_for_pca,
@@ -250,14 +250,14 @@ loopQTLplotSnpWindow <- function(obj, snp_id,
         if (!is.null(rownames(cv_df))) {
             mm <- match(w$samples, rownames(cv_df))
             if (anyNA(mm)) {
-                stop(
+                .stopNoCall(
                     "`covariates` is missing rows for samples: ",
                     paste(w$samples[is.na(mm)], collapse = ", ")
                 )
             }
             cv_df <- cv_df[mm, , drop = FALSE]
         } else if (nrow(cv_df) != length(w$samples)) {
-            stop(
+            .stopNoCall(
                 "`covariates` has ", nrow(cv_df), " rows but ",
                 length(w$samples), " samples; provide rownames or matched order"
             )
@@ -267,7 +267,8 @@ loopQTLplotSnpWindow <- function(obj, snp_id,
     }
 
     usable <- !is.na(dose)
-    if (!is.null(cvrt)) usable <- usable & stats::complete.cases(cvrt)
+    if (!is.null(cvrt))
+        usable <- usable & stats::complete.cases(cvrt)
     n_usable <- sum(usable)
 
     beta_vec <- rep(NA_real_, ncol(Y))
@@ -321,16 +322,21 @@ loopQTLplotSnpWindow <- function(obj, snp_id,
         coord$bin_j >= crop_lo & coord$bin_j <= crop_hi
     ri <- match(coord$bin_i[in_crop], bins)
     rj <- match(coord$bin_j[in_crop], bins)
-    vv <- display_v[in_crop]
-
     # Shift tile centers by res/2 so each tile visually spans [bin_start,
     # bin_start + res] and axis ticks at bin_start align with the LEFT
     # edge of the tile -- matching IGV / cooler / Juicebox bp conventions.
     half <- res / 2
-    long <- data.frame(
-        bin_i = c(bins[ri] + half, if (mirror) bins[rj] + half),
-        bin_j = c(bins[rj] + half, if (mirror) bins[ri] + half),
-        value = c(vv, if (mirror) vv),
+    value <- display_v[in_crop]
+    bin_i <- bins[ri] + half
+    bin_j <- bins[rj] + half
+    if (mirror) {
+        value <- c(value, value)
+        bin_i_original <- bin_i
+        bin_i <- c(bin_i, bin_j)
+        bin_j <- c(bin_j, bin_i_original)
+        rm(bin_i_original)
+    }
+    long <- data.frame(bin_i = bin_i, bin_j = bin_j, value = value,
         stringsAsFactors = FALSE
     )
     long <- long[!duplicated(paste(long$bin_i, long$bin_j, sep = "_")), ,
@@ -440,7 +446,7 @@ loopQTLplotSnpWindow <- function(obj, snp_id,
     }
     if (is.character(windows) && length(windows) == 1L) {
         if (!file.exists(windows)) {
-            stop("Windows file does not exist: ", windows)
+            .stopNoCall("Windows file does not exist: ", windows)
         }
         return(readRDS(windows))
     }
@@ -449,7 +455,7 @@ loopQTLplotSnpWindow <- function(obj, snp_id,
             names(windows))) {
         return(windows)
     }
-    stop(
+    .stopNoCall(
         "`windows` must be NULL, a path to a windows .rds, or a loaded list ",
         "with cells/cell_coords/snp_index/samples/resolution fields."
     )
@@ -474,13 +480,13 @@ loopQTLplotSnpWindow <- function(obj, snp_id,
         )
     )
     if (length(vcf) == 0L) {
-        stop("VCF has no record at ", chrom, ":", pos)
+        .stopNoCall("VCF has no record at ", chrom, ":", pos)
     }
     # If multi-allelic, take the first row (matching how .gt_to_dosage handles it)
     gt <- VariantAnnotation::geno(vcf)$GT
     m <- match(samples_vec, colnames(gt))
     if (anyNA(m)) {
-        stop(
+        .stopNoCall(
             "VCF missing samples present in windows file: ",
             paste(samples_vec[is.na(m)], collapse = ", ")
         )

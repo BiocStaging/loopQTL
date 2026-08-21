@@ -22,14 +22,14 @@ loopQTLplotPair <- function(obj, loop_id, snp_id,
         is.character(snp_id),  length(snp_id) == 1L
     )
     if (nrow(obj@results) == 0L) {
-        stop("obj@results is empty. Run runQTL(obj) first.")
+        .stopNoCall("obj@results is empty. Run runQTL(obj) first.")
     }
 
     # Look up the (loop, SNP) row in obj@results for stats
     hit <- obj@results[obj@results$loop_id == loop_id &
         obj@results$snp_id == snp_id, , drop = FALSE]
     if (nrow(hit) == 0L) {
-        stop("(loop_id, snp_id) pair not found in obj@results")
+        .stopNoCall("(loop_id, snp_id) pair not found in obj@results")
     }
     hit <- hit[1L, , drop = FALSE]
     ref <- hit$ref
@@ -45,7 +45,7 @@ loopQTLplotPair <- function(obj, loop_id, snp_id,
     d$geno_factor <- factor(d$genotype, levels = c(0, 1, 2), labels = geno_labels)
     d <- d[!is.na(d$geno_factor) & !is.na(d$phenotype), , drop = FALSE]
     if (nrow(d) == 0L) {
-        stop("No samples have non-NA genotype and phenotype for this pair.")
+        .stopNoCall("No samples have non-NA genotype and phenotype for this pair.")
     }
 
     # Per-genotype sample counts for x-tick subtitles
