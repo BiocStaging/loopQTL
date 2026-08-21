@@ -56,7 +56,7 @@ setValidity("loopQTL", function(object) {
         errs <- c(errs, "samples must be unique")
     }
 
-    # cis is optional. When present (length > 0), must align to samples.
+    ## cis is optional. When present (length > 0), must align to samples.
     if (length(object@cis) > 0L) {
         if (length(object@cis) != length(object@samples) ||
             !identical(names(object@cis), object@samples)) {

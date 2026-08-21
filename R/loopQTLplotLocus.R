@@ -72,7 +72,7 @@ loopQTLplotLocus <- function(obj, snp_id,
     start <- as.integer(start)
     end <- as.integer(end)
 
-    # 1. Filter obj@results to (this SNP, p <= threshold) and to loops in the region
+    ## 1. Filter obj@results to (this SNP, p <= threshold) and to loops in the region
     resultsForThisSNP <- obj@results[obj@results$snp_id == snp_id, , drop = FALSE]
     if (nrow(resultsForThisSNP) == 0L) {
         .stopNoCall("SNP ", snp_id, " not found in obj@results")
@@ -94,7 +94,7 @@ loopQTLplotLocus <- function(obj, snp_id,
         .stopNoCall("No significant (p <= ", p_threshold, ") loops for SNP ", snp_id)
     }
 
-    # Look up anchor coords for each significant loop; filter to region
+    ## Look up anchor coords for each significant loop; filter to region
     loop_ids_all <- S4Vectors::mcols(obj@loops)$loop_id
     ancA_all <- InteractionSet::anchors(obj@loops, "first")
     ancB_all <- InteractionSet::anchors(obj@loops, "second")
@@ -124,17 +124,17 @@ loopQTLplotLocus <- function(obj, snp_id,
     loops_df$ancA_mid <- (loops_df$ancA_start + loops_df$ancA_end) / 2
     loops_df$ancB_mid <- (loops_df$ancB_start + loops_df$ancB_end) / 2
 
-    # 2. Per-sample dosage for this SNP
+    ## 2. Per-sample dosage for this SNP
     dose <- .read_snp_dosage(obj@vcf_path, chrom, snp_pos,
         samples_vec = obj@samples
     )
-    # Split samples into genotype classes 0/1/2 (drop NA)
+    ## Split samples into genotype classes 0/1/2 (drop NA)
     geno_groups <- split(
         names(dose)[!is.na(dose)],
         factor(dose[!is.na(dose)], levels = c(0, 1, 2))
     )
 
-    # 3. For each loop, get per-sample contact values, then mean per genotype
+    ## 3. For each loop, get per-sample contact values, then mean per genotype
     values_mat <- .locus_values_matrix(obj, loops_df, values, windows)
 
     mean_per_geno <- vapply(names(geno_groups), function(g) {
@@ -154,9 +154,9 @@ loopQTLplotLocus <- function(obj, snp_id,
     )
     panel_titles <- sprintf("%s (n=%d)", geno_labels, n_per)
 
-    # 4. Color scale: use ACTUAL data range so small differences show up.
-    # BNBC values can be small (or negative); a fixed 0..max scale often
-    # squashes real differences into the pale end of the gradient.
+    ## 4. Color scale: use ACTUAL data range so small differences show up.
+    ## BNBC values can be small (or negative); a fixed 0..max scale often
+    ## squashes real differences into the pale end of the gradient.
     vfin <- mean_per_geno[is.finite(mean_per_geno)]
     if (!is.null(limit)) {
         eff_lo <- 0
@@ -182,14 +182,14 @@ loopQTLplotLocus <- function(obj, snp_id,
         gene_names = gene_df$gene
     )
 
-    # 6. Axis formatter
+    ## 6. Axis formatter
     ax_fmt <- if (axis_unit == "Mb") {
         function(x) sprintf("%.2f", x / 1e6)
     } else {
         function(x) format(x, big.mark = ",", scientific = FALSE)
     }
 
-    # 7. Build the four ggplot panels
+    ## 7. Build the four ggplot panels
     p_gene <- .build_gene_track(gene_df, exon_df, start, end, chrom, ax_fmt)
     p_snp <- .build_snp_track(snp_pos, snp_id, start, end, ax_fmt)
 
@@ -208,9 +208,9 @@ loopQTLplotLocus <- function(obj, snp_id,
         )
     })
 
-    # 8. Stack with patchwork: gene | SNP | genotype 0 | 1 | 2
-    #    Heights: gene 1.2, SNP 0.4, arcs each 1.2
-    #    guides = "collect" consolidates all three arc legends into one.
+    ## 8. Stack with patchwork: gene | SNP | genotype 0 | 1 | 2
+    ##    Heights: gene 1.2, SNP 0.4, arcs each 1.2
+    ##    guides = "collect" consolidates all three arc legends into one.
     heights <- c(1.2, 0.4, rep(1.2, length(arc_panels)))
     wrap <- patchwork::wrap_plots(
         c(list(p_gene, p_snp), arc_panels),
@@ -232,10 +232,10 @@ loopQTLplotLocus <- function(obj, snp_id,
 }
 
 
-# Internal helpers
+## Internal helpers
 
-# Pull per-sample contact values for the given loops based on `values`.
-# Returns a (n_loops x n_samples) matrix in obj@samples order.
+## Pull per-sample contact values for the given loops based on `values`.
+## Returns a (n_loops x n_samples) matrix in obj@samples order.
 .locus_values_matrix <- function(obj, loops_df, values, windows) {
     loop_ids_all <- S4Vectors::mcols(obj@loops)$loop_id
     li <- match(loops_df$loop_id, loop_ids_all)
@@ -245,7 +245,7 @@ loopQTLplotLocus <- function(obj, snp_id,
         }
         return(obj@phenotype[li, obj@samples, drop = FALSE])
     }
-    # cpm / raw modes need windows data
+    ## cpm / raw modes need windows data
     w <- .resolve_windows(obj, windows)
     if (is.null(w$cells_raw)) {
         .stopNoCall("loopQTLnormalize() must have been run with save_windows set to TRUE to use values = \"", values, "\".")
@@ -277,8 +277,8 @@ loopQTLplotLocus <- function(obj, snp_id,
     out
 }
 
-# Read genes (or exons of the given genes) overlapping [start, end] on the given
-# chromosome.
+## Read genes (or exons of the given genes) overlapping [start, end] on the given
+## chromosome.
 .load_features_in_region <- function(gtf, chrom, start, end, feature_type, gene_names = NA, biotypes = NULL) {
     gr <- rtracklayer::import(gtf)
     type_col <- if ("type" %in% names(S4Vectors::mcols(gr))) {
@@ -336,7 +336,7 @@ loopQTLplotLocus <- function(obj, snp_id,
 }
 
 
-# Non-overlapping row assignment: greedy first-fit into rows so text labels don't collide.
+## Non-overlapping row assignment: greedy first-fit into rows so text labels don't collide.
 .assign_gene_rows <- function(g_df) {
     n <- nrow(g_df)
     if (n == 0L) {
@@ -381,14 +381,14 @@ loopQTLplotLocus <- function(obj, snp_id,
     }
     gene_df$row <- .assign_gene_rows(gene_df)
 
-    # Attach row assignment to exons via gene name
+    ## Attach row assignment to exons via gene name
     if (nrow(exon_df) > 0L) {
         exon_df$row <- gene_df$row[match(exon_df$gene, gene_df$gene)]
         exon_df <- exon_df[!is.na(exon_df$row), , drop = FALSE]
     }
 
-    # Strand direction chevrons along the gene body (thin line)
-    # ">" for + strand, "<" for - strand, placed every ~5% of region width
+    ## Strand direction chevrons along the gene body (thin line)
+    ## ">" for + strand, "<" for - strand, placed every ~5% of region width
     span <- end - start
     step <- max(as.integer(span / 30), 1L)
     chev <- do.call(rbind, lapply(seq_len(nrow(gene_df)), function(i) {
@@ -409,7 +409,7 @@ loopQTLplotLocus <- function(obj, snp_id,
     }))
 
     gg <- ggplot2::ggplot() +
-        # thin line for the whole gene body (intron backbone)
+        ## thin line for the whole gene body (intron backbone)
         ggplot2::geom_segment(
             data = gene_df,
             ggplot2::aes(
@@ -418,7 +418,7 @@ loopQTLplotLocus <- function(obj, snp_id,
             ),
             color = "steelblue4", linewidth = 0.3
         )
-    # strand chevrons on the intron line
+    ## strand chevrons on the intron line
     if (!is.null(chev) && nrow(chev) > 0L) {
         gg <- gg + ggplot2::geom_text(
             data = chev,
@@ -426,7 +426,7 @@ loopQTLplotLocus <- function(obj, snp_id,
             color = "steelblue4", size = 2.5
         )
     }
-    # Thick exon rectangles
+    ## Thick exon rectangles
     if (nrow(exon_df) > 0L) {
         gg <- gg + ggplot2::geom_rect(
             data = exon_df,
@@ -437,7 +437,7 @@ loopQTLplotLocus <- function(obj, snp_id,
             fill = "steelblue4", color = NA
         )
     }
-    # Gene name labels above each gene row
+    ## Gene name labels above each gene row
     top_row <- max(gene_df$row)
     gg <- gg + ggplot2::geom_text(
         data = gene_df,
@@ -454,13 +454,13 @@ loopQTLplotLocus <- function(obj, snp_id,
             xlim = c(start, end),
             ylim = c(0.3, top_row + 0.9)
         ) +
-        # Axis at TOP (IGV / UCSC ruler convention)
+        ## Axis at TOP (IGV / UCSC ruler convention)
         ggplot2::scale_x_continuous(
             labels = ax_fmt, expand = c(0, 0),
             position = "top"
         ) +
-        # IGV-style stacked left-margin labels: bold `chr1` tag on top,
-        # `Genes` axis label below.
+        ## IGV-style stacked left-margin labels: bold `chr1` tag on top,
+        ## `Genes` axis label below.
         ggplot2::labs(y = "Genes", tag = chrom) +
         ggplot2::theme_classic(base_size = 10) +
         ggplot2::theme(
@@ -472,11 +472,11 @@ loopQTLplotLocus <- function(obj, snp_id,
                 margin = ggplot2::margin(r = 4)
             ),
             axis.title.x = ggplot2::element_blank(),
-            # bottom edge fully hidden (axis is on top now)
+            ## bottom edge fully hidden (axis is on top now)
             axis.line.x.bottom = ggplot2::element_blank(),
             axis.text.x.bottom = ggplot2::element_blank(),
             axis.ticks.x.bottom = ggplot2::element_blank(),
-            # top-left chrom tag (same size as the Genes axis label, unbold)
+            ## top-left chrom tag (same size as the Genes axis label, unbold)
             plot.tag = ggplot2::element_text(size = 10, hjust = 0),
             plot.tag.position = c(0, 0.9)
         )
@@ -517,8 +517,8 @@ loopQTLplotLocus <- function(obj, snp_id,
 .build_arc_panel <- function(arc_df, start, end, ax_fmt,
                              eff_lo, eff_hi, strong_color, weak_color,
                              panel_title, show_x = FALSE) {
-    # Expand each loop into a set of three points which will be interpolated by
-    # geom_path
+    ## Expand each loop into a set of three points which will be interpolated by
+    ## geom_path
     paths <- do.call(rbind, lapply(seq_len(nrow(arc_df)), function(i) {
         p <- .arc_path(arc_df$x1[i], arc_df$x2[i])
         p$loop_id <- arc_df$loop_id[i]
@@ -552,7 +552,7 @@ loopQTLplotLocus <- function(obj, snp_id,
             axis.title.x = ggplot2::element_blank(),
             axis.title.y = ggplot2::element_text(size = 9),
             panel.grid = ggplot2::element_blank(),
-            # No X-axis line for the loops because it's at the top, above the genes
+            ## No X-axis line for the loops because it's at the top, above the genes
             axis.line.x = ggplot2::element_blank()
         )
     return(gg)

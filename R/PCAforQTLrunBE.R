@@ -1,4 +1,4 @@
-# Modified based on https://github.com/heatherjzhou/PCAForQTL/blob/b8f7d09e77cb5b50dd712ad99f3fbccab899b73d/R/22.01.04_main1.2_runBE.R (retrieved 2026/07/31) - license: GPLv3
+## Modified based on https://github.com/heatherjzhou/PCAForQTL/blob/b8f7d09e77cb5b50dd712ad99f3fbccab899b73d/R/22.01.04_main1.2_runBE.R (retrieved 2026/07/31) - license: GPLv3
 
 ## Implements the BE algorithm, a permutation-based approach for choosing K in
 ## PCA. Intuitively, the BE algorithm retains PCs that explain more variance in
@@ -12,7 +12,7 @@
 ## FIXME: For reproducibility, make sure to change the RNG type (necessary 
 ## unless mc.cores is 1) and set the seed before using this function.
 
-# FIXME: use BiocParallel
+## FIXME: use BiocParallel
 
 .PCAforQTLrunBE <- function(X, B = 20, alpha = 0.05,
                             mc.cores = min(B, parallel::detectCores() - 1),
@@ -30,7 +30,7 @@
     results <- parallel::mclapply(seq_len(B), FUN = function(b) {
         if (verbose) cat("b=", b, " out of ", B, " permutations...\n", sep = "")
 
-        # Permute each column of X. That is, permute the observations in each feature.
+        ## Permute each column of X. That is, permute the observations in each feature.
         XPermuted <- matrix(data = NA, nrow = n, ncol = p)
         for (j in seq_len(p)) {
             XPermuted[, j] <- sample(x = X[, j], size = n, replace = FALSE)

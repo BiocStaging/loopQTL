@@ -51,9 +51,9 @@ loopQTLchooseK <- function(obj,
     )
 }
 
-# Internal: PCA + K selection on a (loops x samples) matrix. Shared by
-# loopQTLchooseK() and runQTL() (so we don't RINT twice when runQTL
-# already RINT'd the matrix it's passing).
+## Internal: PCA + K selection on a (loops x samples) matrix. Shared by
+## loopQTLchooseK() and runQTL() (so we don't RINT twice when runQTL
+## already RINT'd the matrix it's passing).
 .pca_for_qtl <- function(Y,
                          samples,
                          K_method = c("elbow", "BE"),

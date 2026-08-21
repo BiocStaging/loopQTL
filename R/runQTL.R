@@ -60,15 +60,15 @@ runQTL <- function(obj,
     anchorA <- InteractionSet::anchors(loops_gi, type = "first")
     anchorB <- InteractionSet::anchors(loops_gi, type = "second")
 
-    # Apply RINT if requested. obj@phenotype is left untouched (the local
-    # `phenotype` variable is what flows into MatrixEQTL and PCA).
+    ## Apply RINT if requested. obj@phenotype is left untouched (the local
+    ## `phenotype` variable is what flows into MatrixEQTL and PCA).
     phenotype <- if (normal) .rint_matrix(obj@phenotype) else obj@phenotype
     n_zero_var <- sum(rowSums(!is.na(phenotype)) == 0L) -
         sum(rowSums(!is.na(obj@phenotype)) == 0L)
-    # n_zero_var = loops newly NA'd by RINT (had data but constant after RINT).
-    # Originally-NA loops aren't counted here.
+    ## n_zero_var = loops newly NA'd by RINT (had data but constant after RINT).
+    ## Originally-NA loops aren't counted here.
 
-    # Build union of (anchor +- window) target ranges for the VCF read
+    ## Build union of (anchor +- window) target ranges for the VCF read
     pad <- function(gr) {
         GenomicRanges::GRanges(
             seqnames = GenomicRanges::seqnames(gr),
@@ -80,13 +80,13 @@ runQTL <- function(obj,
     }
     read_targets <- GenomicRanges::reduce(c(pad(anchorA), pad(anchorB)))
 
-    # tiny helper to short-circuit: write empty result table and return obj
+    ## tiny helper to short-circuit: write empty result table and return obj
     .return_empty <- function() {
         obj@results <- .empty_qtl_result()
         obj
     }
 
-    # Detect VCF chrom naming style and rewrite the read targets to match
+    ## Detect VCF chrom naming style and rewrite the read targets to match
     tab <- Rsamtools::TabixFile(obj@vcf_path)
     vcf_chroms <- Rsamtools::headerTabix(tab)$seqnames
     if (length(vcf_chroms) == 0L) {
@@ -106,7 +106,7 @@ runQTL <- function(obj,
         )
     )
 
-    # Single targeted VCF read
+    ## Single targeted VCF read
     param <- VariantAnnotation::ScanVcfParam(
         which = read_targets, geno = "GT", info = NA_character_
     )
@@ -146,7 +146,7 @@ runQTL <- function(obj,
         )
     }
 
-    # MAF + drop SNPs with no informative variation
+    ## MAF + drop SNPs with no informative variation
     af <- rowMeans(dosage, na.rm = TRUE) / 2
     maf_all <- pmin(af, 1 - af)
     snp_keep <- is.finite(maf_all) & maf_all > 0
@@ -162,9 +162,9 @@ runQTL <- function(obj,
     maf_kept <- maf_all[snp_keep]
     rownames(dosage) <- snp_id
 
-    # Resolve covariates
+    ## Resolve covariates
     if (is.null(covariates)) {
-        # Use the already-RINT'd-or-not `phenotype` matrix to avoid double-RINT.
+        ## Use the already-RINT'd-or-not `phenotype` matrix to avoid double-RINT.
         K_res <- .pca_for_qtl(phenotype,
             samples = samples_vec,
             K_method = K_method, K_max = K_max
@@ -196,14 +196,14 @@ runQTL <- function(obj,
     obj@meta$runQTL_normal <- normal
     obj@meta$runQTL_n_zero_var <- max(0L, n_zero_var)
 
-    # Build SlicedData inputs for MatrixEQTL
+    ## Build SlicedData inputs for MatrixEQTL
     snps_sd <- .as_sliced(dosage)
     gene_sd <- .as_sliced(phenotype, rownames_default = loop_ids)
     cvrt_sd <- .as_sliced(cvrt_mat)
 
-    # SNP positions (use original loop chrom style for output, but MatrixEQTL
-    # uses position tables only for cis-distance arithmetic, so we feed it the
-    # vcf-style chrom names and matching anchor chrom names)
+    ## SNP positions (use original loop chrom style for output, but MatrixEQTL
+    ## uses position tables only for cis-distance arithmetic, so we feed it the
+    ## vcf-style chrom names and matching anchor chrom names)
     loop_chrom_vcf <- vcf_norm(as.character(GenomicRanges::seqnames(anchorA)))
     snpspos <- data.frame(
         snpid = snp_id,
@@ -226,7 +226,7 @@ runQTL <- function(obj,
         stringsAsFactors = FALSE
     )
 
-    # Run MatrixEQTL twice
+    ## Run MatrixEQTL twice
     out_A <- .run_matrix_eqtl(snps_sd, gene_sd, cvrt_sd,
         snpspos, genepos_A,
         cisDist = window,
@@ -238,14 +238,14 @@ runQTL <- function(obj,
         pvOutputThreshold = pvOutputThreshold
     )
 
-    # Merge on (loop_id = gene, snp_id = snps); label anchor A / B / both.
+    ## Merge on (loop_id = gene, snp_id = snps); label anchor A / B / both.
     merged <- .merge_anchor_runs(out_A, out_B)
     if (nrow(merged) == 0L) {
         obj@results <- .empty_qtl_result()
         return(obj)
     }
 
-    # Attach SNP metadata + MAF
+    ## Attach SNP metadata + MAF
     snp_meta <- data.frame(
         snp_id = snp_id, chrom = snp_chrom_vcf, pos = snp_pos,
         ref = snp_ref, alt = snp_alt, maf = maf_kept,
@@ -254,19 +254,19 @@ runQTL <- function(obj,
     out <- merge(merged, snp_meta, by = "snp_id", all.x = TRUE, sort = FALSE)
     out$n_used <- rowSums(!is.na(dosage[match(out$snp_id, rownames(dosage)), , drop = FALSE]))
 
-    # Final column order
+    ## Final column order
     out <- out[, c(
         "loop_id", "snp_id", "chrom", "pos", "ref", "alt", "anchor",
         "beta", "se", "t", "p", "n_used", "maf"
     )]
     rownames(out) <- NULL
 
-    # Write to slot and return the obj instead of the raw data.frame.
+    ## Write to slot and return the obj instead of the raw data.frame.
     obj@results <- out
     obj
 }
 
-# Internal helpers
+## Internal helpers
 
 .empty_qtl_result <- function() {
     data.frame(
@@ -280,8 +280,8 @@ runQTL <- function(obj,
     )
 }
 
-# Convert a (snps x samples) GT character matrix to numeric dosage (0/1/2).
-# Anything beyond biallelic 0/1 becomes NA.
+## Convert a (snps x samples) GT character matrix to numeric dosage (0/1/2).
+## Anything beyond biallelic 0/1 becomes NA.
 .gt_to_dosage <- function(gt) {
     raw <- gsub("|", "/", gt, fixed = TRUE)
     raw[raw %in% c("", ".", "./.")] <- NA_character_
@@ -300,7 +300,7 @@ runQTL <- function(obj,
     out
 }
 
-# Wrap a matrix in a MatrixEQTL::SlicedData.
+## Wrap a matrix in a MatrixEQTL::SlicedData.
 .as_sliced <- function(mat, rownames_default = NULL) {
     if (!is.null(rownames_default) && is.null(rownames(mat))) {
         rownames(mat) <- rownames_default
@@ -310,7 +310,7 @@ runQTL <- function(obj,
     sd
 }
 
-# Run MatrixEQTL once and return a tidy data.frame of cis hits.
+## Run MatrixEQTL once and return a tidy data.frame of cis hits.
 .run_matrix_eqtl <- function(snps_sd, gene_sd, cvrt_sd,
                              snpspos, genepos,
                              cisDist, pvOutputThreshold) {
@@ -343,8 +343,8 @@ runQTL <- function(obj,
             stringsAsFactors = FALSE
         ))
     }
-    # MatrixEQTL columns: snps, gene, statistic, pvalue, beta (FDR ignored)
-    # Some versions also include `se` directly; if not, derive: se = beta / statistic.
+    ## MatrixEQTL columns: snps, gene, statistic, pvalue, beta (FDR ignored)
+    ## Some versions also include `se` directly; if not, derive: se = beta / statistic.
     se_col <- if ("se" %in% names(cis)) cis$se else cis$beta / cis$statistic
     data.frame(
         loop_id = as.character(cis$gene),
@@ -357,9 +357,9 @@ runQTL <- function(obj,
     )
 }
 
-# Outer-join two anchor runs on (loop_id, snp_id) and label `anchor`.
-# When a pair appears in both runs the model is identical, so we just keep one
-# row and label it `both`.
+## Outer-join two anchor runs on (loop_id, snp_id) and label `anchor`.
+## When a pair appears in both runs the model is identical, so we just keep one
+## row and label it `both`.
 .merge_anchor_runs <- function(out_A, out_B) {
     if (nrow(out_A) == 0L && nrow(out_B) == 0L) {
         return(data.frame(

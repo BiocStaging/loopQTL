@@ -1,10 +1,10 @@
-# Direct tests for the v2 normalize machinery, using a hand-built loopQTL
-# object so we don't depend on .hic / VCF I/O.
+## Direct tests for the v2 normalize machinery, using a hand-built loopQTL
+## object so we don't depend on .hic / VCF I/O.
 #
-# These tests cover:
-#   * RINT-only path (we monkey-patch the per-chrom worker via a stub object)
-#   * .quantile_normalize correctness
-#   * The S4 invariants are preserved after normalize-shaped output
+## These tests cover:
+##   * RINT-only path (we monkey-patch the per-chrom worker via a stub object)
+##   * .quantile_normalize correctness
+##   * The S4 invariants are preserved after normalize-shaped output
 
 test_that(".quantile_normalize equalizes column distributions", {
     set.seed(1)
@@ -14,7 +14,7 @@ test_that(".quantile_normalize equalizes column distributions", {
         9, 7, 6, 3
     ), nrow = 4, byrow = TRUE)
     qn <- loopQTL:::.quantile_normalize(m)
-    # After QN every column should have the same sorted vector
+    ## After QN every column should have the same sorted vector
     sorted_cols <- apply(qn, 2L, sort)
     expect_true(all(apply(sorted_cols, 1L, function(r) diff(range(r)) < 1e-12)))
 })

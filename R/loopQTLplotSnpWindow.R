@@ -120,7 +120,7 @@ loopQTLplotSnpWindow <- function(obj, snp_id,
 
     w <- .resolve_windows(obj, windows)
 
-    # 2. Look up the SNP row
+    ## 2. Look up the SNP row
     i <- match(snp_id, w$snp_index$snp_id)
     if (is.na(i)) {
         .stopNoCall("snp_id not found in windows file: ", snp_id)
@@ -149,7 +149,7 @@ loopQTLplotSnpWindow <- function(obj, snp_id,
     bin <- as.integer(row$binStart)
     binEnd <- as.integer(row$binEnd)
 
-    # 3. Optionally crop to user's [start, end]
+    ## 3. Optionally crop to user's [start, end]
     if (!is.null(start) || !is.null(end)) {
         if (is.null(start)) start <- binStart
         if (is.null(end)) end <- binEnd + res
@@ -183,20 +183,20 @@ loopQTLplotSnpWindow <- function(obj, snp_id,
         crop_hi <- binEnd
     }
 
-    # 4. Pull genotype dosage for this SNP
+    ## 4. Pull genotype dosage for this SNP
     dose <- .read_snp_dosage(obj@vcf_path, row$chrom, row$pos,
         samples_vec = w$samples
     )
 
-    # 5. Per-cell regression slope (beta)
-    # Three modes, matching runQTL()'s semantics:
-    #   normal = FALSE, covariates = NULL          -> marginal beta on raw BNBC
-    #   normal = TRUE,  covariates = NULL          -> marginal beta on RINT'd cells
-    #   normal = TRUE,  covariates = "auto"/matrix -> partial beta matching runQTL()
-    # By Frisch-Waugh-Lovell, the partial slope equals the slope from
-    # lm(cell ~ dose + cvrt), so we residualize both cell-value and dose
-    # against [1, cvrt] then take slope = sum(Y_res * d_res) / sum(d_res^2).
-    # Select the cell values matrix based on the `values` arg
+    ## 5. Per-cell regression slope (beta)
+    ## Three modes, matching runQTL()'s semantics:
+    ##   normal = FALSE, covariates = NULL          -> marginal beta on raw BNBC
+    ##   normal = TRUE,  covariates = NULL          -> marginal beta on RINT'd cells
+    ##   normal = TRUE,  covariates = "auto"/matrix -> partial beta matching runQTL()
+    ## By Frisch-Waugh-Lovell, the partial slope equals the slope from
+    ## lm(cell ~ dose + cvrt), so we residualize both cell-value and dose
+    ## against [1, cvrt] then take slope = sum(Y_res * d_res) / sum(d_res^2).
+    ## Select the cell values matrix based on the `values` arg
     
     if (values %in% c("raw", "cpm") && is.null(w$cells_raw)) {
         .stopNoCall(
@@ -277,12 +277,12 @@ loopQTLplotSnpWindow <- function(obj, snp_id,
         Y_u <- Y[usable, , drop = FALSE]
         d_u <- dose[usable]
         if (is.null(cvrt)) {
-            # Marginal: center then slope = sum(Yc * dc) / sum(dc^2)
+            ## Marginal: center then slope = sum(Yc * dc) / sum(dc^2)
             Y_r <- sweep(Y_u, 2L, colMeans(Y_u, na.rm = TRUE), FUN = "-")
             d_r <- d_u - mean(d_u)
             df <- n_usable - 2L
         } else {
-            # Partial via FWL: residualize Y and d against [1, cvrt[usable, ]]
+            ## Partial via FWL: residualize Y and d against [1, cvrt[usable, ]]
             X <- cbind(1, cvrt[usable, , drop = FALSE])
             qrX <- qr(X)
             Y_r <- Y_u - X %*% qr.coef(qrX, Y_u)
@@ -292,7 +292,7 @@ loopQTLplotSnpWindow <- function(obj, snp_id,
         denom_d <- sum(d_r^2)
         if (denom_d > 0 && df > 0) {
             beta_vec <- as.numeric(crossprod(Y_r, d_r) / denom_d)
-            # RSS_j = ||Y_r_j||^2 - beta_j^2 * denom_d  (from partial regression)
+            ## RSS_j = ||Y_r_j||^2 - beta_j^2 * denom_d  (from partial regression)
             rss <- colSums(Y_r^2) - beta_vec^2 * denom_d
             rss <- pmax(rss, 0) # numerical safety
             sigma2 <- rss / df
@@ -304,9 +304,9 @@ loopQTLplotSnpWindow <- function(obj, snp_id,
         p_vec[!is.finite(p_vec)] <- NA_real_
     }
 
-    # Build the display value per cell based on `metric`
+    ## Build the display value per cell based on `metric`
     if (metric == "beta_logp") {
-        # Guard against p==0 (perfect fit); cap the -log10 to a plottable ceiling
+        ## Guard against p==0 (perfect fit); cap the -log10 to a plottable ceiling
         p_safe <- pmax(p_vec, .Machine$double.xmin)
         display_v <- beta_vec * (-log10(p_safe))
         display_v[!is.finite(display_v)] <- NA_real_
@@ -314,7 +314,7 @@ loopQTLplotSnpWindow <- function(obj, snp_id,
         display_v <- beta_vec
     }
 
-    # 6. Lay r values onto the bins x bins grid
+    ## 6. Lay r values onto the bins x bins grid
     coord <- w$cell_coords[cols, , drop = FALSE]
     bins <- seq.int(crop_lo, crop_hi, by = res)
     nb <- length(bins)
@@ -322,9 +322,9 @@ loopQTLplotSnpWindow <- function(obj, snp_id,
         coord$bin_j >= crop_lo & coord$bin_j <= crop_hi
     ri <- match(coord$bin_i[in_crop], bins)
     rj <- match(coord$bin_j[in_crop], bins)
-    # Shift tile centers by res/2 so each tile visually spans [bin_start,
-    # bin_start + res] and axis ticks at bin_start align with the LEFT
-    # edge of the tile -- matching IGV / cooler / Juicebox bp conventions.
+    ## Shift tile centers by res/2 so each tile visually spans [bin_start,
+    ## bin_start + res] and axis ticks at bin_start align with the LEFT
+    ## edge of the tile -- matching IGV / cooler / Juicebox bp conventions.
     half <- res / 2
     value <- display_v[in_crop]
     bin_i <- bins[ri] + half
@@ -343,8 +343,8 @@ loopQTLplotSnpWindow <- function(obj, snp_id,
         drop = FALSE
     ]
 
-    # 7. Color scale (RdBu divergent on `value`)  # value scale depends on `metric`; both are unbounded. Default limit is
-    # data-driven; pass a fixed `limit` for cross-SNP comparability.
+    ## 7. Color scale (RdBu divergent on `value`)  # value scale depends on `metric`; both are unbounded. Default limit is
+    ## data-driven; pass a fixed `limit` for cross-SNP comparability.
     if (is.null(limit)) {
         vfin <- long$value[is.finite(long$value)]
         eff_limit <- if (length(vfin) > 0L) max(abs(vfin)) else 1
@@ -353,7 +353,7 @@ loopQTLplotSnpWindow <- function(obj, snp_id,
         eff_limit <- limit
     }
 
-    # 8. Plot
+    ## 8. Plot
     axis_format <- if (axis_unit == "Mb") {
         function(x) sprintf("%.2f", x / 1e6)
     } else {
@@ -428,9 +428,9 @@ loopQTLplotSnpWindow <- function(obj, snp_id,
         )
 }
 
-# Internal helpers
+## Internal helpers
 
-# Resolve the `windows` arg into a loaded list, with the necessary structure.
+## Resolve the `windows` arg into a loaded list, with the necessary structure.
 .resolve_windows <- function(obj, windows) {
     ## If the windows argument is null, look inside the loopQTL object
     if (is.null(windows)) {
@@ -461,8 +461,8 @@ loopQTLplotSnpWindow <- function(obj, snp_id,
     )
 }
 
-# Targeted single-SNP dosage read from a tabix VCF. Returns a numeric vector
-# of length(samples_vec) in that order; NA where missing.
+## Targeted single-SNP dosage read from a tabix VCF. Returns a numeric vector
+## of length(samples_vec) in that order; NA where missing.
 .read_snp_dosage <- function(vcf_path, chrom, pos, samples_vec) {
     tab <- Rsamtools::TabixFile(vcf_path)
     vcf_chroms <- Rsamtools::headerTabix(tab)$seqnames
@@ -482,7 +482,7 @@ loopQTLplotSnpWindow <- function(obj, snp_id,
     if (length(vcf) == 0L) {
         .stopNoCall("VCF has no record at ", chrom, ":", pos)
     }
-    # If multi-allelic, take the first row (matching how .gt_to_dosage handles it)
+    ## If multi-allelic, take the first row (matching how .gt_to_dosage handles it)
     gt <- VariantAnnotation::geno(vcf)$GT
     m <- match(samples_vec, colnames(gt))
     if (anyNA(m)) {

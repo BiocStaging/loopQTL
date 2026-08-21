@@ -65,7 +65,7 @@ loopQTLsetup <- function(samples,
         if (!file.exists(p)) .stopNoCall("File not found: ", p)
     }
 
-    # VCF validation (header only)
+    ## VCF validation (header only)
     if (!file.exists(vcf)) .stopNoCall("VCF not found: ", vcf)
     tbi <- paste0(vcf, ".tbi")
     if (!file.exists(tbi)) {
@@ -102,9 +102,9 @@ loopQTLsetup <- function(samples,
         " sample(s) present in both samplesheet and VCF."
     )
 
-    # Per-.hic metadata + resolution / NONE check (header reads only)  # Also build per-sample chromosome-naming normalizers so we can map a
-    # user-style chrom string (e.g. "1") to whatever this .hic file uses
-    # (e.g. "chr1") when summing cis.
+    ## Per-.hic metadata + resolution / NONE check (header reads only)  # Also build per-sample chromosome-naming normalizers so we can map a
+    ## user-style chrom string (e.g. "1") to whatever this .hic file uses
+    ## (e.g. "chr1") when summing cis.
     chrom_norm_per_sample <- vector("list", length(hic_paths))
     hic_chroms_per_sample <- vector("list", length(hic_paths))
     for (i in seq_along(hic_paths)) {
@@ -124,7 +124,7 @@ loopQTLsetup <- function(samples,
         hic_chroms_per_sample[[i]] <- chroms_i
     }
 
-    # Read and partition loops
+    ## Read and partition loops
     per_sample_loops <- lapply(loop_paths, .read_loops_bedpe)
     n_trans_per_sample <- vapply(
         per_sample_loops,
@@ -136,10 +136,10 @@ loopQTLsetup <- function(samples,
         function(d) d[d$chrA == d$chrB, , drop = FALSE]
     )
 
-    # Exact-coordinate consensus  # Canonicalise (smaller anchor first), build a string key per loop, then
-    # count distinct samples per key. Keep keys with support >= min_samples.
-    # No clustering, no jitter tolerance: two loops are the same only if
-    # (chrA, startA, endA, chrB, startB, endB) match exactly.
+    ## Exact-coordinate consensus  # Canonicalise (smaller anchor first), build a string key per loop, then
+    ## count distinct samples per key. Keep keys with support >= min_samples.
+    ## No clustering, no jitter tolerance: two loops are the same only if
+    ## (chrA, startA, endA, chrB, startB, endB) match exactly.
     canonicalise <- function(d) {
         if (nrow(d) == 0L) {
             return(d)
@@ -174,7 +174,7 @@ loopQTLsetup <- function(samples,
         "exact-coord consensus across ",
         sum(per_sample_n > 0L), " samples ..."
     )
-    # Build a long data.frame: one row per per-sample call, with key + sample
+    ## Build a long data.frame: one row per per-sample call, with key + sample
     call_chunks <- lapply(seq_along(per_sample_loops), function(si) {
         d <- per_sample_loops[[si]]
         if (nrow(d) == 0L) {
@@ -190,8 +190,8 @@ loopQTLsetup <- function(samples,
         )
     })
     all_calls <- do.call(rbind, call_chunks)
-    # Distinct-sample support per key (count unique samples after de-duping
-    # within-sample repeats)
+    ## Distinct-sample support per key (count unique samples after de-duping
+    ## within-sample repeats)
     uniq_call <- unique(all_calls[, c("key", "sample")])
     support <- table(uniq_call$key)
     keep_keys <- names(support)[support >= min_samples]
@@ -203,12 +203,12 @@ loopQTLsetup <- function(samples,
         .stopNoCall("No consensus loops survived min_samples = ", min_samples)
     }
 
-    # Pick the first occurrence of each kept key for its coords
+    ## Pick the first occurrence of each kept key for its coords
     first_idx <- match(keep_keys, all_calls$key)
     cons <- all_calls[first_idx, c("chrA", "startA", "endA", "startB", "endB"),
         drop = FALSE
     ]
-    # Stable order: chrom, anchorA start, anchorB start
+    ## Stable order: chrom, anchorA start, anchorB start
     ord <- order(cons$chrA, cons$startA, cons$startB)
     cons <- cons[ord, , drop = FALSE]
     rownames(cons) <- NULL
@@ -217,7 +217,7 @@ loopQTLsetup <- function(samples,
         sep = ":"
     )])
 
-    # Build GInteractions (1-based inclusive ranges)
+    ## Build GInteractions (1-based inclusive ranges)
     gi <- InteractionSet::GInteractions(
         GenomicRanges::GRanges(
             cons$chrA,
@@ -229,7 +229,7 @@ loopQTLsetup <- function(samples,
         )
     )
 
-    # Stable loop_id from anchor coordinates (0-based BEDPE-style starts)
+    ## Stable loop_id from anchor coordinates (0-based BEDPE-style starts)
     loop_id <- sprintf(
         "L%07d_%s_%d_%d",
         seq_along(gi),
@@ -242,10 +242,10 @@ loopQTLsetup <- function(samples,
 
     rep_A <- InteractionSet::anchors(gi, type = "first")
 
-    # cis: user-supplied if provided, else auto-computed from .hic
+    ## cis: user-supplied if provided, else auto-computed from .hic
     cis_chroms <- unique(as.character(GenomicRanges::seqnames(rep_A))) # chroms with consensus loops; defines the
-    # set of chroms cis is summed over (consistent
-    # with what normalize will process)
+    ## set of chroms cis is summed over (consistent
+    ## with what normalize will process)
 
     cis_vec <- if (!is.null(user_cis)) {
         if (anyNA(user_cis) || any(user_cis <= 0)) {
@@ -294,9 +294,9 @@ loopQTLsetup <- function(samples,
     obj
 }
 
-# Internal: compute per-sample cis depth by summing all straw counts across
-# the given chroms. Returns a named numeric vector (one entry per sample).
-# Parallel unit of work: one (sample, chrom) straw pull + sum.
+## Internal: compute per-sample cis depth by summing all straw counts across
+## the given chroms. Returns a named numeric vector (one entry per sample).
+## Parallel unit of work: one (sample, chrom) straw pull + sum.
 .compute_cis_from_hic <- function(hic_paths, sample_ids, chroms,
                                   resolution, chrom_norms,
                                   BPPARAM = BiocParallel::SerialParam()) {

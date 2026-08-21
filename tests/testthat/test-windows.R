@@ -1,12 +1,12 @@
-# Unit tests for the save_windows feature.
+## Unit tests for the save_windows feature.
 #
-# We avoid a real .hic by exercising the .compute_snp_windows helper directly
-# with synthetic anchors and a small tabix-indexed VCF. The full end-to-end
-# pass through loopQTLnormalize() is covered implicitly by the integration
-# checks in test-setup.R / test-normalize.R when strawr's toy data is present.
+## We avoid a real .hic by exercising the .compute_snp_windows helper directly
+## with synthetic anchors and a small tabix-indexed VCF. The full end-to-end
+## pass through loopQTLnormalize() is covered implicitly by the integration
+## checks in test-setup.R / test-normalize.R when strawr's toy data is present.
 
 make_tiny_vcf <- function(dir, snps) {
-    # snps: data.frame(chrom, pos, ref, alt, id)
+    ## snps: data.frame(chrom, pos, ref, alt, id)
     vcf_path <- file.path(dir, "tiny.vcf")
     con <- file(vcf_path, "w")
     on.exit(close(con), add = TRUE)
@@ -30,13 +30,13 @@ make_tiny_vcf <- function(dir, snps) {
     vcf_gz
 }
 
-# Two consensus loops on chr1 at 10 kb resolution:
-#   loop 1: anchor A = bin 1_000_000, anchor B = bin 1_500_000
-#   loop 2: anchor A = bin 1_200_000, anchor B = bin 2_000_000
-# SNP s1 at 1_005_000  -> in anchor A of loop 1 only
-# SNP s2 at 1_205_000  -> in anchor A of loop 2 only
-# SNP s3 at 1_500_500  -> in anchor B of loop 1 only
-# SNP s4 at 5_000_000  -> not in any anchor (should be dropped)
+## Two consensus loops on chr1 at 10 kb resolution:
+##   loop 1: anchor A = bin 1_000_000, anchor B = bin 1_500_000
+##   loop 2: anchor A = bin 1_200_000, anchor B = bin 2_000_000
+## SNP s1 at 1_005_000  -> in anchor A of loop 1 only
+## SNP s2 at 1_205_000  -> in anchor A of loop 2 only
+## SNP s3 at 1_500_500  -> in anchor B of loop 1 only
+## SNP s4 at 5_000_000  -> not in any anchor (should be dropped)
 make_synth <- function() {
     resolution <- 10000L
     anchorA <- GenomicRanges::GRanges(
@@ -103,9 +103,9 @@ test_that("window extent is max(window, bounding span); cells form upper triangl
     s <- make_synth()
     td <- tempfile("lqwin_")
     dir.create(td)
-    # SNP at the far end of loop-2's A anchor; partner B at 2_000_000.
-    # bounding span = 2_010_000 - 1_205_000 = 805_000 -> < window default 1e6
-    # so eff = 1e6, centered on midpoint ((1205000 + 2010000)/2) ~= 1_607_500
+    ## SNP at the far end of loop-2's A anchor; partner B at 2_000_000.
+    ## bounding span = 2_010_000 - 1_205_000 = 805_000 -> < window default 1e6
+    ## so eff = 1e6, centered on midpoint ((1205000 + 2010000)/2) ~= 1_607_500
     vcf_gz <- make_tiny_vcf(td, data.frame(
         chrom = "chr1", pos = 1205000L, id = "s2",
         ref = "C", alt = "T", stringsAsFactors = FALSE
@@ -123,7 +123,7 @@ test_that("window extent is max(window, bounding span); cells form upper triangl
     bin_hi <- res$snps_df$bin_hi
     span <- bin_hi - bin_lo
     expect_gte(span, 1e6 - 2 * s$resolution) # rounded to bin grid
-    # Cell set is upper-triangle of bin_lo..bin_hi
+    ## Cell set is upper-triangle of bin_lo..bin_hi
     cc <- res$cells_by_chrom[["chr1"]]
     expect_true(all(cc$bin_i <= cc$bin_j))
     expect_true(all(cc$bin_i >= bin_lo & cc$bin_j <= bin_hi))
@@ -132,8 +132,8 @@ test_that("window extent is max(window, bounding span); cells form upper triangl
 })
 
 test_that("when bounding span exceeds window, window expands to cover it", {
-    # Build a synthetic far-apart loop pair: anchor A near 1Mb, anchor B near 5Mb
-    # span ~= 4Mb, > 1Mb default window -> eff should equal span (no shrinkage)
+    ## Build a synthetic far-apart loop pair: anchor A near 1Mb, anchor B near 5Mb
+    ## span ~= 4Mb, > 1Mb default window -> eff should equal span (no shrinkage)
     resolution <- 10000L
     anchorA <- GenomicRanges::GRanges(
         seqnames = "chr1",
@@ -183,10 +183,10 @@ test_that("SNPs in different anchors of the same loop produce overlapping cells 
         resolution = s$resolution
     )
     expect_equal(nrow(res$snps_df), 2L)
-    # Both SNPs live on chr1. Their union of cells is dedup'd.
+    ## Both SNPs live on chr1. Their union of cells is dedup'd.
     cc <- res$cells_by_chrom[["chr1"]]
     expect_true(!anyDuplicated(paste(cc$bin_i, cc$bin_j, sep = "_")))
-    # Each SNP's local indices should point into cc, no NAs
+    ## Each SNP's local indices should point into cc, no NAs
     expect_false(anyNA(res$snp_cells_local[[1]]))
     expect_false(anyNA(res$snp_cells_local[[2]]))
 })

@@ -79,17 +79,17 @@ obj <- loopQTLnormalize(
   obj,
   BPPARAM = BiocParallel::MulticoreParam(workers = 8)
 )
-# obj@phenotype now holds the pre-RINT normalized output (inspect for QC)
+## obj@phenotype now holds the pre-RINT normalized output (inspect for QC)
 
-# By default runQTL() applies RINT per loop before regression (normal = TRUE)
-# AND auto-picks K phenotype PCs via PCAForQTL as the regression covariates.
-# You can also pass a fixed covariate matrix instead:
-#   pcs <- loopQTLchooseK(obj, K_method = "BE")$PCs
-#   obj <- runQTL(obj, window = 0L, covariates = pcs)
+## By default runQTL() applies RINT per loop before regression (normal = TRUE)
+## AND auto-picks K phenotype PCs via PCAForQTL as the regression covariates.
+## You can also pass a fixed covariate matrix instead:
+##   pcs <- loopQTLchooseK(obj, K_method = "BE")$PCs
+##   obj <- runQTL(obj, window = 0L, covariates = pcs)
 
 obj <- runQTL(obj, window = 0L, normal = TRUE)
 head(obj@results)
-#   loop_id  snp_id  chrom  pos  ref  alt  anchor  beta  se  t  p  n_used  maf
+##   loop_id  snp_id  chrom  pos  ref  alt  anchor  beta  se  t  p  n_used  maf
 ```
 
 ## Annotate results with target genes and enhancer peaks
@@ -124,10 +124,10 @@ obj <- loopQTLnormalize(
 )
 
 w <- readRDS("loop_snp_windows.rds")
-# w$cells       : samples x N_cells numeric matrix (post-band-QN, pre-RINT)
-# w$cell_coords : data.frame(chrom, bin_i, bin_j) per column
-# w$snp_index   : data.frame(snp_id, chrom, pos, ref, alt, bin_lo, bin_hi,
-#                            n_loops_anchored, col_indices)  -- one row per SNP
+## w$cells       : samples x N_cells numeric matrix (post-band-QN, pre-RINT)
+## w$cell_coords : data.frame(chrom, bin_i, bin_j) per column
+## w$snp_index   : data.frame(snp_id, chrom, pos, ref, alt, bin_lo, bin_hi,
+##                            n_loops_anchored, col_indices)  -- one row per SNP
 ```
 
 Once written, `loopQTLplotSnpWindow()` renders a Hi-C-style β heatmap around any single SNP, matching the visualization style of Shi et al. 2025 (*Genome Biology*):

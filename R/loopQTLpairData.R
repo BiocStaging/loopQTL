@@ -40,7 +40,7 @@ loopQTLpairData <- function(obj, loop_id, snp_id, normal = TRUE) {
         .stopNoCall("snp_id(s) not in obj@results: ", paste(miss_snps, collapse = ", "))
     }
 
-    # SNP info from obj@results (positions + ref/alt)
+    ## SNP info from obj@results (positions + ref/alt)
     snp_info <- unique(obj@results[
         obj@results$snp_id %in% snp_id,
         c("snp_id", "chrom", "pos", "ref", "alt"),
@@ -48,7 +48,7 @@ loopQTLpairData <- function(obj, loop_id, snp_id, normal = TRUE) {
     ])
     snp_info <- snp_info[match(snp_id, snp_info$snp_id), , drop = FALSE]
 
-    # Genotypes via targeted tabix read  # Normalize chrom naming to whatever the VCF uses.
+    ## Genotypes via targeted tabix read  # Normalize chrom naming to whatever the VCF uses.
     tab <- Rsamtools::TabixFile(obj@vcf_path)
     vcf_chroms <- Rsamtools::headerTabix(tab)$seqnames
     vcf_norm <- .make_chrom_normalizer(vcf_chroms)
@@ -67,7 +67,7 @@ loopQTLpairData <- function(obj, loop_id, snp_id, normal = TRUE) {
     vcf_pos <- GenomicRanges::start(rr)
     vcf_ref <- as.character(VariantAnnotation::ref(vcf))
 
-    # Match by (chrom, pos, ref) to handle multi-allelic loci
+    ## Match by (chrom, pos, ref) to handle multi-allelic loci
     vcf_key <- paste(vcf_chrom, vcf_pos, vcf_ref, sep = ":")
     snp_key <- paste(snp_chrom_vcf, snp_info$pos, snp_info$ref, sep = ":")
     m_vcf <- match(snp_key, vcf_key)
@@ -80,7 +80,7 @@ loopQTLpairData <- function(obj, loop_id, snp_id, normal = TRUE) {
 
     gt <- VariantAnnotation::geno(vcf)$GT[m_vcf, , drop = FALSE]
 
-    # Reorder VCF samples to canonical
+    ## Reorder VCF samples to canonical
     sm <- match(obj@samples, colnames(gt))
     if (anyNA(sm)) {
         .stopNoCall(
@@ -93,13 +93,13 @@ loopQTLpairData <- function(obj, loop_id, snp_id, normal = TRUE) {
     rownames(dosage) <- snp_id
     colnames(dosage) <- obj@samples
 
-    # Phenotype matrix for the requested loops
+    ## Phenotype matrix for the requested loops
     loop_idx <- match(loop_id, loop_ids_all)
     pheno_full <- if (normal) .rint_matrix(obj@phenotype) else obj@phenotype
     pheno_sub <- pheno_full[loop_idx, , drop = FALSE]
     rownames(pheno_sub) <- loop_id
 
-    # Build long table: n_samples x n_loops x n_snps rows
+    ## Build long table: n_samples x n_loops x n_snps rows
     n_samples <- length(obj@samples)
     grid <- expand.grid(
         sample_idx = seq_len(n_samples),

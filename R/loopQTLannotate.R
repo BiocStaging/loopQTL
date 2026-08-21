@@ -88,7 +88,7 @@ loopQTLannotate <- function(obj,
     TSS_window <- as.integer(TSS_window)
     anchor_window <- as.integer(anchor_window)
 
-    # 1. Read GTF, extract gene entries, derive TSS
+    ## 1. Read GTF, extract gene entries, derive TSS
     message("reading GTF: ", gtf)
     gtf_gr <- rtracklayer::import(gtf)
     type_col <- if ("type" %in% names(S4Vectors::mcols(gtf_gr))) {
@@ -113,7 +113,7 @@ loopQTLannotate <- function(obj,
     } else {
         .stopNoCall("GTF gene entries lack both `gene_name` and `gene_id`")
     }
-    # Some GTFs have NA gene_name for novel/predicted; fall back to gene_id.
+    ## Some GTFs have NA gene_name for novel/predicted; fall back to gene_id.
     if ("gene_id" %in% names(S4Vectors::mcols(gene_gr))) {
         na_idx <- which(is.na(gene_names) | gene_names == "")
         if (length(na_idx) > 0L) {
@@ -137,9 +137,9 @@ loopQTLannotate <- function(obj,
     message(length(tss_regions), " gene TSS regions (±", TSS_window, " bp)"
     )
 
-    # 2. Chrom-naming normalizer for THIS GTF  # GTF may use "chr1" (GENCODE) or "1" (Ensembl); loop anchors may use
-    # either depending on the BEDPE caller (Mustache uses "1"). Build a
-    # function that converts any chrom string to whatever the GTF uses.
+    ## 2. Chrom-naming normalizer for THIS GTF  # GTF may use "chr1" (GENCODE) or "1" (Ensembl); loop anchors may use
+    ## either depending on the BEDPE caller (Mustache uses "1"). Build a
+    ## function that converts any chrom string to whatever the GTF uses.
     gtf_chroms <- unique(as.character(GenomicRanges::seqnames(tss_regions)))
     gtf_uses_chr <- any(grepl("^chr", gtf_chroms))
     normalize_chrom <- function(x) {
@@ -151,12 +151,12 @@ loopQTLannotate <- function(obj,
         }
     }
 
-    # 3. Optional: read peaks, filter by TSS if remove_TSS
+    ## 3. Optional: read peaks, filter by TSS if remove_TSS
     peaks_gr <- NULL
     if (!is.null(peak)) {
         message("reading peaks: ", peak)
         peaks_gr <- rtracklayer::import(peak)
-        # Normalize peak chroms to GTF style so overlap actually works.
+        ## Normalize peak chroms to GTF style so overlap actually works.
         peak_chroms_norm <- normalize_chrom(GenomicRanges::seqnames(peaks_gr))
         peaks_gr <- GenomicRanges::GRanges(
             seqnames = peak_chroms_norm,
@@ -177,10 +177,10 @@ loopQTLannotate <- function(obj,
         }
     }
 
-    # 4. Per-loop gene lists at anchor A and anchor B  # Critical: normalize anchor seqnames to the GTF's convention BEFORE
-    # findOverlaps. Without this, anchor seqnames like "1" silently fail to
-    # match TSS seqnames like "chr1", producing zero gene assignments. (This
-    # was the cause of the original "no rs-gene at all" bug.)
+    ## 4. Per-loop gene lists at anchor A and anchor B  # Critical: normalize anchor seqnames to the GTF's convention BEFORE
+    ## findOverlaps. Without this, anchor seqnames like "1" silently fail to
+    ## match TSS seqnames like "chr1", producing zero gene assignments. (This
+    ## was the cause of the original "no rs-gene at all" bug.)
     loops_gi <- obj@loops
     loop_ids_all <- S4Vectors::mcols(loops_gi)$loop_id
     anchorA <- InteractionSet::anchors(loops_gi, type = "first")
@@ -198,7 +198,7 @@ loopQTLannotate <- function(obj,
     padded_A <- pad_anchor(anchorA)
     padded_B <- pad_anchor(anchorB)
 
-    # Anchor-side gene assignments (length = n_loops; one character vector per loop)
+    ## Anchor-side gene assignments (length = n_loops; one character vector per loop)
     build_gene_lists <- function(padded) {
         hits <- GenomicRanges::findOverlaps(padded, tss_regions)
         out <- vector("list", length(padded))
@@ -218,8 +218,8 @@ loopQTLannotate <- function(obj,
     genes_at_A <- build_gene_lists(padded_A)
     genes_at_B <- build_gene_lists(padded_B)
 
-    # Per-anchor peak overlap (logical vector, length = n_loops). NULL when no
-    # peak file was supplied -- then partner-side never gets a peak label.
+    ## Per-anchor peak overlap (logical vector, length = n_loops). NULL when no
+    ## peak file was supplied -- then partner-side never gets a peak label.
     peak_at_A <- if (!is.null(peaks_gr)) {
         GenomicRanges::countOverlaps(padded_A, peaks_gr) > 0L
     } else {
@@ -231,11 +231,11 @@ loopQTLannotate <- function(obj,
         NULL
     }
 
-    # 5. Per-row annotation in obj@results
+    ## 5. Per-row annotation in obj@results
     res <- obj@results
     loop_idx <- match(res$loop_id, loop_ids_all)
 
-    # SNP GRanges (1 bp per SNP), with chrom normalized to GTF convention.
+    ## SNP GRanges (1 bp per SNP), with chrom normalized to GTF convention.
     snp_gr <- GenomicRanges::GRanges(
         seqnames = normalize_chrom(res$chrom),
         ranges   = IRanges::IRanges(start = res$pos, end = res$pos)
@@ -252,7 +252,7 @@ loopQTLannotate <- function(obj,
         rep(NA, nrow(res))
     }
 
-    # Resolve partner-anchor genes per row
+    ## Resolve partner-anchor genes per row
     partner_genes <- vector("list", nrow(res))
     partner_has_peak <- rep(FALSE, nrow(res))
     for (i in seq_len(nrow(res))) {
@@ -284,7 +284,7 @@ loopQTLannotate <- function(obj,
     )
     has_gene <- nchar(gene_col) > 0L
 
-    # Build Type column. Partner-side priority: gene > peak > O.
+    ## Build Type column. Partner-side priority: gene > peak > O.
     rs_prefix <- if (!is.null(peaks_gr)) {
         ifelse(snp_in_peak, paste0("rs(", peak_annotation, ")"), "rs")
     } else {
