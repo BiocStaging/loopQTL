@@ -438,14 +438,10 @@ loopQTLnormalize <- function(obj,
                 file.info(windows_out)$size / 1024^2
             ))
 
-            # Store the ABSOLUTE path so downstream loaders (loopQTLplotSnpWindow,
-            # cross-session .rda restores) find the file regardless of the working
-            # directory in effect at read time. Falls back to the input if the file
-            # somehow can't be resolved (should never happen since we just wrote it).
-            obj@meta$windows_out <- tryCatch(
-                normalizePath(windows_out, winslash = "/", mustWork = TRUE),
-                error = function(e) windows_out
-            )
+            # Store the absolute path so it can be found even if the working
+            # directory changes
+            obj@meta$windows_out <- normalizePath(windows_out,
+                winslash = "/", mustWork = TRUE)
             obj@meta$n_windows_saved <- nrow(snp_index)
             obj@meta$n_window_cells <- total_cells
             obj@meta$window_bp <- as.numeric(window)
