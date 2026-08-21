@@ -600,16 +600,19 @@ loopQTLnormalize <- function(obj,
             seq_len(n_samples), function(s) transform_sample(0, s),
             numeric(1L)
         )
-        block <- matrix(zero_fill, nrow = L, ncol = n_samples, byrow = TRUE)
+        qn <- matrix(zero_fill, nrow = L, ncol = n_samples, byrow = TRUE)
         for (s in seq_len(n_samples)) {
             sd <- samp_data[[s]]
             if (nrow(sd) > 0L) {
                 row_idx <- match(sd$i, active_i)
-                block[row_idx, s] <- sd$x
+                qn[row_idx, s] <- sd$x
             }
         }
 
-        qn <- .quantile_normalize(block)
+        ## The row and column names are only retained if copy is FALSE. We
+        ## don't need the raw matrix anymore anyway, and not copying it
+        ## saves memory.
+        preprocessCore::normalize.quantiles(qn, copy = FALSE)
 
         # Filter QN output rows to keep_pairs (if requested) BEFORE materializing
         # the triplet emission. This is the fix that prevents the dcast CJ
@@ -679,17 +682,4 @@ loopQTLnormalize <- function(obj,
         "chr", "region1", "region2",
         paste0("IF_", seq_len(n_samples))
     ), with = FALSE]
-}
-
-# Quantile normalization across columns (samples) of an L x N matrix.
-# Thin wrapper around preprocessCore::normalize.quantiles(), which is the
-# canonical Bioconductor QN implementation used by BNBC, limma, et al.
-# (Bolstad et al. 2003). Single-column input is returned unchanged.
-.quantile_normalize <- function(mat) {
-    if (ncol(mat) < 2L) {
-        return(mat)
-    }
-    out <- preprocessCore::normalize.quantiles(mat, copy = TRUE)
-    dimnames(out) <- dimnames(mat)
-    out
 }
