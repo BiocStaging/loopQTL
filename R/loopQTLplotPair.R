@@ -18,20 +18,20 @@ loopQTLplotPair <- function(obj, loop_id, snp_id,
                             normal = TRUE, jitter = TRUE) {
     stopifnot(
         methods::is(obj, "loopQTL"),
-        is.character(loop_id), length(loop_id) == 1L,
-        is.character(snp_id),  length(snp_id) == 1L
+        is.character(loop_id), length(loop_id) == 1,
+        is.character(snp_id),  length(snp_id) == 1
     )
-    if (nrow(obj@results) == 0L) {
+    if (nrow(obj@results) == 0) {
         .stopNoCall("obj@results is empty. Run runQTL(obj) first.")
     }
 
     ## Look up the (loop, SNP) row in obj@results for stats
     hit <- obj@results[obj@results$loop_id == loop_id &
         obj@results$snp_id == snp_id, , drop = FALSE]
-    if (nrow(hit) == 0L) {
+    if (nrow(hit) == 0) {
         .stopNoCall("(loop_id, snp_id) pair not found in obj@results")
     }
-    hit <- hit[1L, , drop = FALSE]
+    hit <- hit[1, , drop = FALSE]
     ref <- hit$ref
     alt <- hit$alt
     geno_labels <- c(
@@ -44,7 +44,7 @@ loopQTLplotPair <- function(obj, loop_id, snp_id,
     d <- loopQTLpairData(obj, loop_id, snp_id, normal = normal)
     d$geno_factor <- factor(d$genotype, levels = c(0, 1, 2), labels = geno_labels)
     d <- d[!is.na(d$geno_factor) & !is.na(d$phenotype), , drop = FALSE]
-    if (nrow(d) == 0L) {
+    if (nrow(d) == 0) {
         .stopNoCall("No samples have non-NA genotype and phenotype for this pair.")
     }
 

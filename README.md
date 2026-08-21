@@ -71,8 +71,8 @@ samples_df <- data.frame(
 obj <- loopQTLsetup(
   samples     = samples_df,
   vcf         = "cohort.vcf.gz",     # bgzipped + tabix-indexed
-  resolution  = 10000L,              # bp; must exist in every .hic
-  min_samples = 2L                   # consensus filter
+  resolution  = 10000,              # bp; must exist in every .hic
+  min_samples = 2                   # consensus filter
 )
 
 obj <- loopQTLnormalize(
@@ -85,9 +85,9 @@ obj <- loopQTLnormalize(
 ## AND auto-picks K phenotype PCs via PCAForQTL as the regression covariates.
 ## You can also pass a fixed covariate matrix instead:
 ##   pcs <- loopQTLchooseK(obj, K_method = "BE")$PCs
-##   obj <- runQTL(obj, window = 0L, covariates = pcs)
+##   obj <- runQTL(obj, window = 0, covariates = pcs)
 
-obj <- runQTL(obj, window = 0L, normal = TRUE)
+obj <- runQTL(obj, window = 0, normal = TRUE)
 head(obj@results)
 ##   loop_id  snp_id  chrom  pos  ref  alt  anchor  beta  se  t  p  n_used  maf
 ```
@@ -120,7 +120,7 @@ obj <- loopQTLnormalize(
   save_windows = TRUE,
   windows_out  = "loop_snp_windows.rds",
   window       = 1e6,       # minimum window extent in bp
-  snp_window   = 0L         # anchor flank for SNP selection
+  snp_window   = 0         # anchor flank for SNP selection
 )
 
 w <- readRDS("loop_snp_windows.rds")

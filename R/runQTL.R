@@ -24,7 +24,7 @@
 #' @param K_method `"elbow"` or `"BE"`; passed to [loopQTLchooseK()] when
 #'   covariates is `NULL`. Default `"elbow"`.
 #' @param K_max Hard cap on the auto-chosen K. Default
-#'   `length(obj@samples) - 2L`, the largest K that still leaves degrees of
+#'   `length(obj@samples) - 2`, the largest K that still leaves degrees of
 #'   freedom for MatrixEQTL's intercept + genotype regressor. Pass a smaller
 #'   value (e.g. `floor(n_samples / 4)`) to force a more conservative
 #'   covariate set. Ignored when `covariates` is user-supplied.
@@ -39,7 +39,7 @@
 #'
 #' @export
 runQTL <- function(obj,
-                   window = 0L,
+                   window = 0,
                    covariates = NULL,
                    normal = TRUE,
                    K_method = c("elbow", "BE"),
@@ -47,9 +47,9 @@ runQTL <- function(obj,
                    pvOutputThreshold = 1) {
     stopifnot(
         methods::is(obj, "loopQTL"),
-        length(obj@phenotype) > 0L,
-        is.numeric(window), length(window) == 1L, window >= 0,
-        is.logical(normal), length(normal) == 1L, !is.na(normal)
+        length(obj@phenotype) > 0,
+        is.numeric(window), length(window) == 1, window >= 0,
+        is.logical(normal), length(normal) == 1, !is.na(normal)
     )
     window <- as.integer(window)
     K_method <- match.arg(K_method)
@@ -63,8 +63,8 @@ runQTL <- function(obj,
     ## Apply RINT if requested. obj@phenotype is left untouched (the local
     ## `phenotype` variable is what flows into MatrixEQTL and PCA).
     phenotype <- if (normal) .rint_matrix(obj@phenotype) else obj@phenotype
-    n_zero_var <- sum(rowSums(!is.na(phenotype)) == 0L) -
-        sum(rowSums(!is.na(obj@phenotype)) == 0L)
+    n_zero_var <- sum(rowSums(!is.na(phenotype)) == 0) -
+        sum(rowSums(!is.na(obj@phenotype)) == 0)
     ## n_zero_var = loops newly NA'd by RINT (had data but constant after RINT).
     ## Originally-NA loops aren't counted here.
 
@@ -73,7 +73,7 @@ runQTL <- function(obj,
         GenomicRanges::GRanges(
             seqnames = GenomicRanges::seqnames(gr),
             ranges = IRanges::IRanges(
-                start = pmax(1L, GenomicRanges::start(gr) - window),
+                start = pmax(1, GenomicRanges::start(gr) - window),
                 end   = GenomicRanges::end(gr) + window
             )
         )
@@ -89,7 +89,7 @@ runQTL <- function(obj,
     ## Detect VCF chrom naming style and rewrite the read targets to match
     tab <- Rsamtools::TabixFile(obj@vcf_path)
     vcf_chroms <- Rsamtools::headerTabix(tab)$seqnames
-    if (length(vcf_chroms) == 0L) {
+    if (length(vcf_chroms) == 0) {
         .stopNoCall("Could not read chromosome names from VCF tabix index")
     }
     vcf_norm <- .make_chrom_normalizer(vcf_chroms)
@@ -111,7 +111,7 @@ runQTL <- function(obj,
         which = read_targets, geno = "GT", info = NA_character_
     )
     vcf <- VariantAnnotation::readVcf(obj@vcf_path, genome = "unknown", param = param)
-    if (length(vcf) == 0L) {
+    if (length(vcf) == 0) {
         return(.return_empty())
     }
 
@@ -136,7 +136,7 @@ runQTL <- function(obj,
     snp_alt <- vapply(
         alt_list,
         function(a) paste(as.character(a), collapse = ","),
-        character(1L)
+        character(1)
     )
     snp_id_raw <- rownames(vcf)
     if (is.null(snp_id_raw) || any(snp_id_raw == "" | is.na(snp_id_raw))) {
@@ -194,7 +194,7 @@ runQTL <- function(obj,
     }
     obj@meta$runQTL_K <- obj_K_meta
     obj@meta$runQTL_normal <- normal
-    obj@meta$runQTL_n_zero_var <- max(0L, n_zero_var)
+    obj@meta$runQTL_n_zero_var <- max(0, n_zero_var)
 
     ## Build SlicedData inputs for MatrixEQTL
     snps_sd <- .as_sliced(dosage)
@@ -240,7 +240,7 @@ runQTL <- function(obj,
 
     ## Merge on (loop_id = gene, snp_id = snps); label anchor A / B / both.
     merged <- .merge_anchor_runs(out_A, out_B)
-    if (nrow(merged) == 0L) {
+    if (nrow(merged) == 0) {
         obj@results <- .empty_qtl_result()
         return(obj)
     }
@@ -291,10 +291,10 @@ runQTL <- function(obj,
         return(out)
     }
     sp <- strsplit(raw[ok], "/", fixed = TRUE)
-    bad <- vapply(sp, function(x) length(x) != 2L, logical(1L))
-    a1 <- suppressWarnings(as.integer(vapply(sp, `[`, character(1L), 1L)))
-    a2 <- suppressWarnings(as.integer(vapply(sp, `[`, character(1L), 2L)))
-    bad <- bad | is.na(a1) | is.na(a2) | a1 > 1L | a2 > 1L
+    bad <- vapply(sp, function(x) length(x) != 2, logical(1))
+    a1 <- suppressWarnings(as.integer(vapply(sp, `[`, character(1), 1)))
+    a2 <- suppressWarnings(as.integer(vapply(sp, `[`, character(1), 2)))
+    bad <- bad | is.na(a1) | is.na(a2) | a1 > 1 | a2 > 1
     vals <- ifelse(bad, NA_real_, a1 + a2)
     out[ok] <- vals
     out
@@ -335,7 +335,7 @@ runQTL <- function(obj,
         noFDRsaveMemory = FALSE
     )
     cis <- res$cis$eqtls
-    if (is.null(cis) || nrow(cis) == 0L) {
+    if (is.null(cis) || nrow(cis) == 0) {
         return(data.frame(
             loop_id = character(0), snp_id = character(0),
             beta = numeric(0), se = numeric(0), t = numeric(0),
@@ -361,7 +361,7 @@ runQTL <- function(obj,
 ## When a pair appears in both runs the model is identical, so we just keep one
 ## row and label it `both`.
 .merge_anchor_runs <- function(out_A, out_B) {
-    if (nrow(out_A) == 0L && nrow(out_B) == 0L) {
+    if (nrow(out_A) == 0 && nrow(out_B) == 0) {
         return(data.frame(
             loop_id = character(0), snp_id = character(0),
             anchor = character(0),
@@ -379,23 +379,23 @@ runQTL <- function(obj,
     only_B <- setdiff(kB, kA)
 
     rows <- list()
-    if (length(in_both) > 0L) {
+    if (length(in_both) > 0) {
         pick <- match(in_both, kA)
         r <- out_A[pick, , drop = FALSE]
         r$anchor <- "both"
-        rows[[length(rows) + 1L]] <- r
+        rows[[length(rows) + 1]] <- r
     }
-    if (length(only_A) > 0L) {
+    if (length(only_A) > 0) {
         pick <- match(only_A, kA)
         r <- out_A[pick, , drop = FALSE]
         r$anchor <- "A"
-        rows[[length(rows) + 1L]] <- r
+        rows[[length(rows) + 1]] <- r
     }
-    if (length(only_B) > 0L) {
+    if (length(only_B) > 0) {
         pick <- match(only_B, kB)
         r <- out_B[pick, , drop = FALSE]
         r$anchor <- "B"
-        rows[[length(rows) + 1L]] <- r
+        rows[[length(rows) + 1]] <- r
     }
     do.call(rbind, rows)
 }

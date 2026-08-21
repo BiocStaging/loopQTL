@@ -1,7 +1,7 @@
 test_that(".bin_anchor floors midpoint to bin start", {
-    expect_equal(loopQTL:::.bin_anchor(1, 250000, 250000L), 125000L)
-    expect_equal(loopQTL:::.bin_anchor(250000, 500000, 250000L), 375000L %/% 250000L * 250000L)
-    expect_equal(loopQTL:::.bin_anchor(0, 250000, 250000L), 125000L %/% 250000L * 250000L)
+    expect_equal(loopQTL:::.bin_anchor(1, 250000, 250000), 125000)
+    expect_equal(loopQTL:::.bin_anchor(250000, 500000, 250000), 375000 %/% 250000 * 250000)
+    expect_equal(loopQTL:::.bin_anchor(0, 250000, 250000), 125000 %/% 250000 * 250000)
 })
 
 test_that(".rint matches Blom offset", {

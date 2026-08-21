@@ -93,7 +93,7 @@ loopQTLplotSnpWindow <- function(obj, snp_id,
                                  end = NULL,
                                  windows = NULL,
                                  mirror = TRUE,
-                                 minSamplesPerCell = 3L,
+                                 minSamplesPerCell = 3,
                                  normal = FALSE,
                                  covariates = NULL,
                                  K_method = c("elbow", "BE"),
@@ -105,13 +105,13 @@ loopQTLplotSnpWindow <- function(obj, snp_id,
                                  axis_unit = c("Mb", "bp")) {
     stopifnot(
         methods::is(obj, "loopQTL"),
-        is.character(snp_id), length(snp_id) == 1L, nzchar(snp_id),
-        is.logical(mirror), length(mirror) == 1L,
-        is.logical(normal), length(normal) == 1L, !is.na(normal),
-        is.character(palette), length(palette) == 1L
+        is.character(snp_id), length(snp_id) == 1, nzchar(snp_id),
+        is.logical(mirror), length(mirror) == 1,
+        is.logical(normal), length(normal) == 1, !is.na(normal),
+        is.character(palette), length(palette) == 1
     )
     if (!is.null(limit)) {
-        stopifnot(is.numeric(limit), length(limit) == 1L, limit > 0)
+        stopifnot(is.numeric(limit), length(limit) == 1, limit > 0)
     }
     K_method <- match.arg(K_method)
     metric <- match.arg(metric)
@@ -126,15 +126,15 @@ loopQTLplotSnpWindow <- function(obj, snp_id,
         .stopNoCall("snp_id not found in windows file: ", snp_id)
     }
     row <- w$snp_index[i, , drop = FALSE]
-    cols <- row$col_indices[[1L]]
-    if (length(cols) == 0L) {
+    cols <- row$col_indices[[1]]
+    if (length(cols) == 0) {
         .stopNoCall(
             "No cells were saved for snp_id = ", snp_id,
             " (likely on a chrom that had an empty window slice)."
         )
     }
     if (!is.null(chrom)) {
-        if (length(chrom) != 1L || !is.character(chrom)) {
+        if (length(chrom) != 1 || !is.character(chrom)) {
             .stopNoCall("`chrom` must be a single character string")
         }
         if (!identical(chrom, row$chrom)) {
@@ -154,11 +154,11 @@ loopQTLplotSnpWindow <- function(obj, snp_id,
         if (is.null(start)) start <- binStart
         if (is.null(end)) end <- binEnd + res
         if (!is.numeric(start) || !is.numeric(end) ||
-            length(start) != 1L || length(end) != 1L || start >= end) {
+            length(start) != 1 || length(end) != 1 || start >= end) {
             .stopNoCall("`start` and `end` must be single numerics with start < end")
         }
         crop_lo_req <- as.integer(floor(start / res) * res)
-        crop_hi_req <- as.integer(floor((end - 1L) / res) * res)
+        crop_hi_req <- as.integer(floor((end - 1) / res) * res)
         crop_lo <- max(crop_lo_req, binStart)
         crop_hi <- min(crop_hi_req, binEnd)
         if (crop_lo > crop_hi) {
@@ -210,7 +210,7 @@ loopQTLplotSnpWindow <- function(obj, snp_id,
         normalized = w$cells,
         raw = w$cells_raw,
         cpm = {
-            if (length(obj@cis) == 0L) {
+            if (length(obj@cis) == 0) {
                 .stopNoCall(
                     "values = 'cpm' requires per-sample cis depth. ",
                     "Set the `cis` column in the samplesheet at loopQTLsetup() or ",
@@ -226,7 +226,7 @@ loopQTLplotSnpWindow <- function(obj, snp_id,
 
     Y <- cells_for_snp
     if (normal) {
-        Y <- apply(Y, 2L, .rint)
+        Y <- apply(Y, 2, .rint)
         if (!is.matrix(Y)) Y <- as.matrix(Y)
         if (ncol(Y) != length(cols)) Y <- t(Y)
     }
@@ -235,7 +235,7 @@ loopQTLplotSnpWindow <- function(obj, snp_id,
     cvrt <- NULL
     if (identical(covariates, "auto")) {
         cvrt_mode <- "auto"
-        if (length(obj@phenotype) == 0L) { # FIXME: replace all @s
+        if (length(obj@phenotype) == 0) { # FIXME: replace all @s
             .stopNoCall("covariates = 'auto' needs obj@phenotype; run loopQTLnormalize() first")
         }
         Y_for_pca <- if (normal) .rint_matrix(obj@phenotype) else obj@phenotype
@@ -278,16 +278,16 @@ loopQTLplotSnpWindow <- function(obj, snp_id,
         d_u <- dose[usable]
         if (is.null(cvrt)) {
             ## Marginal: center then slope = sum(Yc * dc) / sum(dc^2)
-            Y_r <- sweep(Y_u, 2L, colMeans(Y_u, na.rm = TRUE), FUN = "-")
+            Y_r <- sweep(Y_u, 2, colMeans(Y_u, na.rm = TRUE), FUN = "-")
             d_r <- d_u - mean(d_u)
-            df <- n_usable - 2L
+            df <- n_usable - 2
         } else {
             ## Partial via FWL: residualize Y and d against [1, cvrt[usable, ]]
             X <- cbind(1, cvrt[usable, , drop = FALSE])
             qrX <- qr(X)
             Y_r <- Y_u - X %*% qr.coef(qrX, Y_u)
             d_r <- as.numeric(d_u - X %*% qr.coef(qrX, d_u))
-            df <- n_usable - ncol(X) - 1L
+            df <- n_usable - ncol(X) - 1
         }
         denom_d <- sum(d_r^2)
         if (denom_d > 0 && df > 0) {
@@ -347,7 +347,7 @@ loopQTLplotSnpWindow <- function(obj, snp_id,
     ## data-driven; pass a fixed `limit` for cross-SNP comparability.
     if (is.null(limit)) {
         vfin <- long$value[is.finite(long$value)]
-        eff_limit <- if (length(vfin) > 0L) max(abs(vfin)) else 1
+        eff_limit <- if (length(vfin) > 0) max(abs(vfin)) else 1
         if (!is.finite(eff_limit) || eff_limit <= 0) eff_limit <- 1
     } else {
         eff_limit <- limit
@@ -444,7 +444,7 @@ loopQTLplotSnpWindow <- function(obj, snp_id,
             )
         }
     }
-    if (is.character(windows) && length(windows) == 1L) {
+    if (is.character(windows) && length(windows) == 1) {
         if (!file.exists(windows)) {
             .stopNoCall("Windows file does not exist: ", windows)
         }
@@ -479,7 +479,7 @@ loopQTLplotSnpWindow <- function(obj, snp_id,
             info = NA_character_
         )
     )
-    if (length(vcf) == 0L) {
+    if (length(vcf) == 0) {
         .stopNoCall("VCF has no record at ", chrom, ":", pos)
     }
     ## If multi-allelic, take the first row (matching how .gt_to_dosage handles it)
@@ -491,7 +491,7 @@ loopQTLplotSnpWindow <- function(obj, snp_id,
             paste(samples_vec[is.na(m)], collapse = ", ")
         )
     }
-    gt <- gt[1L, m, drop = FALSE]
-    dose <- .gt_to_dosage(matrix(as.character(gt), nrow = 1L))[1L, ]
+    gt <- gt[1, m, drop = FALSE]
+    dose <- .gt_to_dosage(matrix(as.character(gt), nrow = 1))[1, ]
     setNames(as.numeric(dose), samples_vec)
 }

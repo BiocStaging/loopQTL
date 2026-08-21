@@ -41,7 +41,7 @@
 .rint <- function(x) {
     r <- rank(x, ties.method = "average", na.last = "keep")
     n <- sum(!is.na(r))
-    if (n < 2L) {
+    if (n < 2) {
         return(rep(NA_real_, length(x)))
     }
     qnorm((r - 0.5) / n)
@@ -52,18 +52,18 @@
 ## (RINT on a constant produces NaN/Inf, which would poison downstream
 ## regressions). dimnames are preserved.
 .rint_matrix <- function(mat) {
-    if (length(mat) == 0L) {
+    if (length(mat) == 0) {
         return(mat)
     }
     out <- matrix(NA_real_,
         nrow = nrow(mat), ncol = ncol(mat),
         dimnames = dimnames(mat)
     )
-    row_sd <- apply(mat, 1L, stats::sd, na.rm = TRUE)
+    row_sd <- apply(mat, 1, stats::sd, na.rm = TRUE)
     ok <- is.finite(row_sd) & row_sd > 0
     if (any(ok)) {
         good <- which(ok)
-        out[good, ] <- t(apply(mat[good, , drop = FALSE], 1L, .rint))
+        out[good, ] <- t(apply(mat[good, , drop = FALSE], 1, .rint))
     }
     out
 }
@@ -98,7 +98,7 @@
     ## VCF chrom-naming normalizer
     tab <- Rsamtools::TabixFile(vcf_path)
     vcf_chroms <- Rsamtools::headerTabix(tab)$seqnames
-    if (length(vcf_chroms) == 0L) {
+    if (length(vcf_chroms) == 0) {
         .stopNoCall("Could not read chromosome names from VCF tabix index")
     }
     vcf_norm <- .make_chrom_normalizer(vcf_chroms)
@@ -108,14 +108,14 @@
         GenomicRanges::GRanges(
             seqnames = vcf_norm(as.character(GenomicRanges::seqnames(gr))),
             ranges = IRanges::IRanges(
-                start = pmax(1L, GenomicRanges::start(gr) - snp_window),
+                start = pmax(1, GenomicRanges::start(gr) - snp_window),
                 end   = GenomicRanges::end(gr) + snp_window
             )
         )
     }
     targets <- GenomicRanges::reduce(c(pad(anchorA), pad(anchorB)))
     targets <- targets[as.character(GenomicRanges::seqnames(targets)) %in% vcf_chroms]
-    if (length(targets) == 0L) {
+    if (length(targets) == 0) {
         return(NULL)
     }
 
@@ -129,7 +129,7 @@
         info = NA_character_
     )
     vcf <- VariantAnnotation::readVcf(vcf_path, genome = "unknown", param = param)
-    if (length(vcf) == 0L) {
+    if (length(vcf) == 0) {
         warning(
             "save_windows: no SNPs in any anchor ± ",
             snp_window, " bp window"
@@ -144,7 +144,7 @@
     snp_alt <- vapply(
         alt_list,
         function(a) paste(as.character(a), collapse = ","),
-        character(1L)
+        character(1)
     )
     snp_id <- rownames(vcf)
     if (is.null(snp_id) || any(snp_id == "" | is.na(snp_id))) {
@@ -156,7 +156,7 @@
         GenomicRanges::GRanges(
             seqnames = vcf_norm(as.character(GenomicRanges::seqnames(gr))),
             ranges = IRanges::IRanges(
-                start = pmax(1L, GenomicRanges::start(gr) - snp_window),
+                start = pmax(1, GenomicRanges::start(gr) - snp_window),
                 end   = GenomicRanges::end(gr) + snp_window
             )
         )
@@ -172,19 +172,19 @@
     hitsA <- GenomicRanges::findOverlaps(snp_gr, padded_A_vcf)
     hitsB <- GenomicRanges::findOverlaps(snp_gr, padded_B_vcf)
     in_loops_by_snp <- vector("list", length(snp_gr))
-    if (length(hitsA) > 0L) {
+    if (length(hitsA) > 0) {
         spl <- split(S4Vectors::subjectHits(hitsA), S4Vectors::queryHits(hitsA))
         for (s in names(spl)) {
             in_loops_by_snp[[as.integer(s)]] <- c(in_loops_by_snp[[as.integer(s)]], spl[[s]])
         }
     }
-    if (length(hitsB) > 0L) {
+    if (length(hitsB) > 0) {
         spl <- split(S4Vectors::subjectHits(hitsB), S4Vectors::queryHits(hitsB))
         for (s in names(spl)) {
             in_loops_by_snp[[as.integer(s)]] <- c(in_loops_by_snp[[as.integer(s)]], spl[[s]])
         }
     }
-    keep_snp <- vapply(in_loops_by_snp, function(x) length(x) > 0L, logical(1L))
+    keep_snp <- vapply(in_loops_by_snp, function(x) length(x) > 0, logical(1))
     if (!any(keep_snp)) {
         .warningNoCall(
             "save_windows: no SNPs overlap any consensus loop anchor"
@@ -205,9 +205,9 @@
     anchor_chrom_native <- as.character(GenomicRanges::seqnames(anchorA))
     anchor_chrom_vcf <- vcf_norm(anchor_chrom_native)
     snp_chrom_orig <- vapply(snp_chrom_vcf, function(c_vcf) {
-        m <- which(anchor_chrom_vcf == c_vcf)[1L]
+        m <- which(anchor_chrom_vcf == c_vcf)[1]
         if (is.na(m)) c_vcf else anchor_chrom_native[m]
-    }, character(1L))
+    }, character(1))
 
     ## Per-SNP bounding interval -> bin_lo/bin_hi
     anchorA_start_native <- GenomicRanges::start(anchorA)
@@ -237,7 +237,7 @@
         }
         bin_lo[i] <- as.integer(floor(b_lo / resolution) * resolution)
         bin_hi[i] <- as.integer(floor(b_hi / resolution) * resolution)
-        if (bin_lo[i] < 0L) bin_lo[i] <- 0L
+        if (bin_lo[i] < 0) bin_lo[i] <- 0
     }
 
     snps_df <- data.frame(
@@ -267,7 +267,7 @@
             s <- idxs[k]
             bins <- seq.int(snps_df$bin_lo[s], snps_df$bin_hi[s], by = resolution)
             ng <- length(bins)
-            if (ng == 0L) {
+            if (ng == 0) {
                 cell_chunks[[k]] <- data.frame(
                     bin_i = integer(0),
                     bin_j = integer(0)
@@ -294,7 +294,7 @@
         for (k in seq_along(idxs)) {
             s <- idxs[k]
             ch <- cell_chunks[[k]]
-            if (nrow(ch) == 0L) {
+            if (nrow(ch) == 0) {
                 snp_cells_local[[s]] <- integer(0)
                 next
             }
@@ -316,7 +316,7 @@
     if (!file.exists(path)) {
         .stopNoCall("Loop file not found: ", path)
     }
-    hdr <- readLines(path, n = 1L, warn = FALSE)
+    hdr <- readLines(path, n = 1, warn = FALSE)
     has_header <- grepl("^#?chr", hdr, ignore.case = TRUE) &&
         grepl("\\bstart", hdr, ignore.case = TRUE)
     df <- utils::read.table(
@@ -327,14 +327,14 @@
     )
     if (!has_header) {
         ## assume positional: chrA startA endA chrB startB endB [loop_id]
-        if (ncol(df) < 6L) {
+        if (ncol(df) < 6) {
             .stopNoCall("Loop file ", path, " must have at least 6 columns")
         }
         base_names <- c("chrA", "startA", "endA", "chrB", "startB", "endB")
-        if (ncol(df) == 6L) {
+        if (ncol(df) == 6) {
             names(df) <- base_names
         } else {
-            names(df) <- c(base_names, paste0("V", seq_len(ncol(df) - 6L) + 6L))
+            names(df) <- c(base_names, paste0("V", seq_len(ncol(df) - 6) + 6))
         }
     } else {
         nm <- names(df)
@@ -350,7 +350,7 @@
     }
     need <- c("chrA", "startA", "endA", "chrB", "startB", "endB")
     miss <- setdiff(need, names(df))
-    if (length(miss) > 0L) {
+    if (length(miss) > 0) {
         .stopNoCall(
             "Loop file ", path, " missing required columns: ",
             paste(miss, collapse = ", ")

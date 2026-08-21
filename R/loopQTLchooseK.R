@@ -13,7 +13,7 @@
 #' @param K_method `"elbow"` (default) or `"BE"`.
 #' @param normal Apply RINT per loop before PCA. Default `TRUE`.
 #' @param K_max Hard cap on the number of PCs returned. Default
-#'   `length(obj@samples) - 2L`, which is the largest K that still leaves
+#'   `length(obj@samples) - 2`, which is the largest K that still leaves
 #'   degrees of freedom for MatrixEQTL's intercept + genotype regressor.
 #'   When the auto-selected K exceeds `K_max`, K is capped and a message
 #'   is emitted. Pass a smaller value (e.g. `floor(n_samples / 4)`) to
@@ -35,11 +35,11 @@ loopQTLchooseK <- function(obj,
                            ...) {
     stopifnot(
         methods::is(obj, "loopQTL"),
-        length(obj@phenotype) > 0L
+        length(obj@phenotype) > 0
     )
     K_method <- match.arg(K_method)
 
-    if (is.null(K_max)) K_max <- max(1L, length(obj@samples) - 2L)
+    if (is.null(K_max)) K_max <- max(1, length(obj@samples) - 2)
     K_max <- as.integer(K_max)
 
     Y <- obj@phenotype
@@ -60,11 +60,11 @@ loopQTLchooseK <- function(obj,
                          K_max = NULL,
                          ...) {
     K_method <- match.arg(K_method)
-    if (is.null(K_max)) K_max <- max(1L, length(samples) - 2L)
+    if (is.null(K_max)) K_max <- max(1, length(samples) - 2)
     K_max <- as.integer(K_max)
 
     keep_rows <- stats::complete.cases(Y)
-    if (sum(keep_rows) < 2L) {
+    if (sum(keep_rows) < 2) {
         .stopNoCall("Not enough non-NA loops to run PCA")
     }
     Yt <- t(Y[keep_rows, , drop = FALSE])
@@ -75,7 +75,7 @@ loopQTLchooseK <- function(obj,
         BE    = .PCAForQTLrunBE(prcompResult = pca_res, ...)
     )
     K_raw <- as.integer(K_raw)
-    if (is.na(K_raw) || K_raw < 1L) K_raw <- 1L
+    if (is.na(K_raw) || K_raw < 1) K_raw <- 1
     K_raw <- min(K_raw, ncol(pca_res$x))
 
     K <- min(K_raw, K_max)

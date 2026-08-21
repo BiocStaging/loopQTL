@@ -40,15 +40,15 @@ test_that("loopQTLsetup builds consensus loops without pulling contacts", {
     obj <- loopQTLsetup(
         samples     = samples_df,
         vcf         = vcf_gz,
-        resolution  = 250000L,
-        min_samples = 1L
+        resolution  = 250000,
+        min_samples = 1
     )
     expect_s4_class(obj, "loopQTL")
     expect_equal(obj@samples, c("A", "B"))
 
     ## Slim setup: contacts empty, cis empty (no samplesheet cis column)
-    expect_equal(length(obj@contacts), 0L)
-    expect_equal(length(obj@cis), 0L)
+    expect_equal(length(obj@contacts), 0)
+    expect_equal(length(obj@cis), 0)
     expect_equal(obj@meta$cis_source, "not_provided")
 
     ## hic_paths recorded for normalize
@@ -56,7 +56,7 @@ test_that("loopQTLsetup builds consensus loops without pulling contacts", {
     expect_equal(names(obj@meta$hic_paths), c("A", "B"))
 
     ## Consensus loops built
-    expect_true(length(obj@loops) >= 1L)
+    expect_true(length(obj@loops) >= 1)
     expect_true(all(grepl("^L\\d{7}_", S4Vectors::mcols(obj@loops)$loop_id)))
 })
 
@@ -91,7 +91,7 @@ test_that("samplesheet cis column populates obj@cis", {
         cis = c(1e7, 2e7),
         stringsAsFactors = FALSE
     )
-    obj <- loopQTLsetup(samples_df, vcf_gz, resolution = 250000L, min_samples = 1L)
+    obj <- loopQTLsetup(samples_df, vcf_gz, resolution = 250000, min_samples = 1)
     expect_equal(unname(obj@cis), c(1e7, 2e7))
     expect_equal(names(obj@cis), c("A", "B"))
     expect_equal(obj@meta$cis_source, "user_provided")

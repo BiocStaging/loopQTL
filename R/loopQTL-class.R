@@ -48,7 +48,7 @@ setClass(
 setValidity("loopQTL", function(object) {
     errs <- character(0)
 
-    if (length(object@samples) == 0L) {
+    if (length(object@samples) == 0) {
         errs <- c(errs, "samples must be non-empty")
     }
 
@@ -57,14 +57,14 @@ setValidity("loopQTL", function(object) {
     }
 
     ## cis is optional. When present (length > 0), must align to samples.
-    if (length(object@cis) > 0L) {
+    if (length(object@cis) > 0) {
         if (length(object@cis) != length(object@samples) ||
             !identical(names(object@cis), object@samples)) {
             errs <- c(errs, "names(cis) must equal samples")
         }
     }
 
-    if (length(object@phenotype) > 0L) {
+    if (length(object@phenotype) > 0) {
         if (!identical(colnames(object@phenotype), object@samples)) {
             errs <- c(errs, "colnames(phenotype) must equal samples")
         }
@@ -73,7 +73,7 @@ setValidity("loopQTL", function(object) {
         }
     }
 
-    if (length(errs) == 0L) TRUE else errs
+    if (length(errs) == 0) TRUE else errs
 })
 
 #' @rdname loopQTL-class
@@ -90,7 +90,7 @@ setMethod("show", "loopQTL", function(object) {
     cat("  resolution:", object@resolution, "bp\n")
     cat(
         "  phenotype :",
-        if (length(object@phenotype) > 0L) {
+        if (length(object@phenotype) > 0) {
             paste(nrow(object@phenotype), "x", ncol(object@phenotype))
         } else {
             "not yet computed"
@@ -98,13 +98,13 @@ setMethod("show", "loopQTL", function(object) {
     )
     cat(
         "  results   :",
-        if (nrow(object@results) > 0L) {
+        if (nrow(object@results) > 0) {
             paste(nrow(object@results), "(loop, SNP) tests")
         } else {
             "not yet computed"
         }, "\n"
     )
-    if (length(object@meta) > 0L) {
+    if (length(object@meta) > 0) {
         cat("  meta      :\n")
         for (nm in names(object@meta)) {
             cat("    ", nm, "=", paste(object@meta[[nm]], collapse = ", "), "\n")

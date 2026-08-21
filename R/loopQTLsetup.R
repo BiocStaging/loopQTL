@@ -41,14 +41,14 @@
 loopQTLsetup <- function(samples,
                          vcf,
                          resolution,
-                         min_samples = 2L,
+                         min_samples = 2,
                          BPPARAM = BiocParallel::SerialParam()) {
     stopifnot(
         is.data.frame(samples),
         all(c("Sample", "hic", "loops") %in% names(samples)),
-        is.character(vcf), length(vcf) == 1L,
-        is.numeric(resolution), length(resolution) == 1L, resolution > 0,
-        is.numeric(min_samples), length(min_samples) == 1L, min_samples >= 1
+        is.character(vcf), length(vcf) == 1,
+        is.numeric(resolution), length(resolution) == 1, resolution > 0,
+        is.numeric(min_samples), length(min_samples) == 1, min_samples >= 1
     )
     resolution <- as.integer(resolution)
     min_samples <- as.integer(min_samples)
@@ -79,7 +79,7 @@ loopQTLsetup <- function(samples,
         VariantAnnotation::scanVcfHeader(vcf)
     )
     missing_in_vcf <- setdiff(sample_ids, vcf_samples)
-    if (length(missing_in_vcf) > 0L) {
+    if (length(missing_in_vcf) > 0) {
         message(
             "Dropping ", length(missing_in_vcf),
             " samplesheet sample(s) not in VCF: ",
@@ -91,7 +91,7 @@ loopQTLsetup <- function(samples,
         loop_paths <- loop_paths[keep]
         if (!is.null(user_cis)) user_cis <- user_cis[keep]
     }
-    if (length(sample_ids) < 2L) {
+    if (length(sample_ids) < 2) {
         .stopNoCall(
             "Fewer than 2 samples overlap between samplesheet and VCF; ",
             "cannot build consensus / run QTL."
@@ -129,7 +129,7 @@ loopQTLsetup <- function(samples,
     n_trans_per_sample <- vapply(
         per_sample_loops,
         function(d) sum(d$chrA != d$chrB),
-        integer(1L)
+        integer(1)
     )
     per_sample_loops <- lapply(
         per_sample_loops,
@@ -141,7 +141,7 @@ loopQTLsetup <- function(samples,
     ## No clustering, no jitter tolerance: two loops are the same only if
     ## (chrA, startA, endA, chrB, startB, endB) match exactly.
     canonicalise <- function(d) {
-        if (nrow(d) == 0L) {
+        if (nrow(d) == 0) {
             return(d)
         }
         swap <- d$startA > d$startB
@@ -158,26 +158,26 @@ loopQTLsetup <- function(samples,
     per_sample_loops <- lapply(per_sample_loops, canonicalise)
     names(per_sample_loops) <- sample_ids
 
-    per_sample_n <- vapply(per_sample_loops, nrow, integer(1L))
-    if (sum(per_sample_n > 0L) < 2L) {
+    per_sample_n <- vapply(per_sample_loops, nrow, integer(1))
+    if (sum(per_sample_n > 0) < 2) {
         .stopNoCall("Need at least 2 samples with at least one intra-chrom loop call")
     }
-    if (any(per_sample_n == 0L)) {
+    if (any(per_sample_n == 0)) {
         message(
-            "Dropping ", sum(per_sample_n == 0L),
+            "Dropping ", sum(per_sample_n == 0),
             " sample(s) with no usable loops: ",
-            paste(sample_ids[per_sample_n == 0L], collapse = ", ")
+            paste(sample_ids[per_sample_n == 0], collapse = ", ")
         )
     }
 
     message(
         "exact-coord consensus across ",
-        sum(per_sample_n > 0L), " samples ..."
+        sum(per_sample_n > 0), " samples ..."
     )
     ## Build a long data.frame: one row per per-sample call, with key + sample
     call_chunks <- lapply(seq_along(per_sample_loops), function(si) {
         d <- per_sample_loops[[si]]
-        if (nrow(d) == 0L) {
+        if (nrow(d) == 0) {
             return(NULL)
         }
         data.frame(
@@ -199,7 +199,7 @@ loopQTLsetup <- function(samples,
         length(support), " unique loop tuples; ",
         length(keep_keys), " survive min_samples = ", min_samples
     )
-    if (length(keep_keys) == 0L) {
+    if (length(keep_keys) == 0) {
         .stopNoCall("No consensus loops survived min_samples = ", min_samples)
     }
 
@@ -221,11 +221,11 @@ loopQTLsetup <- function(samples,
     gi <- InteractionSet::GInteractions(
         GenomicRanges::GRanges(
             cons$chrA,
-            IRanges::IRanges(cons$startA + 1L, cons$endA)
+            IRanges::IRanges(cons$startA + 1, cons$endA)
         ),
         GenomicRanges::GRanges(
             cons$chrA,
-            IRanges::IRanges(cons$startB + 1L, cons$endB)
+            IRanges::IRanges(cons$startB + 1, cons$endB)
         )
     )
 
@@ -276,7 +276,7 @@ loopQTLsetup <- function(samples,
         n_trans_dropped    = sum(n_trans_per_sample),
         n_trans_per_sample = setNames(n_trans_per_sample, sample_ids),
         cis_source         = cis_source_tag,
-        cis_chroms_in      = if (length(cis_vec) > 0L) cis_chroms else character(0),
+        cis_chroms_in      = if (length(cis_vec) > 0) cis_chroms else character(0),
         normalization      = "NONE",
         hic_paths          = setNames(hic_paths, sample_ids)
     )
@@ -318,7 +318,7 @@ loopQTLsetup <- function(samples,
             ),
             error = function(e) NULL
         )
-        if (is.null(dat) || nrow(dat) == 0L) {
+        if (is.null(dat) || nrow(dat) == 0) {
             return(0)
         }
         sum(as.numeric(dat$counts))

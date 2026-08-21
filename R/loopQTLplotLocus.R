@@ -55,17 +55,17 @@ loopQTLplotLocus <- function(obj, snp_id,
                              axis_unit = c("Mb", "bp")) {
     stopifnot(
         methods::is(obj, "loopQTL"),
-        is.character(snp_id), length(snp_id) == 1L, nzchar(snp_id),
-        is.character(chrom), length(chrom) == 1L,
-        is.numeric(start), length(start) == 1L,
-        is.numeric(end), length(end) == 1L, start < end,
-        is.character(gtf), length(gtf) == 1L, file.exists(gtf),
-        is.numeric(p_threshold), length(p_threshold) == 1L,
+        is.character(snp_id), length(snp_id) == 1, nzchar(snp_id),
+        is.character(chrom), length(chrom) == 1,
+        is.numeric(start), length(start) == 1,
+        is.numeric(end), length(end) == 1, start < end,
+        is.character(gtf), length(gtf) == 1, file.exists(gtf),
+        is.numeric(p_threshold), length(p_threshold) == 1,
         p_threshold > 0, p_threshold <= 1
     )
     values <- match.arg(values)
     axis_unit <- match.arg(axis_unit)
-    if (nrow(obj@results) == 0L) {
+    if (nrow(obj@results) == 0) {
         .stopNoCall("obj@results is empty. Run runQTL(obj) first.")
     }
 
@@ -74,7 +74,7 @@ loopQTLplotLocus <- function(obj, snp_id,
 
     ## 1. Filter obj@results to (this SNP, p <= threshold) and to loops in the region
     resultsForThisSNP <- obj@results[obj@results$snp_id == snp_id, , drop = FALSE]
-    if (nrow(resultsForThisSNP) == 0L) {
+    if (nrow(resultsForThisSNP) == 0) {
         .stopNoCall("SNP ", snp_id, " not found in obj@results")
     }
     if (!identical(unique(as.character(resultsForThisSNP$chrom)), chrom)) {
@@ -90,7 +90,7 @@ loopQTLplotLocus <- function(obj, snp_id,
     significantResults <- resultsForThisSNP[resultsForThisSNP$p <= p_threshold & is.finite(resultsForThisSNP$p), ,
         drop = FALSE
     ]
-    if (nrow(significantResults) == 0L) {
+    if (nrow(significantResults) == 0) {
         .stopNoCall("No significant (p <= ", p_threshold, ") loops for SNP ", snp_id)
     }
 
@@ -115,7 +115,7 @@ loopQTLplotLocus <- function(obj, snp_id,
         pmin(loops_df$ancA_start, loops_df$ancB_start) >= start &
         pmax(loops_df$ancA_end, loops_df$ancB_end) <= end
     loops_df <- loops_df[in_region, , drop = FALSE]
-    if (nrow(loops_df) == 0L) {
+    if (nrow(loops_df) == 0) {
         .stopNoCall(
             "No significant loops fully inside [", start, ", ", end,
             "] for SNP ", snp_id
@@ -139,14 +139,14 @@ loopQTLplotLocus <- function(obj, snp_id,
 
     mean_per_geno <- vapply(names(geno_groups), function(g) {
         ss <- geno_groups[[g]]
-        if (length(ss) == 0L) {
+        if (length(ss) == 0) {
             return(rep(NA_real_, nrow(loops_df)))
         }
         rowMeans(values_mat[, ss, drop = FALSE], na.rm = TRUE)
     }, numeric(nrow(loops_df)))
     colnames(mean_per_geno) <- names(geno_groups)
 
-    n_per <- vapply(geno_groups, length, integer(1L))
+    n_per <- vapply(geno_groups, length, integer(1))
     geno_labels <- c(
         paste0(snp_ref, "/", snp_ref),
         paste0(snp_ref, "/", snp_alt),
@@ -161,7 +161,7 @@ loopQTLplotLocus <- function(obj, snp_id,
     if (!is.null(limit)) {
         eff_lo <- 0
         eff_hi <- limit
-    } else if (length(vfin) > 0L) {
+    } else if (length(vfin) > 0) {
         eff_lo <- min(vfin)
         eff_hi <- max(vfin)
         if (eff_hi - eff_lo < .Machine$double.eps) {
@@ -240,7 +240,7 @@ loopQTLplotLocus <- function(obj, snp_id,
     loop_ids_all <- S4Vectors::mcols(obj@loops)$loop_id
     li <- match(loops_df$loop_id, loop_ids_all)
     if (values == "normalized") {
-        if (length(obj@phenotype) == 0L) {
+        if (length(obj@phenotype) == 0) {
             .stopNoCall("loopQTLnormalize() must be run before using the values = \"normalize\" option.")
         }
         return(obj@phenotype[li, obj@samples, drop = FALSE])
@@ -264,10 +264,10 @@ loopQTLplotLocus <- function(obj, snp_id,
         hit <- which(w$cell_coords$chrom == loops_df$chrom[i] &
             w$cell_coords$bin_i == lo &
             w$cell_coords$bin_j == hi)
-        if (length(hit) == 0L) next
+        if (length(hit) == 0) next
         raw_vals <- w$cells_raw[obj@samples, hit[1]]
         if (values == "cpm") {
-            if (length(obj@cis) == 0L) {
+            if (length(obj@cis) == 0) {
                 .stopNoCall("values = 'cpm' needs obj@cis (per-sample cis depth).")
             }
             raw_vals <- raw_vals / (obj@cis[obj@samples] / 1e6)
@@ -289,7 +289,7 @@ loopQTLplotLocus <- function(obj, snp_id,
         .stopNoCall("GTF has neither `type` nor `feature` column")
     }
     filteredGRanges <- gr[S4Vectors::mcols(gr)[[type_col]] == feature_type]
-    if (length(filteredGRanges) == 0L) {
+    if (length(filteredGRanges) == 0) {
         .stopNoCall("No ", feature_type, " entries in GTF")
     }
 
@@ -339,7 +339,7 @@ loopQTLplotLocus <- function(obj, snp_id,
 ## Non-overlapping row assignment: greedy first-fit into rows so text labels don't collide.
 .assign_gene_rows <- function(g_df) {
     n <- nrow(g_df)
-    if (n == 0L) {
+    if (n == 0) {
         return(integer(0))
     }
     ord <- order(g_df$start)
@@ -356,7 +356,7 @@ loopQTLplotLocus <- function(obj, snp_id,
             }
         }
         if (!placed) {
-            rows[k] <- length(row_ends) + 1L
+            rows[k] <- length(row_ends) + 1
             row_ends <- c(row_ends, g_df$end[k])
         }
     }
@@ -364,7 +364,7 @@ loopQTLplotLocus <- function(obj, snp_id,
 }
 
 .build_gene_track <- function(gene_df, exon_df, start, end, chrom, ax_fmt) {
-    if (nrow(gene_df) == 0L) {
+    if (nrow(gene_df) == 0) {
         return(
             ggplot2::ggplot() +
                 ggplot2::geom_blank() +
@@ -382,7 +382,7 @@ loopQTLplotLocus <- function(obj, snp_id,
     gene_df$row <- .assign_gene_rows(gene_df)
 
     ## Attach row assignment to exons via gene name
-    if (nrow(exon_df) > 0L) {
+    if (nrow(exon_df) > 0) {
         exon_df$row <- gene_df$row[match(exon_df$gene, gene_df$gene)]
         exon_df <- exon_df[!is.na(exon_df$row), , drop = FALSE]
     }
@@ -390,7 +390,7 @@ loopQTLplotLocus <- function(obj, snp_id,
     ## Strand direction chevrons along the gene body (thin line)
     ## ">" for + strand, "<" for - strand, placed every ~5% of region width
     span <- end - start
-    step <- max(as.integer(span / 30), 1L)
+    step <- max(as.integer(span / 30), 1)
     chev <- do.call(rbind, lapply(seq_len(nrow(gene_df)), function(i) {
         lo <- gene_df$start[i] + step
         hi <- gene_df$end[i] - step
@@ -398,7 +398,7 @@ loopQTLplotLocus <- function(obj, snp_id,
             return(NULL)
         } # gene too short for chevrons
         xs <- seq(lo, hi, by = step)
-        if (length(xs) == 0L) {
+        if (length(xs) == 0) {
             return(NULL)
         }
         data.frame(
@@ -419,7 +419,7 @@ loopQTLplotLocus <- function(obj, snp_id,
             color = "steelblue4", linewidth = 0.3
         )
     ## strand chevrons on the intron line
-    if (!is.null(chev) && nrow(chev) > 0L) {
+    if (!is.null(chev) && nrow(chev) > 0) {
         gg <- gg + ggplot2::geom_text(
             data = chev,
             ggplot2::aes(x = .data$x, y = .data$y, label = .data$lab),
@@ -427,7 +427,7 @@ loopQTLplotLocus <- function(obj, snp_id,
         )
     }
     ## Thick exon rectangles
-    if (nrow(exon_df) > 0L) {
+    if (nrow(exon_df) > 0) {
         gg <- gg + ggplot2::geom_rect(
             data = exon_df,
             ggplot2::aes(

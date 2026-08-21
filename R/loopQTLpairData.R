@@ -21,22 +21,22 @@
 loopQTLpairData <- function(obj, loop_id, snp_id, normal = TRUE) {
     stopifnot(
         methods::is(obj, "loopQTL"),
-        is.character(loop_id), length(loop_id) > 0L,
-        is.character(snp_id), length(snp_id) > 0L,
-        is.logical(normal), length(normal) == 1L
+        is.character(loop_id), length(loop_id) > 0,
+        is.character(snp_id), length(snp_id) > 0,
+        is.logical(normal), length(normal) == 1
     )
-    if (nrow(obj@results) == 0L) {
+    if (nrow(obj@results) == 0) {
         .stopNoCall("obj@results is empty. Run runQTL(obj) first to populate it.")
     }
 
     loop_ids_all <- S4Vectors::mcols(obj@loops)$loop_id
     miss_loops <- setdiff(loop_id, loop_ids_all)
-    if (length(miss_loops) > 0L) {
+    if (length(miss_loops) > 0) {
         .stopNoCall("loop_id(s) not in obj@loops: ", paste(miss_loops, collapse = ", "))
     }
 
     miss_snps <- setdiff(snp_id, obj@results$snp_id)
-    if (length(miss_snps) > 0L) {
+    if (length(miss_snps) > 0) {
         .stopNoCall("snp_id(s) not in obj@results: ", paste(miss_snps, collapse = ", "))
     }
 
@@ -107,7 +107,7 @@ loopQTLpairData <- function(obj, loop_id, snp_id, normal = TRUE) {
         snp_idx = seq_along(snp_id),
         KEEP.OUT.ATTRS = FALSE
     )
-    cis_vec <- if (length(obj@cis) > 0L) obj@cis[obj@samples] else rep(NA_real_, n_samples)
+    cis_vec <- if (length(obj@cis) > 0) obj@cis[obj@samples] else rep(NA_real_, n_samples)
 
     out <- data.frame(
         sample = obj@samples[grid$sample_idx],

@@ -15,8 +15,8 @@ test_that(".quantile_normalize equalizes column distributions", {
     ), nrow = 4, byrow = TRUE)
     qn <- loopQTL:::.quantile_normalize(m)
     ## After QN every column should have the same sorted vector
-    sorted_cols <- apply(qn, 2L, sort)
-    expect_true(all(apply(sorted_cols, 1L, function(r) diff(range(r)) < 1e-12)))
+    sorted_cols <- apply(qn, 2, sort)
+    expect_true(all(apply(sorted_cols, 1, function(r) diff(range(r)) < 1e-12)))
 })
 
 test_that(".rint matches Blom offset and handles constants", {

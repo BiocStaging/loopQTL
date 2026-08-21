@@ -66,22 +66,22 @@
 loopQTLannotate <- function(obj,
                             gtf,
                             peak = NULL,
-                            TSS_window = 2000L,
-                            anchor_window = 5000L,
+                            TSS_window = 2000,
+                            anchor_window = 5000,
                             peak_annotation = "Peak",
                             remove_TSS = TRUE) {
     stopifnot(
         methods::is(obj, "loopQTL"),
-        is.character(gtf), length(gtf) == 1L, file.exists(gtf),
-        is.numeric(TSS_window), length(TSS_window) == 1L, TSS_window >= 0,
-        is.numeric(anchor_window), length(anchor_window) == 1L, anchor_window >= 0,
-        is.character(peak_annotation), length(peak_annotation) == 1L,
-        is.logical(remove_TSS), length(remove_TSS) == 1L
+        is.character(gtf), length(gtf) == 1, file.exists(gtf),
+        is.numeric(TSS_window), length(TSS_window) == 1, TSS_window >= 0,
+        is.numeric(anchor_window), length(anchor_window) == 1, anchor_window >= 0,
+        is.character(peak_annotation), length(peak_annotation) == 1,
+        is.logical(remove_TSS), length(remove_TSS) == 1
     )
     if (!is.null(peak)) {
-        stopifnot(is.character(peak), length(peak) == 1L, file.exists(peak))
+        stopifnot(is.character(peak), length(peak) == 1, file.exists(peak))
     }
-    if (nrow(obj@results) == 0L) {
+    if (nrow(obj@results) == 0) {
         .stopNoCall("obj@results is empty. Run runQTL(obj) first.")
     }
 
@@ -102,7 +102,7 @@ loopQTLannotate <- function(obj,
         .stopNoCall("GTF has neither `type` nor `feature` column; cannot find gene entries")
     }
     gene_gr <- gtf_gr[S4Vectors::mcols(gtf_gr)[[type_col]] == "gene"]
-    if (length(gene_gr) == 0L) {
+    if (length(gene_gr) == 0) {
         .stopNoCall("No `gene` entries in GTF")
     }
 
@@ -116,7 +116,7 @@ loopQTLannotate <- function(obj,
     ## Some GTFs have NA gene_name for novel/predicted; fall back to gene_id.
     if ("gene_id" %in% names(S4Vectors::mcols(gene_gr))) {
         na_idx <- which(is.na(gene_names) | gene_names == "")
-        if (length(na_idx) > 0L) {
+        if (length(na_idx) > 0) {
             gene_names[na_idx] <- as.character(gene_gr$gene_id[na_idx])
         }
     }
@@ -129,7 +129,7 @@ loopQTLannotate <- function(obj,
     tss_regions <- GenomicRanges::GRanges(
         seqnames = GenomicRanges::seqnames(gene_gr),
         ranges = IRanges::IRanges(
-            start = pmax(1L, tss_pos - TSS_window),
+            start = pmax(1, tss_pos - TSS_window),
             end = tss_pos + TSS_window
         )
     )
@@ -166,7 +166,7 @@ loopQTLannotate <- function(obj,
             hits <- GenomicRanges::findOverlaps(peaks_gr, tss_regions)
             peaks_in_tss <- unique(S4Vectors::queryHits(hits))
             n_dropped <- length(peaks_in_tss)
-            if (n_dropped > 0L) {
+            if (n_dropped > 0) {
                 peaks_gr <- peaks_gr[-peaks_in_tss]
                 message(
                     "dropped ", n_dropped,
@@ -190,7 +190,7 @@ loopQTLannotate <- function(obj,
         GenomicRanges::GRanges(
             seqnames = normalize_chrom(GenomicRanges::seqnames(gr)),
             ranges = IRanges::IRanges(
-                start = pmax(1L, GenomicRanges::start(gr) - anchor_window),
+                start = pmax(1, GenomicRanges::start(gr) - anchor_window),
                 end   = GenomicRanges::end(gr) + anchor_window
             )
         )
@@ -202,7 +202,7 @@ loopQTLannotate <- function(obj,
     build_gene_lists <- function(padded) {
         hits <- GenomicRanges::findOverlaps(padded, tss_regions)
         out <- vector("list", length(padded))
-        if (length(hits) == 0L) {
+        if (length(hits) == 0) {
             return(out)
         }
         by_loop <- split(
@@ -221,12 +221,12 @@ loopQTLannotate <- function(obj,
     ## Per-anchor peak overlap (logical vector, length = n_loops). NULL when no
     ## peak file was supplied -- then partner-side never gets a peak label.
     peak_at_A <- if (!is.null(peaks_gr)) {
-        GenomicRanges::countOverlaps(padded_A, peaks_gr) > 0L
+        GenomicRanges::countOverlaps(padded_A, peaks_gr) > 0
     } else {
         NULL
     }
     peak_at_B <- if (!is.null(peaks_gr)) {
-        GenomicRanges::countOverlaps(padded_B, peaks_gr) > 0L
+        GenomicRanges::countOverlaps(padded_B, peaks_gr) > 0
     } else {
         NULL
     }
@@ -242,12 +242,12 @@ loopQTLannotate <- function(obj,
     )
 
     snp_in_tss <- if (remove_TSS) {
-        GenomicRanges::countOverlaps(snp_gr, tss_regions) > 0L
+        GenomicRanges::countOverlaps(snp_gr, tss_regions) > 0
     } else {
         rep(FALSE, nrow(res))
     }
     snp_in_peak <- if (!is.null(peaks_gr)) {
-        GenomicRanges::countOverlaps(snp_gr, peaks_gr) > 0L
+        GenomicRanges::countOverlaps(snp_gr, peaks_gr) > 0
     } else {
         rep(NA, nrow(res))
     }
@@ -280,9 +280,9 @@ loopQTLannotate <- function(obj,
     gene_col <- vapply(
         partner_genes,
         function(g) paste(g, collapse = ","),
-        character(1L)
+        character(1)
     )
-    has_gene <- nchar(gene_col) > 0L
+    has_gene <- nchar(gene_col) > 0
 
     ## Build Type column. Partner-side priority: gene > peak > O.
     rs_prefix <- if (!is.null(peaks_gr)) {

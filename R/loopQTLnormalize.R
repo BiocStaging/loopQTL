@@ -69,18 +69,18 @@ loopQTLnormalize <- function(obj,
                              save_windows = FALSE,
                              windows_out = NULL,
                              window = 1e6,
-                             snp_window = 0L) {
+                             snp_window = 0) {
     stopifnot(methods::is(obj, "loopQTL"))
 
     ## save_windows validation: path required, VCF must be set
     if (save_windows) {
         if (is.null(windows_out) || !is.character(windows_out) ||
-            length(windows_out) != 1L || !nzchar(windows_out)) {
+            length(windows_out) != 1 || !nzchar(windows_out)) {
             .stopNoCall("save_windows = TRUE requires `windows_out`: a single .rds path")
         }
         stopifnot(
-            is.numeric(window), length(window) == 1L, window > 0,
-            is.numeric(snp_window), length(snp_window) == 1L, snp_window >= 0
+            is.numeric(window), length(window) == 1, window > 0,
+            is.numeric(snp_window), length(snp_window) == 1, snp_window >= 0
         )
         window <- as.numeric(window)
         snp_window <- as.integer(snp_window)
@@ -106,7 +106,7 @@ loopQTLnormalize <- function(obj,
     }
 
     ## BNBC's logCPM depth correction requires cis
-    if (length(obj@cis) == 0L) {
+    if (length(obj@cis) == 0) {
         .stopNoCall(
             "Normalize requires per-sample cis depth in obj@cis, but it is ",
             "empty. Options:\n",
@@ -188,7 +188,7 @@ loopQTLnormalize <- function(obj,
             ## Sanity check: every SNP's chrom must be in our chroms_to_run
             win_chroms <- names(windows_ctx$cells_by_chrom)
             missing_chr <- setdiff(win_chroms, chroms_to_run)
-            if (length(missing_chr) > 0L) {
+            if (length(missing_chr) > 0) {
                 .stopNoCall(
                     "save_windows: SNP chrom(s) not in normalize's chroms_to_run: ",
                     paste(missing_chr, collapse = ", ")
@@ -196,7 +196,7 @@ loopQTLnormalize <- function(obj,
             }
             n_total_cells <- sum(vapply(
                 windows_ctx$cells_by_chrom,
-                nrow, integer(1L)
+                nrow, integer(1)
             ))
             est_mb <- n_total_cells * length(samples_vec) * 8 / 1024^2
             message(sprintf(
@@ -223,7 +223,7 @@ loopQTLnormalize <- function(obj,
                 ),
                 error = function(e) NULL
             )
-            if (is.null(dat) || nrow(dat) == 0L) {
+            if (is.null(dat) || nrow(dat) == 0) {
                 return(data.frame(
                     x = integer(0), y = integer(0),
                     counts = numeric(0)
@@ -312,7 +312,7 @@ loopQTLnormalize <- function(obj,
             )
             for (s in seq_len(n_samples)) {
                 dat <- sparse_list[[s]]
-                if (is.null(dat) || nrow(dat) == 0L) next
+                if (is.null(dat) || nrow(dat) == 0) next
                 dat_key <- paste(dat$x, dat$y, sep = ":")
                 m <- match(win_key_local, dat_key)
                 windows_raw_mat[s, ] <- ifelse(is.na(m), 0, dat$counts[m])
@@ -351,9 +351,9 @@ loopQTLnormalize <- function(obj,
         chr_order <- intersect(chroms_to_run, names(windows_ctx$cells_by_chrom))
         n_cells_per_chr <- vapply(chr_order, function(chr) {
             r <- chrom_results[[chr]]
-            if (is.null(r$windows_mat)) 0L else ncol(r$windows_mat)
-        }, integer(1L))
-        if (sum(n_cells_per_chr) == 0L) {
+            if (is.null(r$windows_mat)) 0 else ncol(r$windows_mat)
+        }, integer(1))
+        if (sum(n_cells_per_chr) == 0) {
             .warningNoCall(
                 "save_windows: every per-chrom ",
                 "window slice came back empty; nothing to write"
@@ -374,16 +374,16 @@ loopQTLnormalize <- function(obj,
                 bin_j = integer(total_cells),
                 stringsAsFactors = FALSE
             )
-            offset <- 0L
+            offset <- 0
             chrom_col_offset <- setNames(integer(length(chr_order)), chr_order)
             for (chr in chr_order) {
                 r <- chrom_results[[chr]]
-                if (is.null(r$windows_mat) || ncol(r$windows_mat) == 0L) {
+                if (is.null(r$windows_mat) || ncol(r$windows_mat) == 0) {
                     chrom_col_offset[chr] <- NA_integer_
                     next
                 }
                 ncol_chr <- ncol(r$windows_mat)
-                rng <- seq.int(offset + 1L, offset + ncol_chr)
+                rng <- seq.int(offset + 1, offset + ncol_chr)
                 cells[, rng] <- r$windows_mat
                 cells_raw[, rng] <- r$windows_raw_mat
                 cell_coords$chrom[rng] <- chr
@@ -401,7 +401,7 @@ loopQTLnormalize <- function(obj,
                 chr <- snp_chrom[i]
                 off <- chrom_col_offset[chr]
                 loc <- windows_ctx$snp_cells_local[[i]]
-                col_indices[[i]] <- if (is.na(off) || length(loc) == 0L) {
+                col_indices[[i]] <- if (is.na(off) || length(loc) == 0) {
                     integer(0)
                 } else {
                     as.integer(loc + off)
@@ -493,7 +493,7 @@ loopQTLnormalize <- function(obj,
         for (k in seq_len(n_samples)) out[[paste0("IF_", k)]] <- numeric(0)
         out
     }
-    if (n_samples == 0L) {
+    if (n_samples == 0) {
         return(empty_out())
     }
 
@@ -501,11 +501,11 @@ loopQTLnormalize <- function(obj,
     ## keep_pairs is a 2-column matrix/data.frame of (i, j) in bp.
     keep_set <- NULL
     if (!is.null(keep_pairs)) {
-        if (NROW(keep_pairs) == 0L) {
+        if (NROW(keep_pairs) == 0) {
             return(empty_out())
         }
-        kp_i <- as.integer(keep_pairs[, 1L])
-        kp_j <- as.integer(keep_pairs[, 2L])
+        kp_i <- as.integer(keep_pairs[, 1])
+        kp_j <- as.integer(keep_pairs[, 2])
         swap <- kp_i > kp_j
         if (any(swap)) {
             t1 <- kp_i[swap]
@@ -541,7 +541,7 @@ loopQTLnormalize <- function(obj,
     per_sample_dt <- vector("list", n_samples)
     for (s in seq_len(n_samples)) {
         d <- sparse_list[[s]]
-        if (is.null(d) || nrow(d) == 0L) {
+        if (is.null(d) || nrow(d) == 0) {
             per_sample_dt[[s]] <- data.table::data.table(
                 i = integer(0), j = integer(0),
                 x = numeric(0), d = integer(0)
@@ -570,7 +570,7 @@ loopQTLnormalize <- function(obj,
     all_bands <- sort(unique(unlist(
         lapply(per_sample_dt, function(dt) unique(dt$d))
     )))
-    if (length(all_bands) == 0L) {
+    if (length(all_bands) == 0) {
         return(empty_out())
     }
 
@@ -581,13 +581,13 @@ loopQTLnormalize <- function(obj,
 
         ## Per-sample (i, x) for this band via keyed lookup
         samp_data <- lapply(per_sample_dt, function(dt) {
-            dt[.(b), .(i, x), on = "d", nomatch = 0L]
+            dt[.(b), .(i, x), on = "d", nomatch = 0]
         })
 
         ## Union of active i positions for this band
         active_i <- sort(unique(unlist(lapply(samp_data, function(sd) sd$i))))
         L <- length(active_i)
-        if (L == 0L) next
+        if (L == 0) next
         ## Note: L = 1 is OK - preprocessCore returns all samples equal to the mean.
         ## That degenerate cell will have zero variance downstream and be skipped.
 
@@ -597,12 +597,12 @@ loopQTLnormalize <- function(obj,
         ## log((0+0.5)/libs[s] + c_offset) is a small negative value, not 0.
         zero_fill <- vapply(
             seq_len(n_samples), function(s) transform_sample(0, s),
-            numeric(1L)
+            numeric(1)
         )
         qn <- matrix(zero_fill, nrow = L, ncol = n_samples, byrow = TRUE)
         for (s in seq_len(n_samples)) {
             sd <- samp_data[[s]]
-            if (nrow(sd) > 0L) {
+            if (nrow(sd) > 0) {
                 row_idx <- match(sd$i, active_i)
                 qn[row_idx, s] <- sd$x
             }
@@ -619,7 +619,7 @@ loopQTLnormalize <- function(obj,
         if (!is.null(keep_set)) {
             band_keys <- paste(active_i, active_i + b, sep = "_")
             keep_rows <- which(band_keys %in% keep_set)
-            if (length(keep_rows) == 0L) next
+            if (length(keep_rows) == 0) next
             qn <- qn[keep_rows, , drop = FALSE]
             active_i_em <- active_i[keep_rows]
         } else {
@@ -641,9 +641,9 @@ loopQTLnormalize <- function(obj,
             vals <- as.numeric(qn)
         }
         output_chunks[[k]] <- data.table::data.table(
-            s = idxs[, 2L],
-            i = active_i_em[idxs[, 1L]],
-            j = active_i_em[idxs[, 1L]] + b,
+            s = idxs[, 2],
+            i = active_i_em[idxs[, 1]],
+            j = active_i_em[idxs[, 1]] + b,
             x = vals
         )
     }
@@ -655,7 +655,7 @@ loopQTLnormalize <- function(obj,
     ## 4. combine all output chunks into long form
     out_long <- data.table::rbindlist(output_chunks, fill = TRUE)
     rm(output_chunks)
-    if (nrow(out_long) == 0L) {
+    if (nrow(out_long) == 0) {
         return(empty_out())
     }
 
