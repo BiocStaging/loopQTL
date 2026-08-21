@@ -180,8 +180,8 @@ loopQTLnormalize <- function(obj,
             resolution = resolution
         )
         if (is.null(windows_ctx)) {
-            message(
-                "[", format(Sys.time()), "] save_windows: nothing to save; ",
+            .warningNoCall(
+                "save_windows: nothing to save; ",
                 "continuing without window output"
             )
             save_windows <- FALSE
@@ -201,8 +201,8 @@ loopQTLnormalize <- function(obj,
             ))
             est_mb <- n_total_cells * length(samples_vec) * 8 / 1024^2
             message(sprintf(
-                "[%s] save_windows: %d SNP(s), %d unique cells across %d chrom(s); estimated ~%.1f MB in memory (8 bytes x cells x samples)",
-                format(Sys.time()), nrow(windows_ctx$snps_df),
+                "save_windows: %d SNP(s), %d unique cells across %d chrom(s); estimated ~%.1f MB in memory (8 bytes x cells x samples)",
+                nrow(windows_ctx$snps_df),
                 n_total_cells, length(win_chroms), est_mb
             ))
         }
@@ -355,8 +355,8 @@ loopQTLnormalize <- function(obj,
             if (is.null(r$windows_mat)) 0L else ncol(r$windows_mat)
         }, integer(1L))
         if (sum(n_cells_per_chr) == 0L) {
-            message(
-                "[", format(Sys.time()), "] save_windows: every per-chrom ",
+            .warningNoCall(
+                "save_windows: every per-chrom ",
                 "window slice came back empty; nothing to write"
             )
         } else {
@@ -433,8 +433,8 @@ loopQTLnormalize <- function(obj,
                 compress = "xz"
             )
             message(sprintf(
-                "[%s] save_windows: wrote %s (%.1f MB)",
-                format(Sys.time()), windows_out,
+                "save_windows: wrote %s (%.1f MB)",
+                windows_out,
                 file.info(windows_out)$size / 1024^2
             ))
 

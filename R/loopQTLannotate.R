@@ -89,7 +89,7 @@ loopQTLannotate <- function(obj,
     anchor_window <- as.integer(anchor_window)
 
     # 1. Read GTF, extract gene entries, derive TSS
-    message("[", format(Sys.time()), "] reading GTF: ", gtf)
+    message("reading GTF: ", gtf)
     gtf_gr <- rtracklayer::import(gtf)
     type_col <- if ("type" %in% names(S4Vectors::mcols(gtf_gr))) {
         "type"
@@ -134,9 +134,7 @@ loopQTLannotate <- function(obj,
         )
     )
     S4Vectors::mcols(tss_regions)$gene <- gene_names
-    message(
-        "[", format(Sys.time()), "] ", length(tss_regions),
-        " gene TSS regions (±", TSS_window, " bp)"
+    message(length(tss_regions), " gene TSS regions (±", TSS_window, " bp)"
     )
 
     # 2. Chrom-naming normalizer for THIS GTF  # GTF may use "chr1" (GENCODE) or "1" (Ensembl); loop anchors may use
@@ -156,7 +154,7 @@ loopQTLannotate <- function(obj,
     # 3. Optional: read peaks, filter by TSS if remove_TSS
     peaks_gr <- NULL
     if (!is.null(peak)) {
-        message("[", format(Sys.time()), "] reading peaks: ", peak)
+        message("reading peaks: ", peak)
         peaks_gr <- rtracklayer::import(peak)
         # Normalize peak chroms to GTF style so overlap actually works.
         peak_chroms_norm <- normalize_chrom(GenomicRanges::seqnames(peaks_gr))
@@ -171,7 +169,7 @@ loopQTLannotate <- function(obj,
             if (n_dropped > 0L) {
                 peaks_gr <- peaks_gr[-peaks_in_tss]
                 message(
-                    "[", format(Sys.time()), "] dropped ", n_dropped,
+                    "dropped ", n_dropped,
                     " peaks overlapping TSS regions; ", length(peaks_gr),
                     " peaks retained for SNP overlap."
                 )

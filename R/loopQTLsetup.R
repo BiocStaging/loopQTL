@@ -171,7 +171,7 @@ loopQTLsetup <- function(samples,
     }
 
     message(
-        "[", format(Sys.time()), "] exact-coord consensus across ",
+        "exact-coord consensus across ",
         sum(per_sample_n > 0L), " samples ..."
     )
     # Build a long data.frame: one row per per-sample call, with key + sample
@@ -196,7 +196,6 @@ loopQTLsetup <- function(samples,
     support <- table(uniq_call$key)
     keep_keys <- names(support)[support >= min_samples]
     message(
-        "[", format(Sys.time()), "] ",
         length(support), " unique loop tuples; ",
         length(keep_keys), " survive min_samples = ", min_samples
     )
@@ -255,7 +254,7 @@ loopQTLsetup <- function(samples,
         setNames(as.numeric(user_cis), sample_ids)
     } else {
         message(
-            "[", format(Sys.time()), "] computing cis depth from .hic files ",
+            "computing cis depth from .hic files ",
             "(no `cis` column in samplesheet; ", length(cis_chroms),
             " chroms x ", length(sample_ids), " samples) ..."
         )
