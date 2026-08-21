@@ -131,7 +131,7 @@
     vcf <- VariantAnnotation::readVcf(vcf_path, genome = "unknown", param = param)
     if (length(vcf) == 0L) {
         warning(
-            "save_windows: no SNPs in any anchor +/- ",
+            "save_windows: no SNPs in any anchor ± ",
             snp_window, " bp window"
         )
         return(NULL)
