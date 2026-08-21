@@ -120,7 +120,7 @@
     }
 
     message(
-        "[", format(Sys.time()), "] save_windows: tabix-reading SNPs at ",
+        "save_windows: tabix-reading SNPs at ",
         length(targets), " anchor regions (snp_window = ", snp_window, " bp) ..."
     )
     param <- VariantAnnotation::ScanVcfParam(
@@ -130,8 +130,8 @@
     )
     vcf <- VariantAnnotation::readVcf(vcf_path, genome = "unknown", param = param)
     if (length(vcf) == 0L) {
-        message(
-            "[", format(Sys.time()), "] save_windows: no SNPs in any anchor +- ",
+        warning(
+            "save_windows: no SNPs in any anchor +/- ",
             snp_window, " bp window"
         )
         return(NULL)
@@ -186,9 +186,8 @@
     }
     keep_snp <- vapply(in_loops_by_snp, function(x) length(x) > 0L, logical(1L))
     if (!any(keep_snp)) {
-        message(
-            "[", format(Sys.time()), "] save_windows: no SNPs overlap any ",
-            "consensus loop anchor"
+        .warningNoCall(
+            "save_windows: no SNPs overlap any consensus loop anchor"
         )
         return(NULL)
     }
