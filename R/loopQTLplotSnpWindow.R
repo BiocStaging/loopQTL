@@ -30,8 +30,8 @@
 #'   when calling the function in a loop over many SNPs to avoid reloading.
 #' @param mirror Logical; mirror the upper-triangle beta values to the
 #'   lower triangle so the heatmap is symmetric. Default `TRUE`.
-#' @param min_n Minimum usable (non-NA dose + complete covariates) samples
-#'   required to fit the regression for a given cell. Cells with fewer
+#' @param minSamplesPerCell Minimum usable (non-NA dose + complete covariates) 
+#'   samples required to fit the regression for a given cell. Cells with fewer
 #'   are returned NA. Default 3.
 #' @param normal Apply RINT (Blom-offset rank-inverse-normal transform) per
 #'   cell across samples before fitting. Matches the `normal = TRUE`
@@ -49,7 +49,7 @@
 #' @param K_method `"elbow"` (default) or `"BE"`. Passed through to
 #'   [loopQTLchooseK()] when `covariates = "auto"`. Ignored otherwise.
 #' @param K_max Hard cap on the auto-chosen K when `covariates = "auto"`.
-#'   Default `length(obj@samples) - 2L` (same as [runQTL()]). Pass a
+#'   Defaults to the number of samples minus 2 (same as [runQTL()]). Pass a
 #'   smaller value (e.g. `floor(n_samples / 4)`) for a more conservative
 #'   covariate set.
 #' @param limit Symmetric color-scale limit on beta. Values beyond
@@ -82,8 +82,7 @@
 #'       no QN. β is on the raw-count scale and is NOT comparable to
 #'       `obj@results$beta`.}
 #'   }
-#' @param axis_unit `"Mb"` (default) or `"bp"`. Tick labels are formatted
-#'   accordingly. The underlying coordinates are bp either way.
+#' @param axis_unit Unit for the graph axes - `"Mb"` (default) or `"bp"`.
 #'
 #' @return A `ggplot` object.
 #'
@@ -94,7 +93,7 @@ loopQTLplotSnpWindow <- function(obj, snp_id,
                                  end = NULL,
                                  windows = NULL,
                                  mirror = TRUE,
-                                 min_n = 3L,
+                                 minSamplesPerCell = 3L,
                                  normal = FALSE,
                                  covariates = NULL,
                                  K_method = c("elbow", "BE"),
@@ -119,7 +118,6 @@ loopQTLplotSnpWindow <- function(obj, snp_id,
     values <- match.arg(values)
     axis_unit <- match.arg(axis_unit)
 
-    # 1. Resolve the windows source
     w <- .resolve_windows(obj, windows)
 
     # 2. Look up the SNP row
@@ -148,25 +146,25 @@ loopQTLplotSnpWindow <- function(obj, snp_id,
     }
 
     res <- as.integer(w$resolution)
-    bin_lo <- as.integer(row$bin_lo)
-    bin_hi <- as.integer(row$bin_hi)
+    bin <- as.integer(row$binStart)
+    binEnd <- as.integer(row$binEnd)
 
     # 3. Optionally crop to user's [start, end]
     if (!is.null(start) || !is.null(end)) {
-        if (is.null(start)) start <- bin_lo
-        if (is.null(end)) end <- bin_hi + res
+        if (is.null(start)) start <- binStart
+        if (is.null(end)) end <- binEnd + res
         if (!is.numeric(start) || !is.numeric(end) ||
             length(start) != 1L || length(end) != 1L || start >= end) {
             stop("`start` and `end` must be single numerics with start < end")
         }
         crop_lo_req <- as.integer(floor(start / res) * res)
         crop_hi_req <- as.integer(floor((end - 1L) / res) * res)
-        crop_lo <- max(crop_lo_req, bin_lo)
-        crop_hi <- min(crop_hi_req, bin_hi)
+        crop_lo <- max(crop_lo_req, binStart)
+        crop_hi <- min(crop_hi_req, binEnd)
         if (crop_lo > crop_hi) {
             stop(
                 "Crop range [", start, ", ", end, "] does not overlap the saved ",
-                "window [", bin_lo, ", ", bin_hi + res, "] for SNP ", snp_id
+                "window [", binStart, ", ", binEnd + res, "] for SNP ", snp_id
             )
         }
         if (crop_lo != crop_lo_req || crop_hi != crop_hi_req) {
@@ -177,12 +175,12 @@ loopQTLplotSnpWindow <- function(obj, snp_id,
                     "to enlarge it)."
                 ),
                 as.integer(start), as.integer(end),
-                crop_lo, crop_hi + res, snp_id, bin_lo, bin_hi + res
+                crop_lo, crop_hi + res, snp_id, binStart, binEnd + res
             ))
         }
     } else {
-        crop_lo <- bin_lo
-        crop_hi <- bin_hi
+        crop_lo <- binStart
+        crop_hi <- binEnd
     }
 
     # 4. Pull genotype dosage for this SNP
@@ -199,24 +197,19 @@ loopQTLplotSnpWindow <- function(obj, snp_id,
     # lm(cell ~ dose + cvrt), so we residualize both cell-value and dose
     # against [1, cvrt] then take slope = sum(Y_res * d_res) / sum(d_res^2).
     # Select the cell values matrix based on the `values` arg
+    
+    if (values %in% c("raw", "cpm") && is.null(w$cells_raw)) {
+        .stopNoCall(
+            "This loopQTL object does not contain raw counts. To run ",
+            "loopQTLplotSnpWindow(), please re-run loopQTLnormalize() ",
+            "with save_windows set to TRUE."
+        )
+    }
+    
     cells_mat <- switch(values,
         normalized = w$cells,
-        raw = {
-            if (is.null(w$cells_raw)) {
-                stop(
-                    "This windows file has no `cells_raw` matrix (was written by an ",
-                    "older version of loopQTL). Re-run loopQTLnormalize(save_windows = TRUE)."
-                )
-            }
-            w$cells_raw
-        },
+        raw = w$cells_raw,
         cpm = {
-            if (is.null(w$cells_raw)) {
-                stop(
-                    "This windows file has no `cells_raw` matrix (was written by an ",
-                    "older version of loopQTL). Re-run loopQTLnormalize(save_windows = TRUE)."
-                )
-            }
             if (length(obj@cis) == 0L) {
                 stop(
                     "values = 'cpm' requires obj@cis (per-sample cis depth). ",
@@ -232,7 +225,7 @@ loopQTLplotSnpWindow <- function(obj, snp_id,
     rownames(cells_for_snp) <- w$samples
 
     Y <- cells_for_snp
-    if (isTRUE(normal)) {
+    if (normal) {
         Y <- apply(Y, 2L, .rint)
         if (!is.matrix(Y)) Y <- as.matrix(Y)
         if (ncol(Y) != length(cols)) Y <- t(Y)
@@ -279,7 +272,7 @@ loopQTLplotSnpWindow <- function(obj, snp_id,
 
     beta_vec <- rep(NA_real_, ncol(Y))
     p_vec <- rep(NA_real_, ncol(Y))
-    if (n_usable >= as.integer(min_n)) {
+    if (n_usable >= as.integer(minSamplesPerCell)) {
         Y_u <- Y[usable, , drop = FALSE]
         d_u <- dose[usable]
         if (is.null(cvrt)) {
@@ -433,19 +426,17 @@ loopQTLplotSnpWindow <- function(obj, snp_id,
 
 # Resolve the `windows` arg into a loaded list, with the necessary structure.
 .resolve_windows <- function(obj, windows) {
+    ## If the windows argument is null, look inside the loopQTL object
     if (is.null(windows)) {
-        p <- obj@meta$windows_out
-        if (is.null(p) || !nzchar(p)) {
-            stop(
-                "obj@meta$windows_out is empty. Run loopQTLnormalize(",
-                "save_windows = TRUE, windows_out = ...) first, or pass the ",
-                "`windows` argument explicitly."
+        windows <- obj@meta$windows_out
+        if (is.null(windows)) {
+            .stopNoCall(
+                "The input loopQTL object does not contain a windows file ",
+                "path. Please run loopQTLnormalize() with save_windows set ",
+                "to TRUE and windows_out set to an output file path, or ",
+                "specify a path to a windows file via the windows argument."
             )
         }
-        if (!file.exists(p)) {
-            stop("Windows file does not exist: ", p)
-        }
-        return(readRDS(p))
     }
     if (is.character(windows) && length(windows) == 1L) {
         if (!file.exists(windows)) {

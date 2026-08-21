@@ -1,5 +1,21 @@
 # Internal helpers. Not exported.
 
+## Internal function to display a warning without showing the function call
+.warningNoCall <- function(...) {
+    warning(..., call. = FALSE)
+}
+
+## Internal function to stop execution without showing the function call
+.stopNoCall <- function(...) {
+    stop(..., call. = FALSE)
+}
+
+## Internal function to display an error like stop() would, but without stopping
+## execution or showing the function call
+.displayError <- function(...) {
+    try(stop(..., call. = FALSE))
+}
+
 # Bin a 1-based BEDPE-style anchor (start, end) to its analysis-bin start (0-based),
 # matching strawr's binning. straw returns bin starts as the lower coordinate of
 # the bin in 0-based half-open BP space, so bin = floor(midpoint / resolution) * resolution.

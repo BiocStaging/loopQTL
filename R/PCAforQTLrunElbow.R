@@ -29,7 +29,6 @@
     diagonalLineHeight <- diagonalLineEndY - diagonalLineStartY
 
     diagonalLineLength <- sqrt(diagonalLineWidth^2 + diagonalLineHeight^2)
-    ## diagonalLineLength <- dist(cbind(c(diagonalLineEndX, diagonalLineStartX), c(diagonalLineEndY, diagonalLineStartY)), method = "euclidean")
     distancesNumerator <- abs(diagonalLineWidth * (diagonalLineStartY - y) - (diagonalLineStartX - x) * diagonalLineHeight)
     distances <- distancesNumerator / diagonalLineLength
 
