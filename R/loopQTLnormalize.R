@@ -98,8 +98,8 @@ loopQTLnormalize <- function(obj,
         if (!ok_touch) {
             .stopNoCall("Cannot write to windows_out path: ", windows_out)
         }
-        if (is.null(obj@vcf_path) || is.na(obj@vcf_path) || !nzchar(obj@vcf_path)) {
-            .stopNoCall("obj@vcf_path is not set; cannot read SNPs for windows")
+        if (is.null(obj@vcfPath) || is.na(obj@vcfPath) || !nzchar(obj@vcfPath)) {
+            .stopNoCall("obj@vcfPath is not set; cannot read SNPs for windows")
         }
     } else if (!is.null(windows_out)) {
         .warningNoCall("`windows_out` is ignored when save_windows = FALSE")
@@ -171,7 +171,7 @@ loopQTLnormalize <- function(obj,
     windows_ctx <- NULL
     if (save_windows) {
         windows_ctx <- .compute_snp_windows(
-            vcf_path   = obj@vcf_path,
+            vcfPath   = obj@vcfPath,
             anchorA    = anchorA,
             anchorB    = anchorB,
             snp_window = snp_window,
@@ -676,7 +676,7 @@ loopQTLnormalize <- function(obj,
         }
     }
 
-    wide[, chr := as.character(chr)]
+    wide[, chr := as.character(chr)] # FIXME: what?
     wide[, c(
         "chr", "region1", "region2",
         paste0("IF_", seq_len(n_samples))

@@ -87,7 +87,7 @@ runQTL <- function(obj,
     }
 
     ## Detect VCF chrom naming style and rewrite the read targets to match
-    tab <- Rsamtools::TabixFile(obj@vcf_path)
+    tab <- Rsamtools::TabixFile(obj@vcfPath)
     vcf_chroms <- Rsamtools::headerTabix(tab)$seqnames
     if (length(vcf_chroms) == 0) {
         .stopNoCall("Could not read chromosome names from VCF tabix index")
@@ -110,7 +110,7 @@ runQTL <- function(obj,
     param <- VariantAnnotation::ScanVcfParam(
         which = read_targets, geno = "GT", info = NA_character_
     )
-    vcf <- VariantAnnotation::readVcf(obj@vcf_path, genome = "unknown", param = param)
+    vcf <- VariantAnnotation::readVcf(obj@vcfPath, genome = "unknown", param = param)
     if (length(vcf) == 0) {
         return(.return_empty())
     }

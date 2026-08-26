@@ -14,6 +14,14 @@
     try(stop(..., call. = FALSE))
 }
 
+## Internal function to check if an object is a single NA (since R 4.3 changed
+## the behavior of if(!is.na(...))). Based on
+## https://github.com/GeoBosh/gbutils/blob/16a311ce2e40813911461c6084393c1915568c5b/R/isNA.R
+## (license: GPL v2 or later)
+.isSingleNA <- function(x) {
+    return(is.atomic(x) && length(x) == 1 && is.na(x))
+}
+
 ## Bin a 1-based BEDPE-style anchor (start, end) to its analysis-bin start (0-based),
 ## matching strawr's binning. straw returns bin starts as the lower coordinate of
 ## the bin in 0-based half-open BP space, so bin = floor(midpoint / resolution) * resolution.
@@ -89,14 +97,14 @@
 ##                      within-chrom row indices into cells_by_chrom[[chrom]]
 ##   )
 ## Returns NULL if no eligible SNPs are found (caller short-circuits).
-.compute_snp_windows <- function(vcf_path, anchorA, anchorB,
+.compute_snp_windows <- function(vcfPath, anchorA, anchorB,
                                  snp_window, window, resolution) {
-    if (!file.exists(vcf_path)) {
-        .stopNoCall("VCF not found: ", vcf_path)
+    if (!file.exists(vcfPath)) {
+        .stopNoCall("VCF not found: ", vcfPath)
     }
 
     ## VCF chrom-naming normalizer
-    tab <- Rsamtools::TabixFile(vcf_path)
+    tab <- Rsamtools::TabixFile(vcfPath)
     vcf_chroms <- Rsamtools::headerTabix(tab)$seqnames
     if (length(vcf_chroms) == 0) {
         .stopNoCall("Could not read chromosome names from VCF tabix index")
@@ -128,7 +136,7 @@
         geno = NA_character_,
         info = NA_character_
     )
-    vcf <- VariantAnnotation::readVcf(vcf_path, genome = "unknown", param = param)
+    vcf <- VariantAnnotation::readVcf(vcfPath, genome = "unknown", param = param)
     if (length(vcf) == 0) {
         warning(
             "save_windows: no SNPs in any anchor ± ",

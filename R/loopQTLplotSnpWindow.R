@@ -184,7 +184,7 @@ loopQTLplotSnpWindow <- function(obj, snp_id,
     }
 
     ## 4. Pull genotype dosage for this SNP
-    dose <- .read_snp_dosage(obj@vcf_path, row$chrom, row$pos,
+    dose <- .read_snp_dosage(obj@vcfPath, row$chrom, row$pos,
         samples_vec = w$samples
     )
 
@@ -463,8 +463,8 @@ loopQTLplotSnpWindow <- function(obj, snp_id,
 
 ## Targeted single-SNP dosage read from a tabix VCF. Returns a numeric vector
 ## of length(samples_vec) in that order; NA where missing.
-.read_snp_dosage <- function(vcf_path, chrom, pos, samples_vec) {
-    tab <- Rsamtools::TabixFile(vcf_path)
+.read_snp_dosage <- function(vcfPath, chrom, pos, samples_vec) {
+    tab <- Rsamtools::TabixFile(vcfPath)
     vcf_chroms <- Rsamtools::headerTabix(tab)$seqnames
     vcf_norm <- .make_chrom_normalizer(vcf_chroms)
     gr <- GenomicRanges::GRanges(
@@ -472,7 +472,7 @@ loopQTLplotSnpWindow <- function(obj, snp_id,
         ranges   = IRanges::IRanges(start = as.integer(pos), end = as.integer(pos))
     )
     vcf <- VariantAnnotation::readVcf(
-        vcf_path,
+        vcfPath,
         genome = "unknown",
         param = VariantAnnotation::ScanVcfParam(
             which = gr, geno = "GT",

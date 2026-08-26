@@ -125,7 +125,7 @@ loopQTLplotLocus <- function(obj, snp_id,
     loops_df$ancB_mid <- (loops_df$ancB_start + loops_df$ancB_end) / 2
 
     ## 2. Per-sample dosage for this SNP
-    dose <- .read_snp_dosage(obj@vcf_path, chrom, snp_pos,
+    dose <- .read_snp_dosage(obj@vcfPath, chrom, snp_pos,
         samples_vec = obj@samples
     )
     ## Split samples into genotype classes 0/1/2 (drop NA)

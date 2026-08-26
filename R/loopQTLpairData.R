@@ -49,7 +49,7 @@ loopQTLpairData <- function(obj, loop_id, snp_id, normal = TRUE) {
     snp_info <- snp_info[match(snp_id, snp_info$snp_id), , drop = FALSE]
 
     ## Genotypes via targeted tabix read  # Normalize chrom naming to whatever the VCF uses.
-    tab <- Rsamtools::TabixFile(obj@vcf_path)
+    tab <- Rsamtools::TabixFile(obj@vcfPath)
     vcf_chroms <- Rsamtools::headerTabix(tab)$seqnames
     vcf_norm <- .make_chrom_normalizer(vcf_chroms)
     snp_chrom_vcf <- vcf_norm(snp_info$chrom)
@@ -60,7 +60,7 @@ loopQTLpairData <- function(obj, loop_id, snp_id, normal = TRUE) {
     param <- VariantAnnotation::ScanVcfParam(
         which = which_gr, geno = "GT", info = NA_character_
     )
-    vcf <- VariantAnnotation::readVcf(obj@vcf_path, genome = "unknown", param = param)
+    vcf <- VariantAnnotation::readVcf(obj@vcfPath, genome = "unknown", param = param)
 
     rr <- SummarizedExperiment::rowRanges(vcf)
     vcf_chrom <- as.character(GenomicRanges::seqnames(rr))

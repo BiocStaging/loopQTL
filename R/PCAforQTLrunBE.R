@@ -23,33 +23,30 @@
 
     n <- nrow(X) # Number of observations.
     p <- ncol(X) # Number of features.
-    d <- min(n, p) # This is the total number of PCs.
+    d <- min(n, p) # Total number of PCs.
 
     if (verbose) cat("Running PCA on permuted data...\n")
 
     results <- parallel::mclapply(seq_len(B), FUN = function(b) {
-        if (verbose) cat("b=", b, " out of ", B, " permutations...\n", sep = "")
-
         ## Permute each column of X. That is, permute the observations in each feature.
         XPermuted <- matrix(data = NA, nrow = n, ncol = p)
         for (j in seq_len(p)) {
             XPermuted[, j] <- sample(x = X[, j], size = n, replace = FALSE)
         }
 
-        prcompResultPerm <- prcomp(x = XPermuted, center = TRUE, scale. = TRUE) # Key step
+        prcompResultPerm <- prcomp(x = XPermuted, center = TRUE, scale. = TRUE)
         importanceTablePerm <- summary(prcompResultPerm)$importance
         PVEsPerm <- importanceTablePerm[2, ]
         return(PVEsPerm)
     }, mc.cores = mc.cores) 
     ## results is a list of vectors
     temp <- unlist(results)
-    testStatsPerm <- matrix(data = temp, nrow = d, byrow = FALSE) # PC by permutation
+    testStatsPerm <- matrix(data = temp, nrow = d, byrow = FALSE)
 
     if (verbose) cat("Running PCA on the unpermuted data...\n")
-    prcompResult <- prcomp(x = X, center = TRUE, scale. = TRUE) # Key step
+    prcompResult <- prcomp(x = X, center = TRUE, scale. = TRUE)
     importanceTable <- summary(prcompResult)$importance
     PVEs <- importanceTable[2, ]
-    ## Compare PVEs to testStatsPerm
     pValues <- (rowSums(testStatsPerm >= PVEs) + 1) / (B + 1) 
     
     ## The p-value for the jth PC is calculated as, roughly speaking, the
