@@ -235,7 +235,7 @@ loopQTLplotSnpWindow <- function(obj, snp_id,
     cvrt <- NULL
     if (identical(covariates, "auto")) {
         cvrt_mode <- "auto"
-        if (length(obj@phenotype) == 0) { # FIXME: replace all @s
+        if (length(obj@phenotype) == 0) {
             .stopNoCall("covariates = 'auto' needs obj@phenotype; run loopQTLnormalize() first")
         }
         Y_for_pca <- if (normal) .rint_matrix(obj@phenotype) else obj@phenotype
@@ -343,7 +343,8 @@ loopQTLplotSnpWindow <- function(obj, snp_id,
         drop = FALSE
     ]
 
-    ## 7. Color scale (RdBu divergent on `value`)  # value scale depends on `metric`; both are unbounded. Default limit is
+    ## 7. Color scale (RdBu divergent on `value`)
+    ## Value scale depends on `metric`; both are unbounded. Default limit is
     ## data-driven; pass a fixed `limit` for cross-SNP comparability.
     if (is.null(limit)) {
         vfin <- long$value[is.finite(long$value)]
@@ -366,8 +367,10 @@ loopQTLplotSnpWindow <- function(obj, snp_id,
         if (cvrt_mode == "none") "marginal β" else "partial β",
         if (normal) ", RINT" else ""
     )
-    if (cvrt_mode == "auto") mode_str <- paste0(mode_str, sprintf(" | K=%d auto PCs", ncol(cvrt)))
-    if (cvrt_mode == "user") mode_str <- paste0(mode_str, sprintf(" | %d user cvrt", ncol(cvrt)))
+    if (cvrt_mode == "auto") 
+        mode_str <- paste0(mode_str, sprintf(" | K=%d auto PCs", ncol(cvrt)))
+    if (cvrt_mode == "user") 
+        mode_str <- paste0(mode_str, sprintf(" | %d user cvrt", ncol(cvrt)))
     mode_str <- paste0(mode_str, " | ", values, " values")
 
     metric_label <- switch(metric,

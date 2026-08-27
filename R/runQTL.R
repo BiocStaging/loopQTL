@@ -60,9 +60,12 @@ runQTL <- function(obj,
     anchorA <- InteractionSet::anchors(loops_gi, type = "first")
     anchorB <- InteractionSet::anchors(loops_gi, type = "second")
 
-    ## Apply RINT if requested. obj@phenotype is left untouched (the local
-    ## `phenotype` variable is what flows into MatrixEQTL and PCA).
-    phenotype <- if (normal) .rint_matrix(obj@phenotype) else obj@phenotype
+    ## Normalize the phenotype if requested (but make a copy of it first so we
+    ## don't modify the object)
+    phenotype <- obj@phenotype
+    if (normal)
+        phenotype <- .rint_matrix(phenotype)
+
     n_zero_var <- sum(rowSums(!is.na(phenotype)) == 0) -
         sum(rowSums(!is.na(obj@phenotype)) == 0)
     ## n_zero_var = loops newly NA'd by RINT (had data but constant after RINT).

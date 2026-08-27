@@ -1,0 +1,13 @@
+loopQTLannotate.R
+loopQTLchooseK.R
+loopQTL-class.R done
+loopQTLnormalize.R
+loopQTLpairData.R
+loopQTLplotLocus.R
+loopQTLplotPair.R
+loopQTLplotSnpWindow.R
+loopQTLsetup.R
+PCAforQTLrunBE.R
+PCAforQTLrunElbow.R
+runQTL.R
+utils.R
