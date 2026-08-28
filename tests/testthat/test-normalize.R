@@ -3,20 +3,20 @@
 #
 ## These tests cover:
 ##   * RINT-only path (we monkey-patch the per-chrom worker via a stub object)
-##   * .quantile_normalize correctness
+##   * .quantileNormalize correctness
 ##   * The S4 invariants are preserved after normalize-shaped output
 
-test_that(".quantile_normalize equalizes column distributions", {
+test_that(".quantileNormalize equalizes column distributions", {
     set.seed(1)
     m <- matrix(c(
         1, 5, 2, 8,
         3, 1, 4, 2,
         9, 7, 6, 3
     ), nrow = 4, byrow = TRUE)
-    qn <- loopQTL:::.quantile_normalize(m)
+    qn <- loopQTL:::.quantileNormalize(m)
     ## After QN every column should have the same sorted vector
-    sorted_cols <- apply(qn, 2, sort)
-    expect_true(all(apply(sorted_cols, 1, function(r) diff(range(r)) < 1e-12)))
+    sortedCols <- apply(qn, 2, sort)
+    expect_true(all(apply(sortedCols, 1, function(r) diff(range(r)) < 1e-12)))
 })
 
 test_that(".rint matches Blom offset and handles constants", {

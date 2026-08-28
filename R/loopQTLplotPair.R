@@ -1,12 +1,12 @@
 #' Boxplot for a single SNP-loop pair, with QTL stats in the title
 #'
 #' Stratifies the loop's phenotype by genotype dosage (0/1/2, labeled with the
-#' REF/ALT alleles) and adds a title showing snp_id, loop_id, REF/ALT, p-value,
+#' REF/ALT alleles) and adds a title showing snpId, loopID, REF/ALT, p-value,
 #' and beta - drawn from the pair's row in `obj@results`.
 #'
 #' @param obj A [loopQTL-class] with `obj@results` populated by `runQTL()`.
-#' @param loop_id Single loop_id to plot.
-#' @param snp_id Single snp_id to plot.
+#' @param loopID Single loopID to plot.
+#' @param snpId Single snpId to plot.
 #' @param normal Use RINT'd phenotype values (default `TRUE`, matching what
 #'   the QTL regression actually used). Pass `FALSE` to plot pre-RINT values.
 #' @param jitter Add a jittered point overlay (default `TRUE`).
@@ -14,63 +14,63 @@
 #' @return A `ggplot` object.
 #'
 #' @export
-loopQTLplotPair <- function(obj, loop_id, snp_id,
+loopQTLplotPair <- function(obj, loopID, snpId,
                             normal = TRUE, jitter = TRUE) {
     stopifnot(
         methods::is(obj, "loopQTL"),
-        is.character(loop_id), length(loop_id) == 1,
-        is.character(snp_id),  length(snp_id) == 1
+        is.character(loopID), length(loopID) == 1,
+        is.character(snpId),  length(snpId) == 1
     )
     if (nrow(obj@results) == 0) {
         .stopNoCall("obj@results is empty. Run runQTL(obj) first.")
     }
 
     ## Look up the (loop, SNP) row in obj@results for stats
-    hit <- obj@results[obj@results$loop_id == loop_id &
-        obj@results$snp_id == snp_id, , drop = FALSE]
+    hit <- obj@results[obj@results$loopID == loopID &
+        obj@results$snpId == snpId, , drop = FALSE]
     if (nrow(hit) == 0) {
-        .stopNoCall("(loop_id, snp_id) pair not found in obj@results")
+        .stopNoCall("(loopID, snpId) pair not found in obj@results")
     }
     hit <- hit[1, , drop = FALSE]
     ref <- hit$ref
     alt <- hit$alt
-    geno_labels <- c(
+    genotypeLabels <- c(
         paste0(ref, "/", ref),
         paste0(ref, "/", alt),
         paste0(alt, "/", alt)
     )
 
     ## Pull per-sample pair data
-    d <- loopQTLpairData(obj, loop_id, snp_id, normal = normal)
-    d$geno_factor <- factor(d$genotype, levels = c(0, 1, 2), labels = geno_labels)
-    d <- d[!is.na(d$geno_factor) & !is.na(d$phenotype), , drop = FALSE]
+    d <- loopQTLpairData(obj, loopID, snpId, normal = normal)
+    d$genotypeFactor <- factor(d$genotype, levels = c(0, 1, 2), labels = genotypeLabels)
+    d <- d[!is.na(d$genotypeFactor) & !is.na(d$phenotype), , drop = FALSE]
     if (nrow(d) == 0) {
         .stopNoCall("No samples have non-NA genotype and phenotype for this pair.")
     }
 
     ## Per-genotype sample counts for x-tick subtitles
-    n_per <- as.integer(table(d$geno_factor))
-    x_labels <- sprintf("%s\n(n=%d)", geno_labels, n_per)
+    nPer <- as.integer(table(d$genotypeFactor))
+    xLabels <- sprintf("%s\n(n=%d)", genotypeLabels, nPer)
 
-    title_main <- sprintf("%s   |   %s", snp_id, loop_id)
-    sub_main <- sprintf(
+    plotTitle <- sprintf("%s   |   %s", snpId, loopID)
+    subMain <- sprintf(
         "REF=%s   ALT=%s   |   p = %.3g   |   beta = %.3g",
         ref, alt, hit$p, hit$beta
     )
-    y_lab <- if (normal) "Loop phenotype (RINT)" else "Loop phenotype (normalized)"
+    yLabel <- if (normal) "Loop phenotype (RINT)" else "Loop phenotype (normalized)"
 
-    p <- ggplot2::ggplot(d, ggplot2::aes(.data$geno_factor, .data$phenotype)) +
+    p <- ggplot2::ggplot(d, ggplot2::aes(.data$genotypeFactor, .data$phenotype)) +
         ggplot2::geom_boxplot(
             fill = "lightgray", outlier.size = 0.8,
             width = 0.5
         ) +
-        ggplot2::scale_x_discrete(labels = x_labels) +
+        ggplot2::scale_x_discrete(labels = xLabels) +
         ggplot2::theme_classic(base_size = 12) +
         ggplot2::labs(
-            title = title_main,
-            subtitle = sub_main,
+            title = plotTitle,
+            subtitle = subMain,
             x = "Genotype",
-            y = y_lab
+            y = yLabel
         ) +
         ggplot2::theme(
             plot.title    = ggplot2::element_text(face = "bold", size = 11),

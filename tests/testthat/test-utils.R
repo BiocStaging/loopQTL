@@ -1,7 +1,7 @@
-test_that(".bin_anchor floors midpoint to bin start", {
-    expect_equal(loopQTL:::.bin_anchor(1, 250000, 250000), 125000)
-    expect_equal(loopQTL:::.bin_anchor(250000, 500000, 250000), 375000 %/% 250000 * 250000)
-    expect_equal(loopQTL:::.bin_anchor(0, 250000, 250000), 125000 %/% 250000 * 250000)
+test_that(".binAnchor floors midpoint to bin start", {
+    expect_equal(loopQTL:::.binAnchor(1, 250000, 250000), 125000)
+    expect_equal(loopQTL:::.binAnchor(250000, 500000, 250000), 375000 %/% 250000 * 250000)
+    expect_equal(loopQTL:::.binAnchor(0, 250000, 250000), 125000 %/% 250000 * 250000)
 })
 
 test_that(".rint matches Blom offset", {
@@ -15,10 +15,10 @@ test_that(".rint returns NA on constant input", {
 })
 
 test_that("chrom normalizer handles both styles", {
-    f_chr <- loopQTL:::.make_chrom_normalizer(c("chr1", "chr2", "chrX"))
-    expect_equal(f_chr("1"), "chr1")
-    expect_equal(f_chr("chr1"), "chr1")
-    f_nochr <- loopQTL:::.make_chrom_normalizer(c("1", "2", "X"))
-    expect_equal(f_nochr("chr1"), "1")
-    expect_equal(f_nochr("1"), "1")
+    fChr <- loopQTL:::.make_chrom_normalizer(c("chr1", "chr2", "chrX"))
+    expect_equal(fChr("1"), "chr1")
+    expect_equal(fChr("chr1"), "chr1")
+    fNochr <- loopQTL:::.make_chrom_normalizer(c("1", "2", "X"))
+    expect_equal(fNochr("chr1"), "1")
+    expect_equal(fNochr("1"), "1")
 })

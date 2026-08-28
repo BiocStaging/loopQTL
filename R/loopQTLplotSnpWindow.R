@@ -1,8 +1,8 @@
 #' Per-pixel SNP-effect (beta) heatmap for one SNP
 #'
 #' For a SNP whose contact window was saved by
-#' [loopQTLnormalize()] (with `save_windows = TRUE`), fits a per-cell
-#' linear regression `contact_value ~ dosage [+ covariates]` and renders
+#' [loopQTLnormalize()] (with `saveWindows = TRUE`), fits a per-cell
+#' linear regression `contactValue ~ dosage [+ covariates]` and renders
 #' the regression slope (`beta`) as a heatmap.
 #'
 #' Same units as the `beta` column in `obj@results` from [runQTL()] -
@@ -16,16 +16,16 @@
 #' Optionally crop the view to a sub-window via `chrom`/`start`/`end` to
 #' zoom on a specific region (e.g. just the loop arc).
 #'
-#' @param obj A [loopQTL-class] with `meta$windows_out` populated by
-#'   `loopQTLnormalize(save_windows = TRUE)`.
-#' @param snp_id Single snp_id present in the saved windows file.
+#' @param obj A [loopQTL-class] with `meta$windowsOut` populated by
+#'   `loopQTLnormalize(saveWindows = TRUE)`.
+#' @param snpId Single snpId present in the saved windows file.
 #' @param chrom Optional chrom for verification. If supplied, must match
-#'   the SNP's chrom in the windows file (helps catch a wrong snp_id).
+#'   the SNP's chrom in the windows file (helps catch a wrong snpId).
 #' @param start Optional start position in bp to crop the heatmap to.
 #'   Snapped down to the nearest bin start.
 #' @param end Optional end position in bp to crop the heatmap to. Snapped
 #'   up to the nearest bin end.
-#' @param windows Either `NULL` (default, loads from `obj@meta$windows_out`),
+#' @param windows Either `NULL` (default, loads from `obj@meta$windowsOut`),
 #'   a path to a windows `.rds`, or the loaded list. Pass the loaded list
 #'   when calling the function in a loop over many SNPs to avoid reloading.
 #' @param mirror Logical; mirror the upper-triangle beta values to the
@@ -46,11 +46,11 @@
 #'     \item{matrix/data.frame}{User-supplied `samples x k` covariates;
 #'       partial regression as above. Rownames or matched order required.}
 #'   }
-#' @param K_method `"elbow"` (default) or `"BE"`. Passed through to
+#' @param Kmethod `"elbow"` (default) or `"BE"`. Passed through to
 #'   [loopQTLchooseK()] when `covariates = "auto"`. Ignored otherwise.
-#' @param K_max Hard cap on the auto-chosen K when `covariates = "auto"`.
+#' @param Kmax Hard cap on the auto-chosen K when `covariates = "auto"`.
 #'   Defaults to the number of samples minus 2 (same as [runQTL()]). Pass a
-#'   smaller value (e.g. `floor(n_samples / 4)`) for a more conservative
+#'   smaller value (e.g. `floor(nSamples / 4)`) for a more conservative
 #'   covariate set.
 #' @param limit Symmetric color-scale limit on beta. Values beyond
 #'   `+/-limit` are clipped (squished) to the deepest color. Default
@@ -62,7 +62,7 @@
 #'   Default `"RdBu"` (reversed so + value = red, - value = blue).
 #' @param metric What to render per cell:
 #'   \describe{
-#'     \item{`"beta_logp"`}{Default. Signed β weighted by significance:
+#'     \item{`"betaLogp"`}{Default. Signed β weighted by significance:
 #'       `beta * -log10(p)`. Highlights cells that are both large in
 #'       effect and significant; cells with tiny p-values pop even if
 #'       their raw β is modest.}
@@ -75,19 +75,19 @@
 #'       same normalization applied to `obj@phenotype`, so with
 #'       `normal = TRUE, covariates = "auto"` the cell at the loop matches
 #'       `obj@results$beta` exactly.}
-#'     \item{`"cpm"`}{Counts per million: `w$cells_raw / (obj@cis / 1e6)`
+#'     \item{`"cpm"`}{Counts per million: `w$cellsRaw / (obj@cis / 1e6)`
 #'       per sample. Depth-corrected but no cross-sample QN. Requires
 #'       `obj@cis` to be populated (was set at setup).}
-#'     \item{`"raw"`}{Raw straw counts (`w$cells_raw`) - no depth correction,
+#'     \item{`"raw"`}{Raw straw counts (`w$cellsRaw`) - no depth correction,
 #'       no QN. β is on the raw-count scale and is NOT comparable to
 #'       `obj@results$beta`.}
 #'   }
-#' @param axis_unit Unit for the graph axes - `"Mb"` (default) or `"bp"`.
+#' @param axisUnit Unit for the graph axes - `"Mb"` (default) or `"bp"`.
 #'
 #' @return A `ggplot` object.
 #'
 #' @export
-loopQTLplotSnpWindow <- function(obj, snp_id,
+loopQTLplotSnpWindow <- function(obj, snpId,
                                  chrom = NULL,
                                  start = NULL,
                                  end = NULL,
@@ -96,16 +96,16 @@ loopQTLplotSnpWindow <- function(obj, snp_id,
                                  minSamplesPerCell = 3,
                                  normal = FALSE,
                                  covariates = NULL,
-                                 K_method = c("elbow", "BE"),
-                                 K_max = NULL,
+                                 Kmethod = c("elbow", "BE"),
+                                 Kmax = NULL,
                                  limit = NULL,
                                  palette = "RdBu",
-                                 metric = c("beta_logp", "beta"),
+                                 metric = c("betaLogp", "beta"),
                                  values = c("normalized", "cpm", "raw"),
-                                 axis_unit = c("Mb", "bp")) {
+                                 axisUnit = c("Mb", "bp")) {
     stopifnot(
         methods::is(obj, "loopQTL"),
-        is.character(snp_id), length(snp_id) == 1, nzchar(snp_id),
+        is.character(snpId), length(snpId) == 1, nzchar(snpId),
         is.logical(mirror), length(mirror) == 1,
         is.logical(normal), length(normal) == 1, !is.na(normal),
         is.character(palette), length(palette) == 1
@@ -113,23 +113,23 @@ loopQTLplotSnpWindow <- function(obj, snp_id,
     if (!is.null(limit)) {
         stopifnot(is.numeric(limit), length(limit) == 1, limit > 0)
     }
-    K_method <- match.arg(K_method)
+    Kmethod <- match.arg(Kmethod)
     metric <- match.arg(metric)
     values <- match.arg(values)
-    axis_unit <- match.arg(axis_unit)
+    axisUnit <- match.arg(axisUnit)
 
-    w <- .resolve_windows(obj, windows)
+    w <- .resolveWindows(obj, windows)
 
     ## 2. Look up the SNP row
-    i <- match(snp_id, w$snp_index$snp_id)
+    i <- match(snpId, w$snpIndex$snpId)
     if (is.na(i)) {
-        .stopNoCall("snp_id not found in windows file: ", snp_id)
+        .stopNoCall("snpId not found in windows file: ", snpId)
     }
-    row <- w$snp_index[i, , drop = FALSE]
-    cols <- row$col_indices[[1]]
+    row <- w$snpIndex[i, , drop = FALSE]
+    cols <- row$colIndices[[1]]
     if (length(cols) == 0) {
         .stopNoCall(
-            "No cells were saved for snp_id = ", snp_id,
+            "No cells were saved for snpId = ", snpId,
             " (likely on a chrom that had an empty window slice)."
         )
     }
@@ -159,15 +159,15 @@ loopQTLplotSnpWindow <- function(obj, snp_id,
         }
         crop_lo_req <- as.integer(floor(start / res) * res)
         crop_hi_req <- as.integer(floor((end - 1) / res) * res)
-        crop_lo <- max(crop_lo_req, binStart)
-        crop_hi <- min(crop_hi_req, binEnd)
-        if (crop_lo > crop_hi) {
+        cropLo <- max(crop_lo_req, binStart)
+        cropHi <- min(crop_hi_req, binEnd)
+        if (cropLo > cropHi) {
             .stopNoCall(
                 "Crop range [", start, ", ", end, "] does not overlap the saved ",
-                "window [", binStart, ", ", binEnd + res, "] for SNP ", snp_id
+                "window [", binStart, ", ", binEnd + res, "] for SNP ", snpId
             )
         }
-        if (crop_lo != crop_lo_req || crop_hi != crop_hi_req) {
+        if (cropLo != crop_lo_req || cropHi != crop_hi_req) {
             .warningNoCall(sprintf(
                 paste0(
                     "Requested [%d, %d] was clipped to [%d, %d] (the saved window ",
@@ -175,17 +175,17 @@ loopQTLplotSnpWindow <- function(obj, snp_id,
                     "to enlarge it)."
                 ),
                 as.integer(start), as.integer(end),
-                crop_lo, crop_hi + res, snp_id, binStart, binEnd + res
+                cropLo, cropHi + res, snpId, binStart, binEnd + res
             ))
         }
     } else {
-        crop_lo <- binStart
-        crop_hi <- binEnd
+        cropLo <- binStart
+        cropHi <- binEnd
     }
 
     ## 4. Pull genotype dosage for this SNP
     dose <- .read_snp_dosage(obj@vcfPath, row$chrom, row$pos,
-        samples_vec = w$samples
+        samplesVec = w$samples
     )
 
     ## 5. Per-cell regression slope (beta)
@@ -195,20 +195,20 @@ loopQTLplotSnpWindow <- function(obj, snp_id,
     ##   normal = TRUE,  covariates = "auto"/matrix -> partial beta matching runQTL()
     ## By Frisch-Waugh-Lovell, the partial slope equals the slope from
     ## lm(cell ~ dose + cvrt), so we residualize both cell-value and dose
-    ## against [1, cvrt] then take slope = sum(Y_res * d_res) / sum(d_res^2).
+    ## against [1, cvrt] then take slope = sum(YRes * dRes) / sum(dRes^2).
     ## Select the cell values matrix based on the `values` arg
     
-    if (values %in% c("raw", "cpm") && is.null(w$cells_raw)) {
+    if (values %in% c("raw", "cpm") && is.null(w$cellsRaw)) {
         .stopNoCall(
             "This loopQTL object does not contain raw counts. To run ",
             "loopQTLplotSnpWindow(), please re-run loopQTLnormalize() ",
-            "with save_windows set to TRUE."
+            "with saveWindows set to TRUE."
         )
     }
     
-    cells_mat <- switch(values,
+    cellsMatrix <- switch(values,
         normalized = w$cells,
-        raw = w$cells_raw,
+        raw = w$cellsRaw,
         cpm = {
             if (length(obj@cis) == 0) {
                 .stopNoCall(
@@ -217,11 +217,11 @@ loopQTLplotSnpWindow <- function(obj, snp_id,
                     "let setup auto-compute it from .hic."
                 )
             }
-            lib_M <- obj@cis[w$samples] / 1e6
-            sweep(w$cells_raw, 1, lib_M, "/")
+            libM <- obj@cis[w$samples] / 1e6
+            sweep(w$cellsRaw, 1, libM, "/")
         }
     )
-    cells_for_snp <- cells_mat[, cols, drop = FALSE]
+    cells_for_snp <- cellsMatrix[, cols, drop = FALSE]
     rownames(cells_for_snp) <- w$samples
 
     Y <- cells_for_snp
@@ -231,115 +231,115 @@ loopQTLplotSnpWindow <- function(obj, snp_id,
         if (ncol(Y) != length(cols)) Y <- t(Y)
     }
 
-    cvrt_mode <- "none"
+    cvrtMode <- "none"
     cvrt <- NULL
     if (identical(covariates, "auto")) {
-        cvrt_mode <- "auto"
+        cvrtMode <- "auto"
         if (length(obj@phenotype) == 0) {
             .stopNoCall("covariates = 'auto' needs obj@phenotype; run loopQTLnormalize() first")
         }
-        Y_for_pca <- if (normal) .rint_matrix(obj@phenotype) else obj@phenotype
-        K_res <- .pca_for_qtl(Y_for_pca,
+        Y_for_pca <- if (normal) .rintMatrix(obj@phenotype) else obj@phenotype
+        Kres <- .pca_for_qtl(Y_for_pca,
             samples = obj@samples,
-            K_method = K_method, K_max = K_max
+            Kmethod = Kmethod, Kmax = Kmax
         )
-        cvrt <- K_res$PCs[w$samples, , drop = FALSE]
+        cvrt <- Kres$PCs[w$samples, , drop = FALSE]
     } else if (!is.null(covariates)) {
-        cvrt_mode <- "user"
-        cv_df <- as.data.frame(covariates, stringsAsFactors = FALSE)
-        if (!is.null(rownames(cv_df))) {
-            mm <- match(w$samples, rownames(cv_df))
+        cvrtMode <- "user"
+        cvDf <- as.data.frame(covariates, stringsAsFactors = FALSE)
+        if (!is.null(rownames(cvDf))) {
+            mm <- match(w$samples, rownames(cvDf))
             if (anyNA(mm)) {
                 .stopNoCall(
                     "`covariates` is missing rows for samples: ",
                     paste(w$samples[is.na(mm)], collapse = ", ")
                 )
             }
-            cv_df <- cv_df[mm, , drop = FALSE]
-        } else if (nrow(cv_df) != length(w$samples)) {
+            cvDf <- cvDf[mm, , drop = FALSE]
+        } else if (nrow(cvDf) != length(w$samples)) {
             .stopNoCall(
-                "`covariates` has ", nrow(cv_df), " rows but ",
+                "`covariates` has ", nrow(cvDf), " rows but ",
                 length(w$samples), " samples; provide rownames or matched order"
             )
         }
-        cvrt <- as.matrix(cv_df)
+        cvrt <- as.matrix(cvDf)
         rownames(cvrt) <- w$samples
     }
 
     usable <- !is.na(dose)
     if (!is.null(cvrt))
         usable <- usable & stats::complete.cases(cvrt)
-    n_usable <- sum(usable)
+    nUsable <- sum(usable)
 
-    beta_vec <- rep(NA_real_, ncol(Y))
-    p_vec <- rep(NA_real_, ncol(Y))
-    if (n_usable >= as.integer(minSamplesPerCell)) {
-        Y_u <- Y[usable, , drop = FALSE]
-        d_u <- dose[usable]
+    betaVec <- rep(NA_real_, ncol(Y))
+    pVec <- rep(NA_real_, ncol(Y))
+    if (nUsable >= as.integer(minSamplesPerCell)) {
+        Yusable <- Y[usable, , drop = FALSE]
+        dU <- dose[usable]
         if (is.null(cvrt)) {
             ## Marginal: center then slope = sum(Yc * dc) / sum(dc^2)
-            Y_r <- sweep(Y_u, 2, colMeans(Y_u, na.rm = TRUE), FUN = "-")
-            d_r <- d_u - mean(d_u)
-            df <- n_usable - 2
+            Y_r <- sweep(Yusable, 2, colMeans(Yusable, na.rm = TRUE), FUN = "-")
+            dR <- dU - mean(dU)
+            df <- nUsable - 2
         } else {
             ## Partial via FWL: residualize Y and d against [1, cvrt[usable, ]]
             X <- cbind(1, cvrt[usable, , drop = FALSE])
             qrX <- qr(X)
-            Y_r <- Y_u - X %*% qr.coef(qrX, Y_u)
-            d_r <- as.numeric(d_u - X %*% qr.coef(qrX, d_u))
-            df <- n_usable - ncol(X) - 1
+            Y_r <- Yusable - X %*% qr.coef(qrX, Yusable)
+            dR <- as.numeric(dU - X %*% qr.coef(qrX, dU))
+            df <- nUsable - ncol(X) - 1
         }
-        denom_d <- sum(d_r^2)
-        if (denom_d > 0 && df > 0) {
-            beta_vec <- as.numeric(crossprod(Y_r, d_r) / denom_d)
-            ## RSS_j = ||Y_r_j||^2 - beta_j^2 * denom_d  (from partial regression)
-            rss <- colSums(Y_r^2) - beta_vec^2 * denom_d
+        dDenominator <- sum(dR^2)
+        if (dDenominator > 0 && df > 0) {
+            betaVec <- as.numeric(crossprod(Y_r, dR) / dDenominator)
+            ## RSS_j = ||Y_r_j||^2 - beta_j^2 * dDenominator  (from partial regression)
+            rss <- colSums(Y_r^2) - betaVec^2 * dDenominator
             rss <- pmax(rss, 0) # numerical safety
             sigma2 <- rss / df
-            se_vec <- sqrt(sigma2 / denom_d)
-            t_vec <- beta_vec / se_vec
-            p_vec <- 2 * stats::pt(-abs(t_vec), df = df)
+            seVec <- sqrt(sigma2 / dDenominator)
+            tVec <- betaVec / seVec
+            pVec <- 2 * stats::pt(-abs(tVec), df = df)
         }
-        beta_vec[!is.finite(beta_vec)] <- NA_real_
-        p_vec[!is.finite(p_vec)] <- NA_real_
+        betaVec[!is.finite(betaVec)] <- NA_real_
+        pVec[!is.finite(pVec)] <- NA_real_
     }
 
     ## Build the display value per cell based on `metric`
-    if (metric == "beta_logp") {
+    if (metric == "betaLogp") {
         ## Guard against p==0 (perfect fit); cap the -log10 to a plottable ceiling
-        p_safe <- pmax(p_vec, .Machine$double.xmin)
-        display_v <- beta_vec * (-log10(p_safe))
-        display_v[!is.finite(display_v)] <- NA_real_
+        pSafe <- pmax(pVec, .Machine$double.xmin)
+        displayV <- betaVec * (-log10(pSafe))
+        displayV[!is.finite(displayV)] <- NA_real_
     } else {
-        display_v <- beta_vec
+        displayV <- betaVec
     }
 
     ## 6. Lay r values onto the bins x bins grid
-    coord <- w$cell_coords[cols, , drop = FALSE]
-    bins <- seq.int(crop_lo, crop_hi, by = res)
+    coord <- w$cellCoordinates[cols, , drop = FALSE]
+    bins <- seq.int(cropLo, cropHi, by = res)
     nb <- length(bins)
-    in_crop <- coord$bin_i >= crop_lo & coord$bin_i <= crop_hi &
-        coord$bin_j >= crop_lo & coord$bin_j <= crop_hi
-    ri <- match(coord$bin_i[in_crop], bins)
-    rj <- match(coord$bin_j[in_crop], bins)
-    ## Shift tile centers by res/2 so each tile visually spans [bin_start,
-    ## bin_start + res] and axis ticks at bin_start align with the LEFT
+    inCrop <- coord$binI >= cropLo & coord$binI <= cropHi &
+        coord$binJ >= cropLo & coord$binJ <= cropHi
+    ri <- match(coord$binI[inCrop], bins)
+    rj <- match(coord$binJ[inCrop], bins)
+    ## Shift tile centers by res/2 so each tile visually spans [binStart,
+    ## binStart + res] and axis ticks at binStart align with the LEFT
     ## edge of the tile -- matching IGV / cooler / Juicebox bp conventions.
     half <- res / 2
-    value <- display_v[in_crop]
-    bin_i <- bins[ri] + half
-    bin_j <- bins[rj] + half
+    value <- displayV[inCrop]
+    binI <- bins[ri] + half
+    binJ <- bins[rj] + half
     if (mirror) {
         value <- c(value, value)
-        bin_i_original <- bin_i
-        bin_i <- c(bin_i, bin_j)
-        bin_j <- c(bin_j, bin_i_original)
+        bin_i_original <- binI
+        binI <- c(binI, binJ)
+        binJ <- c(binJ, bin_i_original)
         rm(bin_i_original)
     }
-    long <- data.frame(bin_i = bin_i, bin_j = bin_j, value = value,
+    long <- data.frame(binI = binI, binJ = binJ, value = value,
         stringsAsFactors = FALSE
     )
-    long <- long[!duplicated(paste(long$bin_i, long$bin_j, sep = "_")), ,
+    long <- long[!duplicated(paste(long$binI, long$binJ, sep = "_")), ,
         drop = FALSE
     ]
 
@@ -348,79 +348,79 @@ loopQTLplotSnpWindow <- function(obj, snp_id,
     ## data-driven; pass a fixed `limit` for cross-SNP comparability.
     if (is.null(limit)) {
         vfin <- long$value[is.finite(long$value)]
-        eff_limit <- if (length(vfin) > 0) max(abs(vfin)) else 1
-        if (!is.finite(eff_limit) || eff_limit <= 0) eff_limit <- 1
+        effLimit <- if (length(vfin) > 0) max(abs(vfin)) else 1
+        if (!is.finite(effLimit) || effLimit <= 0) effLimit <- 1
     } else {
-        eff_limit <- limit
+        effLimit <- limit
     }
 
     ## 8. Plot
-    axis_format <- if (axis_unit == "Mb") {
+    axisFormat <- if (axisUnit == "Mb") {
         function(x) sprintf("%.2f", x / 1e6)
     } else {
         function(x) format(x, big.mark = ",", scientific = FALSE)
     }
-    axis_label_suffix <- if (axis_unit == "Mb") "Mb" else "bp"
+    axis_label_suffix <- if (axisUnit == "Mb") "Mb" else "bp"
 
-    mode_str <- sprintf(
+    modeStr <- sprintf(
         "%s%s",
-        if (cvrt_mode == "none") "marginal β" else "partial β",
+        if (cvrtMode == "none") "marginal β" else "partial β",
         if (normal) ", RINT" else ""
     )
-    if (cvrt_mode == "auto") 
-        mode_str <- paste0(mode_str, sprintf(" | K=%d auto PCs", ncol(cvrt)))
-    if (cvrt_mode == "user") 
-        mode_str <- paste0(mode_str, sprintf(" | %d user cvrt", ncol(cvrt)))
-    mode_str <- paste0(mode_str, " | ", values, " values")
+    if (cvrtMode == "auto") 
+        modeStr <- paste0(modeStr, sprintf(" | K=%d auto PCs", ncol(cvrt)))
+    if (cvrtMode == "user") 
+        modeStr <- paste0(modeStr, sprintf(" | %d user cvrt", ncol(cvrt)))
+    modeStr <- paste0(modeStr, " | ", values, " values")
 
-    metric_label <- switch(metric,
-        beta_logp = expression(beta %*% -log[10](p)),
+    metricLabel <- switch(metric,
+        betaLogp = expression(beta %*% -log[10](p)),
         beta      = expression(beta)
     )
     metric_title_str <- switch(metric,
-        beta_logp = "β × -log10(p)",
+        betaLogp = "β × -log10(p)",
         beta      = "β"
     )
 
     title <- sprintf(
         "Per-pixel %s (contact ~ dosage) | %s",
-        metric_title_str, snp_id
+        metric_title_str, snpId
     )
     subtitle <- sprintf(
         "%s:%d  REF=%s ALT=%s | window %s bp | %d samples (%d usable) | %s | limits ±%.3g",
         row$chrom, row$pos, row$ref, row$alt,
-        format(crop_hi - crop_lo + res, big.mark = ","),
-        length(w$samples), n_usable, mode_str, eff_limit
+        format(cropHi - cropLo + res, big.mark = ","),
+        length(w$samples), nUsable, modeStr, effLimit
     )
 
-    diag_lo <- crop_lo
-    diag_hi <- crop_hi + res
+    diagonalStart <- cropLo
+    diagonalEnd <- cropHi + res
 
     ggplot2::ggplot(
         long,
-        ggplot2::aes(.data$bin_i, .data$bin_j, fill = .data$value)
+        ggplot2::aes(.data$binI, .data$binJ, fill = .data$value)
     ) +
         ggplot2::geom_raster(interpolate = FALSE) +
         ggplot2::annotate("segment",
-            x = diag_lo, y = diag_lo,
-            xend = diag_hi, yend = diag_hi,
+            x = diagonalStart, y = diagonalStart,
+            xend = diagonalEnd, yend = diagonalEnd,
             color = "black", linewidth = 0.5, alpha = 0.8
         ) +
         ggplot2::scale_fill_distiller(
             palette   = palette,
             direction = -1, # so + beta = red, - beta = blue
-            limits    = c(-eff_limit, eff_limit),
+            limits    = c(-effLimit, effLimit),
             oob       = scales::squish,
             na.value  = "grey95"
         ) +
-        ggplot2::scale_x_continuous(labels = axis_format, expand = c(0, 0)) +
-        ggplot2::scale_y_reverse(labels = axis_format, expand = c(0, 0)) +
+        ggplot2::scale_x_continuous(labels = axisFormat, expand = c(0, 0)) +
+        ggplot2::scale_y_reverse(labels = axisFormat, expand = c(0, 0)) +
         ggplot2::coord_fixed() +
         ggplot2::labs(
             title = title, subtitle = subtitle,
-            x = sprintf("bin_i (%s, %s)", axis_label_suffix, row$chrom),
-            y = sprintf("bin_j (%s, %s)", axis_label_suffix, row$chrom),
-            fill = metric_label
+            x = sprintf("binI (%s, %s)", axis_label_suffix, row$chrom),
+            y = sprintf("binJ (%s, %s)", axis_label_suffix, row$chrom),
+            fill = metricLabel
         ) +
         ggplot2::theme_classic(base_size = 11) +
         ggplot2::theme(
@@ -434,15 +434,15 @@ loopQTLplotSnpWindow <- function(obj, snp_id,
 ## Internal helpers
 
 ## Resolve the `windows` arg into a loaded list, with the necessary structure.
-.resolve_windows <- function(obj, windows) {
+.resolveWindows <- function(obj, windows) {
     ## If the windows argument is null, look inside the loopQTL object
     if (is.null(windows)) {
-        windows <- obj@meta$windows_out
+        windows <- obj@meta$windowsOut
         if (is.null(windows)) {
             .stopNoCall(
                 "The input loopQTL object does not contain a windows file ",
-                "path. Please run loopQTLnormalize() with save_windows set ",
-                "to TRUE and windows_out set to an output file path, or ",
+                "path. Please run loopQTLnormalize() with saveWindows set ",
+                "to TRUE and windowsOut set to an output file path, or ",
                 "specify a path to a windows file via the windows argument."
             )
         }
@@ -454,24 +454,24 @@ loopQTLplotSnpWindow <- function(obj, snp_id,
         return(readRDS(windows))
     }
     if (is.list(windows) &&
-        all(c("cells", "cell_coords", "snp_index", "samples", "resolution") %in%
+        all(c("cells", "cellCoordinates", "snpIndex", "samples", "resolution") %in%
             names(windows))) {
         return(windows)
     }
     .stopNoCall(
         "`windows` must be NULL, a path to a windows .rds, or a loaded list ",
-        "with cells/cell_coords/snp_index/samples/resolution fields."
+        "with cells/cellCoordinates/snpIndex/samples/resolution fields."
     )
 }
 
 ## Targeted single-SNP dosage read from a tabix VCF. Returns a numeric vector
-## of length(samples_vec) in that order; NA where missing.
-.read_snp_dosage <- function(vcfPath, chrom, pos, samples_vec) {
+## of length(samplesVec) in that order; NA where missing.
+.read_snp_dosage <- function(vcfPath, chrom, pos, samplesVec) {
     tab <- Rsamtools::TabixFile(vcfPath)
-    vcf_chroms <- Rsamtools::headerTabix(tab)$seqnames
-    vcf_norm <- .make_chrom_normalizer(vcf_chroms)
+    vcfChroms <- Rsamtools::headerTabix(tab)$seqnames
+    vcfChromNormalizerFunc <- .make_chrom_normalizer(vcfChroms)
     gr <- GenomicRanges::GRanges(
-        seqnames = vcf_norm(chrom),
+        seqnames = vcfChromNormalizerFunc(chrom),
         ranges   = IRanges::IRanges(start = as.integer(pos), end = as.integer(pos))
     )
     vcf <- VariantAnnotation::readVcf(
@@ -487,14 +487,14 @@ loopQTLplotSnpWindow <- function(obj, snp_id,
     }
     ## If multi-allelic, take the first row (matching how .gt_to_dosage handles it)
     gt <- VariantAnnotation::geno(vcf)$GT
-    m <- match(samples_vec, colnames(gt))
+    m <- match(samplesVec, colnames(gt))
     if (anyNA(m)) {
         .stopNoCall(
             "VCF missing samples present in windows file: ",
-            paste(samples_vec[is.na(m)], collapse = ", ")
+            paste(samplesVec[is.na(m)], collapse = ", ")
         )
     }
     gt <- gt[1, m, drop = FALSE]
     dose <- .gt_to_dosage(matrix(as.character(gt), nrow = 1))[1, ]
-    setNames(as.numeric(dose), samples_vec)
+    setNames(as.numeric(dose), samplesVec)
 }

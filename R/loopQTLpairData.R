@@ -1,84 +1,84 @@
 #' Extract per-sample data for one or more SNP-loop pairs
 #'
-#' Returns a long-format data.frame with one row per `(sample, loop_id,
-#' snp_id)` combination, carrying the per-sample genotype dosage, the
+#' Returns a long-format data.frame with one row per `(sample, loopID,
+#' snpId)` combination, carrying the per-sample genotype dosage, the
 #' phenotype value at that loop, and the per-sample cis depth.
 #'
 #' Requires `obj@results` to be populated (i.e., `runQTL()` has run), since
 #' SNP positions are looked up from the result table to fetch genotypes.
 #'
 #' @param obj A [loopQTL-class] with `runQTL()` results in `obj@results`.
-#' @param loop_id Character vector of loop_ids to extract.
-#' @param snp_id Character vector of snp_ids to extract.
+#' @param loopID Character vector of loopIDs to extract.
+#' @param snpId Character vector of snpIds to extract.
 #' @param normal Apply RINT per loop before returning phenotype values
 #'   (default `TRUE`, matching `runQTL()`'s default - the values plotted
 #'   then match what the regression actually used).
 #'
-#' @return data.frame with columns `sample`, `loop_id`, `snp_id`, `genotype`
+#' @return data.frame with columns `sample`, `loopID`, `snpId`, `genotype`
 #'   (0/1/2 dosage; NA for missing), `phenotype`, `cis`.
 #'
 #' @export
-loopQTLpairData <- function(obj, loop_id, snp_id, normal = TRUE) {
+loopQTLpairData <- function(obj, loopID, snpId, normal = TRUE) {
     stopifnot(
         methods::is(obj, "loopQTL"),
-        is.character(loop_id), length(loop_id) > 0,
-        is.character(snp_id), length(snp_id) > 0,
+        is.character(loopID), length(loopID) > 0,
+        is.character(snpId), length(snpId) > 0,
         is.logical(normal), length(normal) == 1
     )
     if (nrow(obj@results) == 0) {
         .stopNoCall("obj@results is empty. Run runQTL(obj) first to populate it.")
     }
 
-    loop_ids_all <- S4Vectors::mcols(obj@loops)$loop_id
-    miss_loops <- setdiff(loop_id, loop_ids_all)
-    if (length(miss_loops) > 0) {
-        .stopNoCall("loop_id(s) not in obj@loops: ", paste(miss_loops, collapse = ", "))
+    loop_ids_all <- S4Vectors::mcols(obj@loops)$loopID
+    missingLoops <- setdiff(loopID, loop_ids_all)
+    if (length(missingLoops) > 0) {
+        .stopNoCall("loopID(s) not in obj@loops: ", paste(missingLoops, collapse = ", "))
     }
 
-    miss_snps <- setdiff(snp_id, obj@results$snp_id)
-    if (length(miss_snps) > 0) {
-        .stopNoCall("snp_id(s) not in obj@results: ", paste(miss_snps, collapse = ", "))
+    missingSNPs <- setdiff(snpId, obj@results$snpId)
+    if (length(missingSNPs) > 0) {
+        .stopNoCall("snpId(s) not in obj@results: ", paste(missingSNPs, collapse = ", "))
     }
 
     ## SNP info from obj@results (positions + ref/alt)
-    snp_info <- unique(obj@results[
-        obj@results$snp_id %in% snp_id,
-        c("snp_id", "chrom", "pos", "ref", "alt"),
+    snpInfo <- unique(obj@results[
+        obj@results$snpId %in% snpId,
+        c("snpId", "chrom", "pos", "ref", "alt"),
         drop = FALSE
     ])
-    snp_info <- snp_info[match(snp_id, snp_info$snp_id), , drop = FALSE]
+    snpInfo <- snpInfo[match(snpId, snpInfo$snpId), , drop = FALSE]
 
     ## Genotypes via targeted tabix read  # Normalize chrom naming to whatever the VCF uses.
     tab <- Rsamtools::TabixFile(obj@vcfPath)
-    vcf_chroms <- Rsamtools::headerTabix(tab)$seqnames
-    vcf_norm <- .make_chrom_normalizer(vcf_chroms)
-    snp_chrom_vcf <- vcf_norm(snp_info$chrom)
-    which_gr <- GenomicRanges::GRanges(
+    vcfChroms <- Rsamtools::headerTabix(tab)$seqnames
+    vcfChromNormalizerFunc <- .make_chrom_normalizer(vcfChroms)
+    snp_chrom_vcf <- vcfChromNormalizerFunc(snpInfo$chrom)
+    whichGr <- GenomicRanges::GRanges(
         seqnames = snp_chrom_vcf,
-        ranges   = IRanges::IRanges(start = snp_info$pos, end = snp_info$pos)
+        ranges   = IRanges::IRanges(start = snpInfo$pos, end = snpInfo$pos)
     )
     param <- VariantAnnotation::ScanVcfParam(
-        which = which_gr, geno = "GT", info = NA_character_
+        which = whichGr, geno = "GT", info = NA_character_
     )
     vcf <- VariantAnnotation::readVcf(obj@vcfPath, genome = "unknown", param = param)
 
     rr <- SummarizedExperiment::rowRanges(vcf)
-    vcf_chrom <- as.character(GenomicRanges::seqnames(rr))
-    vcf_pos <- GenomicRanges::start(rr)
-    vcf_ref <- as.character(VariantAnnotation::ref(vcf))
+    vcfChrom <- as.character(GenomicRanges::seqnames(rr))
+    vcfPos <- GenomicRanges::start(rr)
+    vcfRef <- as.character(VariantAnnotation::ref(vcf))
 
     ## Match by (chrom, pos, ref) to handle multi-allelic loci
-    vcf_key <- paste(vcf_chrom, vcf_pos, vcf_ref, sep = ":")
-    snp_key <- paste(snp_chrom_vcf, snp_info$pos, snp_info$ref, sep = ":")
-    m_vcf <- match(snp_key, vcf_key)
-    if (anyNA(m_vcf)) {
+    vcfKey <- paste(vcfChrom, vcfPos, vcfRef, sep = ":")
+    snpKey <- paste(snp_chrom_vcf, snpInfo$pos, snpInfo$ref, sep = ":")
+    snpsInVCF <- match(snpKey, vcfKey)
+    if (anyNA(snpsInVCF)) {
         .stopNoCall(
             "Could not find SNP(s) in VCF at expected (chrom, pos, ref): ",
-            paste(snp_id[is.na(m_vcf)], collapse = ", ")
+            paste(snpId[is.na(snpsInVCF)], collapse = ", ")
         )
     }
 
-    gt <- VariantAnnotation::geno(vcf)$GT[m_vcf, , drop = FALSE]
+    gt <- VariantAnnotation::geno(vcf)$GT[snpsInVCF, , drop = FALSE]
 
     ## Reorder VCF samples to canonical
     sm <- match(obj@samples, colnames(gt))
@@ -90,32 +90,32 @@ loopQTLpairData <- function(obj, loop_id, snp_id, normal = TRUE) {
     }
     gt <- gt[, sm, drop = FALSE]
     dosage <- .gt_to_dosage(gt)
-    rownames(dosage) <- snp_id
+    rownames(dosage) <- snpId
     colnames(dosage) <- obj@samples
 
     ## Phenotype matrix for the requested loops
-    loop_idx <- match(loop_id, loop_ids_all)
-    pheno_full <- if (normal) .rint_matrix(obj@phenotype) else obj@phenotype
-    pheno_sub <- pheno_full[loop_idx, , drop = FALSE]
-    rownames(pheno_sub) <- loop_id
+    loopIdx <- match(loopID, loop_ids_all)
+    phenoFull <- if (normal) .rintMatrix(obj@phenotype) else obj@phenotype
+    phenoSub <- phenoFull[loopIdx, , drop = FALSE]
+    rownames(phenoSub) <- loopID
 
-    ## Build long table: n_samples x n_loops x n_snps rows
-    n_samples <- length(obj@samples)
+    ## Build long table: nSamples x nLoops x n_snps rows
+    nSamples <- length(obj@samples)
     grid <- expand.grid(
-        sample_idx = seq_len(n_samples),
-        loop_idx = seq_along(loop_id),
-        snp_idx = seq_along(snp_id),
+        sampleIdx = seq_len(nSamples),
+        loopIdx = seq_along(loopID),
+        snpIdx = seq_along(snpId),
         KEEP.OUT.ATTRS = FALSE
     )
-    cis_vec <- if (length(obj@cis) > 0) obj@cis[obj@samples] else rep(NA_real_, n_samples)
+    cisVec <- if (length(obj@cis) > 0) obj@cis[obj@samples] else rep(NA_real_, nSamples)
 
     out <- data.frame(
-        sample = obj@samples[grid$sample_idx],
-        loop_id = loop_id[grid$loop_idx],
-        snp_id = snp_id[grid$snp_idx],
-        genotype = dosage[cbind(grid$snp_idx, grid$sample_idx)],
-        phenotype = pheno_sub[cbind(grid$loop_idx, grid$sample_idx)],
-        cis = cis_vec[grid$sample_idx],
+        sample = obj@samples[grid$sampleIdx],
+        loopID = loopID[grid$loopIdx],
+        snpId = snpId[grid$snpIdx],
+        genotype = dosage[cbind(grid$snpIdx, grid$sampleIdx)],
+        phenotype = phenoSub[cbind(grid$loopIdx, grid$sampleIdx)],
+        cis = cisVec[grid$sampleIdx],
         stringsAsFactors = FALSE
     )
     rownames(out) <- NULL

@@ -25,7 +25,7 @@
 ## Bin a 1-based BEDPE-style anchor (start, end) to its analysis-bin start (0-based),
 ## matching strawr's binning. straw returns bin starts as the lower coordinate of
 ## the bin in 0-based half-open BP space, so bin = floor(midpoint / resolution) * resolution.
-.bin_anchor <- function(start, end, resolution) {
+.binAnchor <- function(start, end, resolution) {
     mid <- (as.numeric(start) + as.numeric(end)) / 2
     as.integer(floor(mid / resolution) * resolution)
 }
@@ -33,8 +33,8 @@
 ## Detect strawr's chromosome naming style ("1" vs "chr1") from the .hic header.
 ## Returns a function that maps a user-supplied chrom string (either style) to the
 ## style this .hic expects.
-.make_chrom_normalizer <- function(hic_chroms) {
-    uses_chr_prefix <- any(grepl("^chr", hic_chroms))
+.make_chrom_normalizer <- function(hicChroms) {
+    uses_chr_prefix <- any(grepl("^chr", hicChroms))
     function(x) {
         if (uses_chr_prefix) {
             ifelse(grepl("^chr", x), x, paste0("chr", x))
@@ -59,7 +59,7 @@
 ## all-NA, fewer than 2 non-NA, or have zero variance are returned as all-NA
 ## (RINT on a constant produces NaN/Inf, which would poison downstream
 ## regressions). dimnames are preserved.
-.rint_matrix <- function(mat) {
+.rintMatrix <- function(mat) {
     if (length(mat) == 0) {
         return(mat)
     }
@@ -67,8 +67,8 @@
         nrow = nrow(mat), ncol = ncol(mat),
         dimnames = dimnames(mat)
     )
-    row_sd <- apply(mat, 1, stats::sd, na.rm = TRUE)
-    ok <- is.finite(row_sd) & row_sd > 0
+    rowSd <- apply(mat, 1, stats::sd, na.rm = TRUE)
+    ok <- is.finite(rowSd) & rowSd > 0
     if (any(ok)) {
         good <- which(ok)
         out[good, ] <- t(apply(mat[good, , drop = FALSE], 1, .rint))
@@ -76,60 +76,60 @@
     out
 }
 
-## Internal: compute per-SNP window cells for save_windows in loopQTLnormalize().
+## Internal: compute per-SNP window cells for saveWindows in loopQTLnormalize().
 #
-## For each VCF SNP that overlaps any consensus loop anchor (within `snp_window`
-## bp flank), build the SNP's "window box" - a square (bin_lo..bin_hi)^2 region
+## For each VCF SNP that overlaps any consensus loop anchor (within `snpWindow`
+## bp flank), build the SNP's "window box" - a square (binLo..binHi)^2 region
 ## centered on the bounding interval of the SNP position and every partner
 ## anchor of every loop the SNP participates in, expanded symmetrically so its
 ## span is at least `window` bp. Returns the per-SNP metadata plus per-chrom
 ## deduplicated cell-coordinate tables that the BNBC per-chrom worker will
-## index after .normalize_BNBC() emits its wide table.
+## index after .normalizeBNBC() emits its wide table.
 #
 ## Returns:
 ##   list(
-##     snps_df = data.frame(snp_id, chrom_orig, chrom_vcf, pos, ref, alt,
-##                          bin_lo, bin_hi, n_loops_anchored),
-##     cells_by_chrom = named list per chrom; each is data.frame(bin_i, bin_j)
+##     snpsDf = data.frame(snpId, chromOrig, chromVcf, pos, ref, alt,
+##                          binLo, binHi, n_loops_anchored),
+##     cells_by_chrom = named list per chrom; each is data.frame(binI, binJ)
 ##                      of upper-triangle cells (bp), deduplicated across SNPs
 ##                      on that chrom,
-##     snp_cells_local = list (length nrow(snps_df)) of integer vectors of
+##     snp_cells_local = list (length nrow(snpsDf)) of integer vectors of
 ##                      within-chrom row indices into cells_by_chrom[[chrom]]
 ##   )
 ## Returns NULL if no eligible SNPs are found (caller short-circuits).
 .compute_snp_windows <- function(vcfPath, anchorA, anchorB,
-                                 snp_window, window, resolution) {
+                                 snpWindow, window, resolution) {
     if (!file.exists(vcfPath)) {
         .stopNoCall("VCF not found: ", vcfPath)
     }
 
     ## VCF chrom-naming normalizer
     tab <- Rsamtools::TabixFile(vcfPath)
-    vcf_chroms <- Rsamtools::headerTabix(tab)$seqnames
-    if (length(vcf_chroms) == 0) {
+    vcfChroms <- Rsamtools::headerTabix(tab)$seqnames
+    if (length(vcfChroms) == 0) {
         .stopNoCall("Could not read chromosome names from VCF tabix index")
     }
-    vcf_norm <- .make_chrom_normalizer(vcf_chroms)
+    vcfChromNormalizerFunc <- .make_chrom_normalizer(vcfChroms)
 
-    ## Build SNP target ranges = anchors padded by snp_window
+    ## Build SNP target ranges = anchors padded by snpWindow
     pad <- function(gr) {
         GenomicRanges::GRanges(
-            seqnames = vcf_norm(as.character(GenomicRanges::seqnames(gr))),
+            seqnames = vcfChromNormalizerFunc(as.character(GenomicRanges::seqnames(gr))),
             ranges = IRanges::IRanges(
-                start = pmax(1, GenomicRanges::start(gr) - snp_window),
-                end   = GenomicRanges::end(gr) + snp_window
+                start = pmax(1, GenomicRanges::start(gr) - snpWindow),
+                end   = GenomicRanges::end(gr) + snpWindow
             )
         )
     }
     targets <- GenomicRanges::reduce(c(pad(anchorA), pad(anchorB)))
-    targets <- targets[as.character(GenomicRanges::seqnames(targets)) %in% vcf_chroms]
+    targets <- targets[as.character(GenomicRanges::seqnames(targets)) %in% vcfChroms]
     if (length(targets) == 0) {
         return(NULL)
     }
 
     message(
-        "save_windows: tabix-reading SNPs at ",
-        length(targets), " anchor regions (snp_window = ", snp_window, " bp) ..."
+        "saveWindows: tabix-reading SNPs at ",
+        length(targets), " anchor regions (snpWindow = ", snpWindow, " bp) ..."
     )
     param <- VariantAnnotation::ScanVcfParam(
         which = targets,
@@ -139,47 +139,47 @@
     vcf <- VariantAnnotation::readVcf(vcfPath, genome = "unknown", param = param)
     if (length(vcf) == 0) {
         warning(
-            "save_windows: no SNPs in any anchor ± ",
-            snp_window, " bp window"
+            "saveWindows: no SNPs in any anchor ± ",
+            snpWindow, " bp window"
         )
         return(NULL)
     }
     rr <- SummarizedExperiment::rowRanges(vcf)
     snp_chrom_vcf <- as.character(GenomicRanges::seqnames(rr))
-    snp_pos <- as.integer(GenomicRanges::start(rr))
-    snp_ref <- as.character(VariantAnnotation::ref(vcf))
-    alt_list <- VariantAnnotation::alt(vcf)
-    snp_alt <- vapply(
-        alt_list,
+    snpPos <- as.integer(GenomicRanges::start(rr))
+    snpRef <- as.character(VariantAnnotation::ref(vcf))
+    altList <- VariantAnnotation::alt(vcf)
+    snpAlt <- vapply(
+        altList,
         function(a) paste(as.character(a), collapse = ","),
         character(1)
     )
-    snp_id <- rownames(vcf)
-    if (is.null(snp_id) || any(snp_id == "" | is.na(snp_id))) {
-        snp_id <- sprintf("%s:%d_%s/%s", snp_chrom_vcf, snp_pos, snp_ref, snp_alt)
+    snpId <- rownames(vcf)
+    if (is.null(snpId) || any(snpId == "" | is.na(snpId))) {
+        snpId <- sprintf("%s:%d_%s/%s", snp_chrom_vcf, snpPos, snpRef, snpAlt)
     }
 
-    ## Map SNPs to consensus loops (within snp_window flank)  # Convert anchors to vcf-style seqnames for overlap with the SNP GRanges.
+    ## Map SNPs to consensus loops (within snpWindow flank)  # Convert anchors to vcf-style seqnames for overlap with the SNP GRanges.
     to_vcf_gr <- function(gr) {
         GenomicRanges::GRanges(
-            seqnames = vcf_norm(as.character(GenomicRanges::seqnames(gr))),
+            seqnames = vcfChromNormalizerFunc(as.character(GenomicRanges::seqnames(gr))),
             ranges = IRanges::IRanges(
-                start = pmax(1, GenomicRanges::start(gr) - snp_window),
-                end   = GenomicRanges::end(gr) + snp_window
+                start = pmax(1, GenomicRanges::start(gr) - snpWindow),
+                end   = GenomicRanges::end(gr) + snpWindow
             )
         )
     }
     padded_A_vcf <- to_vcf_gr(anchorA)
     padded_B_vcf <- to_vcf_gr(anchorB)
 
-    snp_gr <- GenomicRanges::GRanges(
+    snpGr <- GenomicRanges::GRanges(
         seqnames = snp_chrom_vcf,
-        ranges   = IRanges::IRanges(start = snp_pos, end = snp_pos)
+        ranges   = IRanges::IRanges(start = snpPos, end = snpPos)
     )
 
-    hitsA <- GenomicRanges::findOverlaps(snp_gr, padded_A_vcf)
-    hitsB <- GenomicRanges::findOverlaps(snp_gr, padded_B_vcf)
-    in_loops_by_snp <- vector("list", length(snp_gr))
+    hitsA <- GenomicRanges::findOverlaps(snpGr, padded_A_vcf)
+    hitsB <- GenomicRanges::findOverlaps(snpGr, padded_B_vcf)
+    in_loops_by_snp <- vector("list", length(snpGr))
     if (length(hitsA) > 0) {
         spl <- split(S4Vectors::subjectHits(hitsA), S4Vectors::queryHits(hitsA))
         for (s in names(spl)) {
@@ -192,157 +192,157 @@
             in_loops_by_snp[[as.integer(s)]] <- c(in_loops_by_snp[[as.integer(s)]], spl[[s]])
         }
     }
-    keep_snp <- vapply(in_loops_by_snp, function(x) length(x) > 0, logical(1))
-    if (!any(keep_snp)) {
+    keepSNPs <- vapply(in_loops_by_snp, function(x) length(x) > 0, logical(1))
+    if (!any(keepSNPs)) {
         .warningNoCall(
-            "save_windows: no SNPs overlap any consensus loop anchor"
+            "saveWindows: no SNPs overlap any consensus loop anchor"
         )
         return(NULL)
     }
-    snp_idx_keep <- which(keep_snp)
+    snp_idx_keep <- which(keepSNPs)
     in_loops_by_snp <- in_loops_by_snp[snp_idx_keep]
 
-    snp_id <- snp_id[snp_idx_keep]
+    snpId <- snpId[snp_idx_keep]
     snp_chrom_vcf <- snp_chrom_vcf[snp_idx_keep]
-    snp_pos <- snp_pos[snp_idx_keep]
-    snp_ref <- snp_ref[snp_idx_keep]
-    snp_alt <- snp_alt[snp_idx_keep]
+    snpPos <- snpPos[snp_idx_keep]
+    snpRef <- snpRef[snp_idx_keep]
+    snpAlt <- snpAlt[snp_idx_keep]
 
-    ## Native (anchor-style) chrom for output. Inverse of vcf_norm is sample-specific;
+    ## Native (anchor-style) chrom for output. Inverse of vcfChromNormalizerFunc is sample-specific;
     ## use anchor seqnames at the SNP's chrom directly.
     anchor_chrom_native <- as.character(GenomicRanges::seqnames(anchorA))
-    anchor_chrom_vcf <- vcf_norm(anchor_chrom_native)
-    snp_chrom_orig <- vapply(snp_chrom_vcf, function(c_vcf) {
-        m <- which(anchor_chrom_vcf == c_vcf)[1]
-        if (is.na(m)) c_vcf else anchor_chrom_native[m]
+    anchor_chrom_vcf <- vcfChromNormalizerFunc(anchor_chrom_native)
+    snp_chrom_orig <- vapply(snp_chrom_vcf, function(cVcf) {
+        m <- which(anchor_chrom_vcf == cVcf)[1]
+        if (is.na(m)) cVcf else anchor_chrom_native[m]
     }, character(1))
 
-    ## Per-SNP bounding interval -> bin_lo/bin_hi
+    ## Per-SNP bounding interval -> binLo/binHi
     anchorA_start_native <- GenomicRanges::start(anchorA)
     anchorA_end_native <- GenomicRanges::end(anchorA)
     anchorB_start_native <- GenomicRanges::start(anchorB)
     anchorB_end_native <- GenomicRanges::end(anchorB)
 
-    n_snp <- length(snp_id)
-    bin_lo <- integer(n_snp)
-    bin_hi <- integer(n_snp)
-    n_loops <- integer(n_snp)
+    nSnp <- length(snpId)
+    binLo <- integer(nSnp)
+    binHi <- integer(nSnp)
+    nLoops <- integer(nSnp)
 
-    for (i in seq_len(n_snp)) {
+    for (i in seq_len(nSnp)) {
         li <- unique(in_loops_by_snp[[i]])
-        n_loops[i] <- length(li)
+        nLoops[i] <- length(li)
         ## Bounding interval: SNP pos U all involved anchors (A and B)
-        starts <- c(snp_pos[i], anchorA_start_native[li], anchorB_start_native[li])
-        ends <- c(snp_pos[i], anchorA_end_native[li], anchorB_end_native[li])
-        b_lo <- min(starts)
-        b_hi <- max(ends)
-        span <- b_hi - b_lo
+        starts <- c(snpPos[i], anchorA_start_native[li], anchorB_start_native[li])
+        ends <- c(snpPos[i], anchorA_end_native[li], anchorB_end_native[li])
+        bLo <- min(starts)
+        bHi <- max(ends)
+        span <- bHi - bLo
         if (span < window) {
-            center <- (b_lo + b_hi) / 2
+            center <- (bLo + bHi) / 2
             half <- window / 2
-            b_lo <- center - half
-            b_hi <- center + half
+            bLo <- center - half
+            bHi <- center + half
         }
-        bin_lo[i] <- as.integer(floor(b_lo / resolution) * resolution)
-        bin_hi[i] <- as.integer(floor(b_hi / resolution) * resolution)
-        if (bin_lo[i] < 0) bin_lo[i] <- 0
+        binLo[i] <- as.integer(floor(bLo / resolution) * resolution)
+        binHi[i] <- as.integer(floor(bHi / resolution) * resolution)
+        if (binLo[i] < 0) binLo[i] <- 0
     }
 
-    snps_df <- data.frame(
-        snp_id = snp_id,
-        chrom_orig = snp_chrom_orig,
-        chrom_vcf = snp_chrom_vcf,
-        pos = snp_pos,
-        ref = snp_ref,
-        alt = snp_alt,
-        bin_lo = bin_lo,
-        bin_hi = bin_hi,
-        n_loops_anchored = n_loops,
+    snpsDf <- data.frame(
+        snpId = snpId,
+        chromOrig = snp_chrom_orig,
+        chromVcf = snp_chrom_vcf,
+        pos = snpPos,
+        ref = snpRef,
+        alt = snpAlt,
+        binLo = binLo,
+        binHi = binHi,
+        n_loops_anchored = nLoops,
         stringsAsFactors = FALSE
     )
 
-    ## Per-chrom dedup of cells  # cell = (bin_i, bin_j) with bin_lo <= bin_i <= bin_j <= bin_hi (upper tri).
+    ## Per-chrom dedup of cells  # cell = (binI, binJ) with binLo <= binI <= binJ <= binHi (upper tri).
     ## Group SNPs by their native (anchor-style) chrom, since BNBC emits in that style.
     cells_by_chrom <- list()
-    snp_cells_local <- vector("list", n_snp)
+    snp_cells_local <- vector("list", nSnp)
 
-    chrom_groups <- split(seq_len(n_snp), snps_df$chrom_orig)
-    for (chr in names(chrom_groups)) {
-        idxs <- chrom_groups[[chr]]
+    chromGroups <- split(seq_len(nSnp), snpsDf$chromOrig)
+    for (chr in names(chromGroups)) {
+        idxs <- chromGroups[[chr]]
         ## Build a master set of cells, dedupe via paste-key
-        cell_chunks <- vector("list", length(idxs))
+        cellChunks <- vector("list", length(idxs))
         for (k in seq_along(idxs)) {
             s <- idxs[k]
-            bins <- seq.int(snps_df$bin_lo[s], snps_df$bin_hi[s], by = resolution)
+            bins <- seq.int(snpsDf$binLo[s], snpsDf$binHi[s], by = resolution)
             ng <- length(bins)
             if (ng == 0) {
-                cell_chunks[[k]] <- data.frame(
-                    bin_i = integer(0),
-                    bin_j = integer(0)
+                cellChunks[[k]] <- data.frame(
+                    binI = integer(0),
+                    binJ = integer(0)
                 )
                 next
             }
-            ## All (bin_i, bin_j) with bin_i <= bin_j, upper triangle inclusive
+            ## All (binI, binJ) with binI <= binJ, upper triangle inclusive
             ii <- rep(bins, times = ng:1)
             jj <- unlist(lapply(seq_len(ng), function(z) bins[z:ng]))
-            cell_chunks[[k]] <- data.frame(
-                bin_i = as.integer(ii),
-                bin_j = as.integer(jj)
+            cellChunks[[k]] <- data.frame(
+                binI = as.integer(ii),
+                binJ = as.integer(jj)
             )
         }
-        combined <- do.call(rbind, cell_chunks)
-        keys <- paste(combined$bin_i, combined$bin_j, sep = "_")
-        uniq_idx <- !duplicated(keys)
-        chrom_cells <- combined[uniq_idx, , drop = FALSE]
-        rownames(chrom_cells) <- NULL
-        chrom_cells_keys <- keys[uniq_idx]
-        cells_by_chrom[[chr]] <- chrom_cells
+        combined <- do.call(rbind, cellChunks)
+        keys <- paste(combined$binI, combined$binJ, sep = "_")
+        uniqIdx <- !duplicated(keys)
+        chromCells <- combined[uniqIdx, , drop = FALSE]
+        rownames(chromCells) <- NULL
+        chrom_cells_keys <- keys[uniqIdx]
+        cells_by_chrom[[chr]] <- chromCells
 
         ## For each SNP, look up its cells' local indices
         for (k in seq_along(idxs)) {
             s <- idxs[k]
-            ch <- cell_chunks[[k]]
+            ch <- cellChunks[[k]]
             if (nrow(ch) == 0) {
                 snp_cells_local[[s]] <- integer(0)
                 next
             }
-            ck <- paste(ch$bin_i, ch$bin_j, sep = "_")
+            ck <- paste(ch$binI, ch$binJ, sep = "_")
             snp_cells_local[[s]] <- match(ck, chrom_cells_keys)
         }
     }
 
     list(
-        snps_df         = snps_df,
+        snpsDf         = snpsDf,
         cells_by_chrom  = cells_by_chrom,
         snp_cells_local = snp_cells_local
     )
 }
 
 ## Read a single BEDPE-like loop file. Tolerant of "#chr" headers and of
-## files with or without a `loop_id` column.
+## files with or without a `loopID` column.
 .read_loops_bedpe <- function(path) {
     if (!file.exists(path)) {
         .stopNoCall("Loop file not found: ", path)
     }
     hdr <- readLines(path, n = 1, warn = FALSE)
-    has_header <- grepl("^#?chr", hdr, ignore.case = TRUE) &&
+    hasHeader <- grepl("^#?chr", hdr, ignore.case = TRUE) &&
         grepl("\\bstart", hdr, ignore.case = TRUE)
     df <- utils::read.table(
         path,
-        header = has_header, sep = "\t",
-        comment.char = if (has_header) "" else "#",
+        header = hasHeader, sep = "\t",
+        comment.char = if (hasHeader) "" else "#",
         stringsAsFactors = FALSE, check.names = FALSE
     )
-    if (!has_header) {
-        ## assume positional: chrA startA endA chrB startB endB [loop_id]
+    if (!hasHeader) {
+        ## assume positional: chrA startA endA chrB startB endB [loopID]
         if (ncol(df) < 6) {
             .stopNoCall("Loop file ", path, " must have at least 6 columns")
         }
-        base_names <- c("chrA", "startA", "endA", "chrB", "startB", "endB")
+        baseNames <- c("chrA", "startA", "endA", "chrB", "startB", "endB")
         if (ncol(df) == 6) {
-            names(df) <- base_names
+            names(df) <- baseNames
         } else {
-            names(df) <- c(base_names, paste0("V", seq_len(ncol(df) - 6) + 6))
+            names(df) <- c(baseNames, paste0("V", seq_len(ncol(df) - 6) + 6))
         }
     } else {
         nm <- names(df)

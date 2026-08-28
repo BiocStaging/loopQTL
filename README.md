@@ -9,7 +9,7 @@ Unlike peak-centric window-scan tools (e.g. QTLtools), `loopQTL` only tests SNPs
 ```
 loopQTLsetup()      -> validate VCF + .hic headers, read loop BEDPEs, build the
                         exact-coordinate consensus loop set (loops kept when they
-                        appear in >= min_samples samples). Optionally auto-computes
+                        appear in >= minSamples samples). Optionally auto-computes
                         per-sample cis depth from .hic.
                         After running this step, the loopQTL S4 class object will be
                         set up along with the consensus loops set stored.
@@ -59,7 +59,7 @@ remotes::install_github("rhielab/loopQTL")
 ```r
 library(loopQTL)
 
-samples_df <- data.frame(
+samplesDf <- data.frame(
   Sample = c("S1", "S2", "S3"),
   hic    = c("S1.hic", "S2.hic", "S3.hic"),
   loops  = c("S1_loops.bedpe", "S2_loops.bedpe", "S3_loops.bedpe"),
@@ -69,10 +69,10 @@ samples_df <- data.frame(
 )
 
 obj <- loopQTLsetup(
-  samples     = samples_df,
+  samples     = samplesDf,
   vcf         = "cohort.vcf.gz",     # bgzipped + tabix-indexed
   resolution  = 10000,              # bp; must exist in every .hic
-  min_samples = 2                   # consensus filter
+  minSamples = 2                   # consensus filter
 )
 
 obj <- loopQTLnormalize(
@@ -84,19 +84,19 @@ obj <- loopQTLnormalize(
 ## By default runQTL() applies RINT per loop before regression (normal = TRUE)
 ## AND auto-picks K phenotype PCs via PCAForQTL as the regression covariates.
 ## You can also pass a fixed covariate matrix instead:
-##   pcs <- loopQTLchooseK(obj, K_method = "BE")$PCs
+##   pcs <- loopQTLchooseK(obj, Kmethod = "BE")$PCs
 ##   obj <- runQTL(obj, window = 0, covariates = pcs)
 
 obj <- runQTL(obj, window = 0, normal = TRUE)
 head(obj@results)
-##   loop_id  snp_id  chrom  pos  ref  alt  anchor  beta  se  t  p  n_used  maf
+##   loopID  snpId  chrom  pos  ref  alt  anchor  beta  se  t  p  nUsed  maf
 ```
 
 ## Annotate results with target genes and enhancer peaks
 
 `loopQTLannotate()` adds three columns to `obj@results`:
 
-- **`gene`** - comma-separated gene names whose TSS (± `TSS_window`) sits in the SNP's *partner* anchor
+- **`gene`** - comma-separated gene names whose TSS (± `TSSWindow`) sits in the SNP's *partner* anchor
 - **`peak`** - logical: does the SNP overlap any peak from a user-supplied peak file (with optional TSS filtering)
 - **`Type`** - one of `WithinTSS`, `rs-gene`, `rs-<peak_label>`, `rs-O`, `rs(<peak_label>)-gene`, `rs(<peak_label>)-<peak_label>`, `rs(<peak_label>)-O`
 
@@ -105,36 +105,36 @@ obj <- loopQTLannotate(
   obj,
   gtf             = "gencode.v43.gtf.gz",
   peak            = "H3K27ac_peaks.bed",   # optional
-  peak_annotation = "Enhancer"
+  peakAnnotation = "Enhancer"
 )
-head(obj@results[, c("snp_id", "loop_id", "anchor", "gene", "peak", "Type")])
+head(obj@results[, c("snpId", "loopID", "anchor", "gene", "peak", "Type")])
 ```
 
 ## Save per-SNP contact submatrices for SNP-correlation maps
 
-Pass `save_windows = TRUE` to `loopQTLnormalize()` to also save a `.rds` containing a `samples × cells` matrix of post-band-QN contact values around each in-loop SNP. Values are sliced from the per-chrom matrix that fills the phenotype, so no recomputation. This is a diagnostic/visualization output - it does not affect `obj@phenotype` or `runQTL()`.
+Pass `saveWindows = TRUE` to `loopQTLnormalize()` to also save a `.rds` containing a `samples × cells` matrix of post-band-QN contact values around each in-loop SNP. Values are sliced from the per-chrom matrix that fills the phenotype, so no recomputation. This is a diagnostic/visualization output - it does not affect `obj@phenotype` or `runQTL()`.
 
 ```r
 obj <- loopQTLnormalize(
   obj,
-  save_windows = TRUE,
-  windows_out  = "loop_snp_windows.rds",
+  saveWindows = TRUE,
+  windowsOut  = "loop_snp_windows.rds",
   window       = 1e6,       # minimum window extent in bp
-  snp_window   = 0         # anchor flank for SNP selection
+  snpWindow   = 0         # anchor flank for SNP selection
 )
 
 w <- readRDS("loop_snp_windows.rds")
 ## w$cells       : samples x N_cells numeric matrix (post-band-QN, pre-RINT)
-## w$cell_coords : data.frame(chrom, bin_i, bin_j) per column
-## w$snp_index   : data.frame(snp_id, chrom, pos, ref, alt, bin_lo, bin_hi,
-##                            n_loops_anchored, col_indices)  -- one row per SNP
+## w$cellCoordinates : data.frame(chrom, binI, binJ) per column
+## w$snpIndex   : data.frame(snpId, chrom, pos, ref, alt, binLo, binHi,
+##                            n_loops_anchored, colIndices)  -- one row per SNP
 ```
 
 Once written, `loopQTLplotSnpWindow()` renders a Hi-C-style β heatmap around any single SNP, matching the visualization style of Shi et al. 2025 (*Genome Biology*):
 
 ```r
 p <- loopQTLplotSnpWindow(
-  obj, snp_id = "rs123456",
+  obj, snpId = "rs123456",
   chrom  = "chr16",
   start  = 72410000, end = 73470000,   # crop to a region of interest
   normal = TRUE, covariates = "auto"   # match runQTL()'s partial-beta test
