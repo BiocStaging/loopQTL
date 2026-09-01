@@ -4,7 +4,7 @@
 ## v3 semantics:
 ##   - setup does NOT pull straw contacts; obj@contacts is empty by default
 ##   - obj@cis is empty unless samplesheet provides a `cis` column
-##   - obj@meta$hicPaths is populated (loopQTLnormalize needs it)
+##   - obj@metadata$hicPaths is populated (loopQTLnormalize needs it)
 
 test_that("loopQTLsetup builds consensus loops without pulling contacts", {
     hic <- toy_hic_path()
@@ -49,11 +49,11 @@ test_that("loopQTLsetup builds consensus loops without pulling contacts", {
     ## Slim setup: contacts empty, cis empty (no samplesheet cis column)
     expect_equal(length(obj@contacts), 0)
     expect_equal(length(obj@cis), 0)
-    expect_equal(obj@meta$cisSource, "notProvided")
+    expect_equal(obj@metadata$cisSource, "notProvided")
 
     ## hicPaths recorded for normalize
-    expect_equal(unname(obj@meta$hicPaths), c(hic, hic))
-    expect_equal(names(obj@meta$hicPaths), c("A", "B"))
+    expect_equal(unname(obj@metadata$hicPaths), c(hic, hic))
+    expect_equal(names(obj@metadata$hicPaths), c("A", "B"))
 
     ## Consensus loops built
     expect_true(length(obj@loops) >= 1)
@@ -94,5 +94,5 @@ test_that("samplesheet cis column populates obj@cis", {
     obj <- loopQTLsetup(samplesDf, vcfGzPath, resolution = 250000, minSamples = 1)
     expect_equal(unname(obj@cis), c(1e7, 2e7))
     expect_equal(names(obj@cis), c("A", "B"))
-    expect_equal(obj@meta$cisSource, "userProvided")
+    expect_equal(obj@metadata$cisSource, "userProvided")
 })

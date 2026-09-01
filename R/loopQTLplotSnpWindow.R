@@ -16,7 +16,7 @@
 #' Optionally crop the view to a sub-window via `chrom`/`start`/`end` to
 #' zoom on a specific region (e.g. just the loop arc).
 #'
-#' @param obj A [loopQTL-class] with `meta$windowsOut` populated by
+#' @param obj A [loopQTL-class] with `metadata$windowsOut` populated by
 #'   `loopQTLnormalize(saveWindows = TRUE)`.
 #' @param snpId Single snpId present in the saved windows file.
 #' @param chrom Optional chrom for verification. If supplied, must match
@@ -25,7 +25,7 @@
 #'   Snapped down to the nearest bin start.
 #' @param end Optional end position in bp to crop the heatmap to. Snapped
 #'   up to the nearest bin end.
-#' @param windows Either `NULL` (default, loads from `obj@meta$windowsOut`),
+#' @param windows Either `NULL` (default, loads from `obj@metadata$windowsOut`),
 #'   a path to a windows `.rds`, or the loaded list. Pass the loaded list
 #'   when calling the function in a loop over many SNPs to avoid reloading.
 #' @param mirror Logical; mirror the upper-triangle beta values to the
@@ -437,7 +437,7 @@ loopQTLplotSnpWindow <- function(obj, snpId,
 .resolveWindows <- function(obj, windows) {
     ## If the windows argument is null, look inside the loopQTL object
     if (is.null(windows)) {
-        windows <- obj@meta$windowsOut
+        windows <- obj@metadata$windowsOut
         if (is.null(windows)) {
             .stopNoCall(
                 "The input loopQTL object does not contain a windows file ",

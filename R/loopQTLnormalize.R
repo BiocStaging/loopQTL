@@ -38,9 +38,9 @@
 #'   `runQTL()`'s default). Ignored when `saveWindows = FALSE`.
 #'
 #' @return The input object with `phenotype` filled. When `saveWindows = TRUE`,
-#'   `meta$windowsOut` records the ABSOLUTE file path (via `normalizePath()`,
+#'   `metadata$windowsOut` records the ABSOLUTE file path (via `normalizePath()`,
 #'   so downstream tools like `loopQTLplotSnpWindow()` can find the file
-#'   regardless of the working directory at read time), `meta$n_windows_saved`
+#'   regardless of the working directory at read time), `metadata$n_windows_saved`
 #'   the SNP count.
 #'
 #' @details
@@ -128,11 +128,11 @@ loopQTLnormalize <- function(obj,
     resolution <- obj@resolution
     loopsGInteractions <- obj@loops
 
-    ## Per-sample per-chrom hic paths from meta (we re-derive from setup invariants)
-    if (is.null(obj@meta$hicPaths)) {
-        .stopNoCall("obj@meta$hicPaths missing; loopQTLsetup must record the per-sample .hic paths")
+    ## Per-sample per-chrom hic paths from metadata (we re-derive from setup invariants)
+    if (is.null(obj@metadata$hicPaths)) {
+        .stopNoCall("obj@metadata$hicPaths missing; loopQTLsetup must record the per-sample .hic paths")
     }
-    hicPaths <- obj@meta$hicPaths
+    hicPaths <- obj@metadata$hicPaths
 
     ## Consensus loops keyed by chrom + canonical (binA <= binB)
     anchorA <- InteractionSet::anchors(loopsGInteractions, type = "first")
@@ -439,12 +439,12 @@ loopQTLnormalize <- function(obj,
 
             ## Store the absolute path so it can be found even if the working
             ## directory changes
-            obj@meta$windowsOut <- normalizePath(windowsOut,
+            obj@metadata$windowsOut <- normalizePath(windowsOut,
                 winslash = "/", mustWork = TRUE)
-            obj@meta$n_windows_saved <- nrow(snpIndex)
-            obj@meta$n_window_cells <- totalCells
-            obj@meta$windowBp <- as.numeric(window)
-            obj@meta$snp_window_bp <- as.integer(snpWindow)
+            obj@metadata$n_windows_saved <- nrow(snpIndex)
+            obj@metadata$n_window_cells <- totalCells
+            obj@metadata$windowBp <- as.numeric(window)
+            obj@metadata$snp_window_bp <- as.integer(snpWindow)
         }
     }
 

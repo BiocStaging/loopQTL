@@ -195,9 +195,9 @@ runQTL <- function(obj,
         colnames(cvrtMat) <- samplesVec
         obj_K_meta <- list(K = nrow(cvrtMat), Kmethod = NA_character_, Ksource = "user")
     }
-    obj@meta$runQTL_K <- obj_K_meta
-    obj@meta$runQTLNormal <- normal
-    obj@meta$runQTL_n_zero_var <- max(0, n_zero_var)
+    obj@metadata$runQTL_K <- obj_K_meta
+    obj@metadata$runQTLNormal <- normal
+    obj@metadata$runQTL_n_zero_var <- max(0, n_zero_var)
 
     ## Build SlicedData inputs for MatrixEQTL
     snpsSd <- .asSliced(dosage)

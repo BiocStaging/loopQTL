@@ -34,7 +34,7 @@
 #'   cis-computing straw pulls. Default [BiocParallel::SerialParam()].
 #'
 #' @return A [loopQTL-class] object with `samples`, `loops`, `vcfPath`,
-#'   `resolution`, `cis` (if provided or computed), and `meta` populated.
+#'   `resolution`, `cis` (if provided or computed), and `metadata` populated.
 #'   `phenotype` is an empty placeholder until normalize fills it.
 #'
 #' @export
@@ -270,7 +270,7 @@ loopQTLsetup <- function(samples,
 
     cis_source_tag <- if (!is.null(userCis)) "userProvided" else "computed_from_hic"
 
-    meta <- list(
+    metadata <- list(
         resolution         = resolution,
         minSamples        = minSamples,
         n_trans_dropped    = sum(n_trans_per_sample),
@@ -288,7 +288,7 @@ loopQTLsetup <- function(samples,
         vcfPath   = vcf,
         resolution = resolution,
         phenotype  = matrix(numeric(0), 0, 0),
-        meta       = meta
+        metadata       = metadata
     )
     methods::validObject(obj)
     obj

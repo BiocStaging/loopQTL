@@ -302,7 +302,7 @@ loopQTLannotate <- function(obj,
     res$Type <- typeCol
 
     obj@results <- res
-    obj@meta$annotate <- list(
+    obj@metadata$annotate <- list(
         gtf = gtf,
         peak = peak,
         TSSWindow = TSSWindow,
