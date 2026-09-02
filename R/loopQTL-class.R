@@ -87,37 +87,61 @@ setValidity("loopQTL", function(object) {
     return(TRUE)
 })
 
+#' @rdname loopQTL-class
+#' @param object a loopQTL object
+#' @export
 setMethod("samples", "loopQTL", function(object) {
     return(object@samples)
 })
 
+#' @rdname loopQTL-class
+#' @param object a loopQTL object
+#' @export
 setMethod("loops", "loopQTL", function(object) {
     return(object@loops)
 })
 
+#' @rdname loopQTL-class
+#' @param object a loopQTL object
+#' @export
 setMethod("cis", "loopQTL", function(object) {
     return(object@cis)
 })
 
+#' @rdname loopQTL-class
+#' @param object a loopQTL object
+#' @export
 setMethod("vcfPath", "loopQTL", function(object) {
     return(object@vcfPath)
 })
 
+#' @rdname loopQTL-class
+#' @param object a loopQTL object
+#' @export
 setMethod("resolution", "loopQTL", function(object) {
     return(object@resolution)
 })
 
+#' @rdname loopQTL-class
+#' @param object a loopQTL object
+#' @export
 setMethod("phenotype", "loopQTL", function(object) {
     return(object@phenotype)
 })
 
+#' @rdname loopQTL-class
+#' @param object a loopQTL object
+#' @export
 setMethod("results", "loopQTL", function(object) {
     return(object@results)
 })
 
+#' @rdname loopQTL-class
+#' @param object a loopQTL object
+#' @export
 setMethod("metadata", "loopQTL", function(object) {
     return(object@metadata)
-}
+})
 
 #' @rdname loopQTL-class
 #' @param object a loopQTL object
