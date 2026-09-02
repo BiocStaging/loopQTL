@@ -89,31 +89,31 @@ setValidity("loopQTL", function(object) {
 
 setMethod("samples", "loopQTL", function(object) {
     return(object@samples)
-}
+})
 
 setMethod("loops", "loopQTL", function(object) {
     return(object@loops)
-}
+})
 
 setMethod("cis", "loopQTL", function(object) {
     return(object@cis)
-}
+})
 
 setMethod("vcfPath", "loopQTL", function(object) {
     return(object@vcfPath)
-}
+})
 
 setMethod("resolution", "loopQTL", function(object) {
     return(object@resolution)
-}
+})
 
 setMethod("phenotype", "loopQTL", function(object) {
     return(object@phenotype)
-}
+})
 
 setMethod("results", "loopQTL", function(object) {
     return(object@results)
-}
+})
 
 setMethod("metadata", "loopQTL", function(object) {
     return(object@metadata)
