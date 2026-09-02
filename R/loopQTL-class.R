@@ -83,8 +83,8 @@ setValidity("loopQTL", function(object) {
     }
 
     if (length(errs) > 0)
-        return errs
-    return TRUE
+        return(errs)
+    return(TRUE)
 })
 
 setMethod("samples", "loopQTL", function(object) {
