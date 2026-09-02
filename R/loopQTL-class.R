@@ -87,6 +87,15 @@ setValidity("loopQTL", function(object) {
     return(TRUE)
 })
 
+setGeneric("samples", function(object) standardGeneric("samples"))
+setGeneric("loops", function(object) standardGeneric("loops"))
+setGeneric("cis", function(object) standardGeneric("cis"))
+setGeneric("vcfPath", function(object) standardGeneric("vcfPath"))
+setGeneric("resolution", function(object) standardGeneric("resolution"))
+setGeneric("phenotype", function(object) standardGeneric("phenotype"))
+setGeneric("results", function(object) standardGeneric("results"))
+setGeneric("metadata", function(object) standardGeneric("metadata"))
+
 #' @rdname loopQTL-class
 #' @param object a loopQTL object
 #' @export
