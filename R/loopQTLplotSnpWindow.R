@@ -18,9 +18,9 @@
 #'
 #' @param obj A [loopQTL-class] with `metadata$windowsOut` populated by
 #'   `loopQTLnormalize(saveWindows = TRUE)`.
-#' @param snpId Single snpId present in the saved windows file.
+#' @param snpID Single snpID present in the saved windows file.
 #' @param chrom Optional chrom for verification. If supplied, must match
-#'   the SNP's chrom in the windows file (helps catch a wrong snpId).
+#'   the SNP's chrom in the windows file (helps catch a wrong snpID).
 #' @param start Optional start position in bp to crop the heatmap to.
 #'   Snapped down to the nearest bin start.
 #' @param end Optional end position in bp to crop the heatmap to. Snapped
@@ -87,7 +87,7 @@
 #' @return A `ggplot` object.
 #'
 #' @export
-loopQTLplotSnpWindow <- function(obj, snpId,
+loopQTLplotSnpWindow <- function(obj, snpID,
                                  chrom = NULL,
                                  start = NULL,
                                  end = NULL,
@@ -105,7 +105,7 @@ loopQTLplotSnpWindow <- function(obj, snpId,
                                  axisUnit = c("Mb", "bp")) {
     stopifnot(
         methods::is(obj, "loopQTL"),
-        is.character(snpId), length(snpId) == 1, nzchar(snpId),
+        is.character(snpID), length(snpID) == 1, nzchar(snpID),
         is.logical(mirror), length(mirror) == 1,
         is.logical(normal), length(normal) == 1, !is.na(normal),
         is.character(palette), length(palette) == 1
@@ -121,15 +121,15 @@ loopQTLplotSnpWindow <- function(obj, snpId,
     w <- .resolveWindows(obj, windows)
 
     ## 2. Look up the SNP row
-    i <- match(snpId, w$snpIndex$snpId)
+    i <- match(snpID, w$snpIndex$snpID)
     if (is.na(i)) {
-        .stopNoCall("snpId not found in windows file: ", snpId)
+        .stopNoCall("snpID not found in windows file: ", snpID)
     }
     row <- w$snpIndex[i, , drop = FALSE]
     cols <- row$colIndices[[1]]
     if (length(cols) == 0) {
         .stopNoCall(
-            "No cells were saved for snpId = ", snpId,
+            "No cells were saved for snpID = ", snpID,
             " (likely on a chrom that had an empty window slice)."
         )
     }
@@ -164,7 +164,7 @@ loopQTLplotSnpWindow <- function(obj, snpId,
         if (cropLo > cropHi) {
             .stopNoCall(
                 "Crop range [", start, ", ", end, "] does not overlap the saved ",
-                "window [", binStart, ", ", binEnd + res, "] for SNP ", snpId
+                "window [", binStart, ", ", binEnd + res, "] for SNP ", snpID
             )
         }
         if (cropLo != crop_lo_req || cropHi != crop_hi_req) {
@@ -175,7 +175,7 @@ loopQTLplotSnpWindow <- function(obj, snpId,
                     "to enlarge it)."
                 ),
                 as.integer(start), as.integer(end),
-                cropLo, cropHi + res, snpId, binStart, binEnd + res
+                cropLo, cropHi + res, snpID, binStart, binEnd + res
             ))
         }
     } else {
@@ -246,23 +246,23 @@ loopQTLplotSnpWindow <- function(obj, snpId,
         cvrt <- Kres$PCs[w$samples, , drop = FALSE]
     } else if (!is.null(covariates)) {
         cvrtMode <- "user"
-        cvDf <- as.data.frame(covariates, stringsAsFactors = FALSE)
-        if (!is.null(rownames(cvDf))) {
-            mm <- match(w$samples, rownames(cvDf))
+        cvDF <- as.data.frame(covariates, stringsAsFactors = FALSE)
+        if (!is.null(rownames(cvDF))) {
+            mm <- match(w$samples, rownames(cvDF))
             if (anyNA(mm)) {
                 .stopNoCall(
                     "`covariates` is missing rows for samples: ",
                     paste(w$samples[is.na(mm)], collapse = ", ")
                 )
             }
-            cvDf <- cvDf[mm, , drop = FALSE]
-        } else if (nrow(cvDf) != length(w$samples)) {
+            cvDF <- cvDF[mm, , drop = FALSE]
+        } else if (nrow(cvDF) != length(w$samples)) {
             .stopNoCall(
-                "`covariates` has ", nrow(cvDf), " rows but ",
+                "`covariates` has ", nrow(cvDF), " rows but ",
                 length(w$samples), " samples; provide rownames or matched order"
             )
         }
-        cvrt <- as.matrix(cvDf)
+        cvrt <- as.matrix(cvDF)
         rownames(cvrt) <- w$samples
     }
 
@@ -384,7 +384,7 @@ loopQTLplotSnpWindow <- function(obj, snpId,
 
     title <- sprintf(
         "Per-pixel %s (contact ~ dosage) | %s",
-        metric_title_str, snpId
+        metric_title_str, snpID
     )
     subtitle <- sprintf(
         "%s:%d  REF=%s ALT=%s | window %s bp | %d samples (%d usable) | %s | limits ±%.3g",

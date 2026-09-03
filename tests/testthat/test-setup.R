@@ -30,7 +30,7 @@ test_that("loopQTLsetup builds consensus loops without pulling contacts", {
     )
     if (!ok) skip("Rsamtools bgzip/tabix not available in this environment")
 
-    samplesDf <- data.frame(
+    samplesDF <- data.frame(
         Sample = c("A", "B"),
         hic = c(hic, hic),
         loops = c(bedpe, bedpe),
@@ -38,7 +38,7 @@ test_that("loopQTLsetup builds consensus loops without pulling contacts", {
     )
 
     obj <- loopQTLsetup(
-        samples     = samplesDf,
+        samples     = samplesDF,
         vcf         = vcfGzPath,
         resolution  = 250000,
         minSamples = 1
@@ -84,14 +84,14 @@ test_that("samplesheet cis column populates obj@cis", {
     )
     if (!ok) skip("Rsamtools bgzip/tabix not available in this environment")
 
-    samplesDf <- data.frame(
+    samplesDF <- data.frame(
         Sample = c("A", "B"),
         hic = c(hic, hic),
         loops = c(bedpe, bedpe),
         cis = c(1e7, 2e7),
         stringsAsFactors = FALSE
     )
-    obj <- loopQTLsetup(samplesDf, vcfGzPath, resolution = 250000, minSamples = 1)
+    obj <- loopQTLsetup(samplesDF, vcfGzPath, resolution = 250000, minSamples = 1)
     expect_equal(unname(obj@cis), c(1e7, 2e7))
     expect_equal(names(obj@cis), c("A", "B"))
     expect_equal(obj@metadata$cisSource, "userProvided")

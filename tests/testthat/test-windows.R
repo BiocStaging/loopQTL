@@ -77,7 +77,7 @@ test_that(".compute_snp_windows drops SNPs not in any anchor", {
         resolution = s$resolution
     )
     expect_false(is.null(res))
-    expect_equal(sort(res$snpsDf$snpId), c("s1", "s2", "s3"))
+    expect_equal(sort(res$snpsDF$snpID), c("s1", "s2", "s3"))
 })
 
 test_that(".compute_snp_windows returns NULL when no SNPs overlap any anchor", {
@@ -118,9 +118,9 @@ test_that("window extent is max(window, bounding span); cells form upper triangl
         window     = 1e6,
         resolution = s$resolution
     )
-    expect_equal(nrow(res$snpsDf), 1)
-    binLo <- res$snpsDf$binLo
-    binHi <- res$snpsDf$binHi
+    expect_equal(nrow(res$snpsDF), 1)
+    binLo <- res$snpsDF$binLo
+    binHi <- res$snpsDF$binHi
     span <- binHi - binLo
     expect_gte(span, 1e6 - 2 * s$resolution) # rounded to bin grid
     ## Cell set is upper-triangle of binLo..binHi
@@ -157,8 +157,8 @@ test_that("when bounding span exceeds window, window expands to cover it", {
         window     = 1e6, # smaller than bounding span ~4Mb
         resolution = resolution
     )
-    expect_equal(nrow(res$snpsDf), 1)
-    span <- res$snpsDf$binHi - res$snpsDf$binLo
+    expect_equal(nrow(res$snpsDF), 1)
+    span <- res$snpsDF$binHi - res$snpsDF$binLo
     expect_gte(span, 4e6 - 2 * resolution) # at least the bounding extent
 })
 
@@ -182,7 +182,7 @@ test_that("SNPs in different anchors of the same loop produce overlapping cells 
         window     = 1e6,
         resolution = s$resolution
     )
-    expect_equal(nrow(res$snpsDf), 2)
+    expect_equal(nrow(res$snpsDF), 2)
     ## Both SNPs live on chr1. Their union of cells is dedup'd.
     cc <- res$cells_by_chrom[["chr1"]]
     expect_true(!anyDuplicated(paste(cc$binI, cc$binJ, sep = "_")))

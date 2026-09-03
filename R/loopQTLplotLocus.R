@@ -11,7 +11,7 @@
 #'    contact strength across samples in that genotype class.
 #'
 #' @param obj A [loopQTL-class] with `obj@results` populated by [runQTL()].
-#' @param snpId Single snpId present in `obj@results`.
+#' @param snpID Single snpID present in `obj@results`.
 #' @param chrom Chromosome (must equal the SNP's chrom in `obj@results`).
 #' @param start,end Genomic window in bp for the x-axis.
 #' @param gtf Path to a GTF/GFF file (read via `rtracklayer::import()`).
@@ -42,7 +42,7 @@
 #'   stacked). Save with `ggplot2::ggsave()`.
 #'
 #' @export
-loopQTLplotLocus <- function(obj, snpId,
+loopQTLplotLocus <- function(obj, snpID,
                              chrom, start, end,
                              gtf,
                              pThreshold = 0.05,
@@ -55,7 +55,7 @@ loopQTLplotLocus <- function(obj, snpId,
                              axisUnit = c("Mb", "bp")) {
     stopifnot(
         methods::is(obj, "loopQTL"),
-        is.character(snpId), length(snpId) == 1, nzchar(snpId),
+        is.character(snpID), length(snpID) == 1, nzchar(snpID),
         is.character(chrom), length(chrom) == 1,
         is.numeric(start), length(start) == 1,
         is.numeric(end), length(end) == 1, start < end,
@@ -73,9 +73,9 @@ loopQTLplotLocus <- function(obj, snpId,
     end <- as.integer(end)
 
     ## 1. Filter obj@results to (this SNP, p <= threshold) and to loops in the region
-    resultsForThisSNP <- obj@results[obj@results$snpId == snpId, , drop = FALSE]
+    resultsForThisSNP <- obj@results[obj@results$snpID == snpID, , drop = FALSE]
     if (nrow(resultsForThisSNP) == 0) {
-        .stopNoCall("SNP ", snpId, " not found in obj@results")
+        .stopNoCall("SNP ", snpID, " not found in obj@results")
     }
     if (!identical(unique(as.character(resultsForThisSNP$chrom)), chrom)) {
         .stopNoCall(
@@ -91,7 +91,7 @@ loopQTLplotLocus <- function(obj, snpId,
         drop = FALSE
     ]
     if (nrow(significantResults) == 0) {
-        .stopNoCall("No significant (p <= ", pThreshold, ") loops for SNP ", snpId)
+        .stopNoCall("No significant (p <= ", pThreshold, ") loops for SNP ", snpID)
     }
 
     ## Look up anchor coords for each significant loop; filter to region
@@ -118,7 +118,7 @@ loopQTLplotLocus <- function(obj, snpId,
     if (nrow(loopsDF) == 0) {
         .stopNoCall(
             "No significant loops fully inside [", start, ", ", end,
-            "] for SNP ", snpId
+            "] for SNP ", snpID
         )
     }
     loopsDF$ancAMid <- (loopsDF$ancAStart + loopsDF$ancAEnd) / 2
@@ -177,7 +177,7 @@ loopQTLplotLocus <- function(obj, snpId,
         featureType = "gene",
         biotypes = geneBiotypes
     )
-    exonDf <- .load_features_in_region(gtf, chrom, start, end,
+    exonDF <- .load_features_in_region(gtf, chrom, start, end,
         featureType = "exon",
         geneNames = geneDF$gene
     )
@@ -190,18 +190,18 @@ loopQTLplotLocus <- function(obj, snpId,
     }
 
     ## 7. Build the four ggplot panels
-    pGene <- .build_gene_track(geneDF, exonDf, start, end, chrom, axisFormat)
-    pSnp <- .build_snp_track(snpPos, snpId, start, end, axisFormat)
+    pGene <- .build_gene_track(geneDF, exonDF, start, end, chrom, axisFormat)
+    pSnp <- .build_snp_track(snpPos, snpID, start, end, axisFormat)
 
     arcPanels <- lapply(seq_along(genotypeGroups), function(gI) {
         genotypeLabel <- names(genotypeGroups)[gI]
-        arcDf <- data.frame(
+        arcDF <- data.frame(
             loopID = loopsDF$loopID,
             x1      = loopsDF$ancAMid,
             x2      = loopsDF$ancBMid,
             value   = mean_per_geno[, genotypeLabel]
         )
-        .build_arc_panel(arcDf, start, end, axisFormat,
+        .build_arc_panel(arcDF, start, end, axisFormat,
             effLo, effHi, strongColor, weakColor,
             panelTitles[gI],
             showX = (gI == length(genotypeGroups))
@@ -220,7 +220,7 @@ loopQTLplotLocus <- function(obj, snpId,
         patchwork::plot_annotation(
             title = sprintf(
                 "%s | %s:%d-%d",
-                snpId, chrom, start, end
+                snpID, chrom, start, end
             ),
             subtitle = sprintf(
                 "REF=%s  ALT=%s  |  %d significant loop(s) (p <= %.3g)  |  %s values",
@@ -337,33 +337,33 @@ loopQTLplotLocus <- function(obj, snpId,
 
 
 ## Non-overlapping row assignment: greedy first-fit into rows so text labels don't collide.
-.assign_gene_rows <- function(gDf) {
-    n <- nrow(gDf)
+.assign_gene_rows <- function(gDF) {
+    n <- nrow(gDF)
     if (n == 0) {
         return(integer(0))
     }
-    ord <- order(gDf$start)
+    ord <- order(gDF$start)
     rows <- integer(n)
     rowEnds <- numeric(0) # last end per row
     for (k in ord) {
         placed <- FALSE
         for (r in seq_along(rowEnds)) {
-            if (gDf$start[k] > rowEnds[r]) {
+            if (gDF$start[k] > rowEnds[r]) {
                 rows[k] <- r
-                rowEnds[r] <- gDf$end[k]
+                rowEnds[r] <- gDF$end[k]
                 placed <- TRUE
                 break
             }
         }
         if (!placed) {
             rows[k] <- length(rowEnds) + 1
-            rowEnds <- c(rowEnds, gDf$end[k])
+            rowEnds <- c(rowEnds, gDF$end[k])
         }
     }
     rows
 }
 
-.build_gene_track <- function(geneDF, exonDf, start, end, chrom, axisFormat) {
+.build_gene_track <- function(geneDF, exonDF, start, end, chrom, axisFormat) {
     if (nrow(geneDF) == 0) {
         return(
             ggplot2::ggplot() +
@@ -382,9 +382,9 @@ loopQTLplotLocus <- function(obj, snpId,
     geneDF$row <- .assign_gene_rows(geneDF)
 
     ## Attach row assignment to exons via gene name
-    if (nrow(exonDf) > 0) {
-        exonDf$row <- geneDF$row[match(exonDf$gene, geneDF$gene)]
-        exonDf <- exonDf[!is.na(exonDf$row), , drop = FALSE]
+    if (nrow(exonDF) > 0) {
+        exonDF$row <- geneDF$row[match(exonDF$gene, geneDF$gene)]
+        exonDF <- exonDF[!is.na(exonDF$row), , drop = FALSE]
     }
 
     ## Strand direction chevrons along the gene body (thin line)
@@ -427,9 +427,9 @@ loopQTLplotLocus <- function(obj, snpId,
         )
     }
     ## Thick exon rectangles
-    if (nrow(exonDf) > 0) {
+    if (nrow(exonDF) > 0) {
         gg <- gg + ggplot2::geom_rect(
-            data = exonDf,
+            data = exonDF,
             ggplot2::aes(
                 xmin = .data$start, xmax = .data$end,
                 ymin = .data$row - 0.28, ymax = .data$row + 0.28
@@ -482,7 +482,7 @@ loopQTLplotLocus <- function(obj, snpId,
         )
 }
 
-.build_snp_track <- function(snpPos, snpId, start, end, axisFormat) {
+.build_snp_track <- function(snpPos, snpID, start, end, axisFormat) {
     ggplot2::ggplot() +
         ggplot2::geom_vline(
             xintercept = snpPos,
@@ -490,7 +490,7 @@ loopQTLplotLocus <- function(obj, snpId,
         ) +
         ggplot2::annotate("text",
             x = snpPos, y = 0.5,
-            label = snpId, hjust = -0.05,
+            label = snpID, hjust = -0.05,
             size = 3, fontface = "bold"
         ) +
         ggplot2::coord_cartesian(xlim = c(start, end), ylim = c(0, 1)) +
@@ -514,15 +514,15 @@ loopQTLplotLocus <- function(obj, snpId,
     ))
 }
 
-.build_arc_panel <- function(arcDf, start, end, axisFormat,
+.build_arc_panel <- function(arcDF, start, end, axisFormat,
                              effLo, effHi, strongColor, weakColor,
                              panelTitle, showX = FALSE) {
     ## Expand each loop into a set of three points which will be interpolated by
     ## geom_path
-    paths <- do.call(rbind, lapply(seq_len(nrow(arcDf)), function(i) {
-        p <- .arcPath(arcDf$x1[i], arcDf$x2[i])
-        p$loopID <- arcDf$loopID[i]
-        p$value <- arcDf$value[i]
+    paths <- do.call(rbind, lapply(seq_len(nrow(arcDF)), function(i) {
+        p <- .arcPath(arcDF$x1[i], arcDF$x2[i])
+        p$loopID <- arcDF$loopID[i]
+        p$value <- arcDF$value[i]
         p
     }))
     yMin <- min(paths$y, na.rm = TRUE)

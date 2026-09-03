@@ -53,8 +53,8 @@ loopQTLsetup <- function(samples,
     resolution <- as.integer(resolution)
     minSamples <- as.integer(minSamples)
 
-    sampleIds <- as.character(samples$Sample)
-    if (anyDuplicated(sampleIds)) {
+    sampleIDs <- as.character(samples$Sample)
+    if (anyDuplicated(sampleIDs)) {
         .stopNoCall("Sample IDs must be unique")
     }
     hicPaths <- as.character(samples$hic)
@@ -78,27 +78,27 @@ loopQTLsetup <- function(samples,
     vcfSamples <- VariantAnnotation::samples(
         VariantAnnotation::scanVcfHeader(vcf)
     )
-    missing_in_vcf <- setdiff(sampleIds, vcfSamples)
+    missing_in_vcf <- setdiff(sampleIDs, vcfSamples)
     if (length(missing_in_vcf) > 0) {
         message(
             "Dropping ", length(missing_in_vcf),
             " samplesheet sample(s) not in VCF: ",
             paste(missing_in_vcf, collapse = ", ")
         )
-        keep <- !(sampleIds %in% missing_in_vcf)
-        sampleIds <- sampleIds[keep]
+        keep <- !(sampleIDs %in% missing_in_vcf)
+        sampleIDs <- sampleIDs[keep]
         hicPaths <- hicPaths[keep]
         loopPaths <- loopPaths[keep]
         if (!is.null(userCis)) userCis <- userCis[keep]
     }
-    if (length(sampleIds) < 2) {
+    if (length(sampleIDs) < 2) {
         .stopNoCall(
             "Fewer than 2 samples overlap between samplesheet and VCF; ",
             "cannot build consensus / run QTL."
         )
     }
     message(
-        "Proceeding with ", length(sampleIds),
+        "Proceeding with ", length(sampleIDs),
         " sample(s) present in both samplesheet and VCF."
     )
 
@@ -156,7 +156,7 @@ loopQTLsetup <- function(samples,
         d
     }
     per_sample_loops <- lapply(per_sample_loops, canonicalise)
-    names(per_sample_loops) <- sampleIds
+    names(per_sample_loops) <- sampleIDs
 
     per_sample_n <- vapply(per_sample_loops, nrow, integer(1))
     if (sum(per_sample_n > 0) < 2) {
@@ -166,7 +166,7 @@ loopQTLsetup <- function(samples,
         message(
             "Dropping ", sum(per_sample_n == 0),
             " sample(s) with no usable loops: ",
-            paste(sampleIds[per_sample_n == 0], collapse = ", ")
+            paste(sampleIDs[per_sample_n == 0], collapse = ", ")
         )
     }
 
@@ -185,7 +185,7 @@ loopQTLsetup <- function(samples,
             chrA = d$chrA,
             startA = d$startA, endA = d$endA,
             startB = d$startB, endB = d$endB,
-            sample = sampleIds[si],
+            sample = sampleIDs[si],
             stringsAsFactors = FALSE
         )
     })
@@ -251,16 +251,16 @@ loopQTLsetup <- function(samples,
         if (anyNA(userCis) || any(userCis <= 0)) {
             .stopNoCall("`samples$cis` must be positive numeric with no NAs")
         }
-        setNames(as.numeric(userCis), sampleIds)
+        setNames(as.numeric(userCis), sampleIDs)
     } else {
         message(
             "computing cis depth from .hic files ",
             "(no `cis` column in samplesheet; ", length(cisChroms),
-            " chroms x ", length(sampleIds), " samples) ..."
+            " chroms x ", length(sampleIDs), " samples) ..."
         )
         .compute_cis_from_hic(
             hicPaths   = hicPaths,
-            sampleIds  = sampleIds,
+            sampleIDs  = sampleIDs,
             chroms      = cisChroms,
             resolution  = resolution,
             chromNorms = chrom_norm_per_sample,
@@ -274,15 +274,15 @@ loopQTLsetup <- function(samples,
         resolution         = resolution,
         minSamples        = minSamples,
         n_trans_dropped    = sum(n_trans_per_sample),
-        n_trans_per_sample = setNames(n_trans_per_sample, sampleIds),
+        n_trans_per_sample = setNames(n_trans_per_sample, sampleIDs),
         cisSource         = cis_source_tag,
         cis_chroms_in      = if (length(cisVec) > 0) cisChroms else character(0),
         normalization      = "NONE",
-        hicPaths          = setNames(hicPaths, sampleIds)
+        hicPaths          = setNames(hicPaths, sampleIDs)
     )
 
     obj <- new("loopQTL",
-        samples    = sampleIds,
+        samples    = sampleIDs,
         loops      = gi,
         cis        = cisVec,
         vcfPath   = vcf,
@@ -297,11 +297,11 @@ loopQTLsetup <- function(samples,
 ## Internal: compute per-sample cis depth by summing all straw counts across
 ## the given chroms. Returns a named numeric vector (one entry per sample).
 ## Parallel unit of work: one (sample, chrom) straw pull + sum.
-.compute_cis_from_hic <- function(hicPaths, sampleIds, chroms,
+.compute_cis_from_hic <- function(hicPaths, sampleIDs, chroms,
                                   resolution, chromNorms,
                                   BPPARAM = BiocParallel::SerialParam()) {
     grid <- expand.grid(
-        sampleI = seq_along(sampleIds),
+        sampleI = seq_along(sampleIDs),
         chrom = chroms,
         stringsAsFactors = FALSE,
         KEEP.OUT.ATTRS = FALSE
@@ -325,7 +325,7 @@ loopQTLsetup <- function(samples,
     }
 
     results <- BiocParallel::bplapply(seq_len(nrow(grid)), one, BPPARAM = BPPARAM)
-    cisVec <- setNames(numeric(length(sampleIds)), sampleIds)
+    cisVec <- setNames(numeric(length(sampleIDs)), sampleIDs)
     for (k in seq_len(nrow(grid))) {
         cisVec[grid$sampleI[k]] <- cisVec[grid$sampleI[k]] + results[[k]]
     }

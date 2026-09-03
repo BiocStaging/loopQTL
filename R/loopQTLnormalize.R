@@ -56,7 +56,7 @@
 #'     to get per-sample CPM, or compute your own transform.}
 #'   \item{`cellCoordinates`}{data.frame with `chrom`, `binI`, `binJ` per
 #'     column of `cells` / `cellsRaw`.}
-#'   \item{`snpIndex`}{data.frame with one row per SNP: `snpId`, `chrom`,
+#'   \item{`snpIndex`}{data.frame with one row per SNP: `snpID`, `chrom`,
 #'     `pos`, `ref`, `alt`, `binLo`, `binHi`, `n_loops_anchored`, plus a
 #'     list-column `colIndices` of integer column indices into `cells`.}
 #'   \item{`samples`}{character vector matching the rows of `cells`.}
@@ -201,7 +201,7 @@ loopQTLnormalize <- function(obj,
             estMb <- n_total_cells * length(samplesVec) * 8 / 1024^2
             message(sprintf(
                 "saveWindows: %d SNP(s), %d unique cells across %d chrom(s); estimated ~%.1f MB in memory (8 bytes x cells x samples)",
-                nrow(windowsCtx$snpsDf),
+                nrow(windowsCtx$snpsDF),
                 n_total_cells, length(winChroms), estMb
             ))
         }
@@ -394,8 +394,8 @@ loopQTLnormalize <- function(obj,
             }
 
             ## Per-SNP colIndices: local within-chrom indices + that chrom's offset
-            snpChrom <- windowsCtx$snpsDf$chromOrig
-            nSnp <- nrow(windowsCtx$snpsDf)
+            snpChrom <- windowsCtx$snpsDF$chromOrig
+            nSnp <- nrow(windowsCtx$snpsDF)
             colIndices <- vector("list", nSnp)
             for (i in seq_len(nSnp)) {
                 chr <- snpChrom[i]
@@ -408,13 +408,13 @@ loopQTLnormalize <- function(obj,
                 }
             }
 
-            snpIndex <- windowsCtx$snpsDf
+            snpIndex <- windowsCtx$snpsDF
             snpIndex$chrom <- snpIndex$chromOrig
             snpIndex$chromOrig <- NULL
             snpIndex$chromVcf <- NULL
             snpIndex$colIndices <- I(colIndices)
             snpIndex <- snpIndex[, c(
-                "snpId", "chrom", "pos", "ref", "alt",
+                "snpID", "chrom", "pos", "ref", "alt",
                 "binLo", "binHi", "n_loops_anchored",
                 "colIndices"
             )]

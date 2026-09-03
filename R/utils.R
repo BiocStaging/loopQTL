@@ -88,12 +88,12 @@
 #
 ## Returns:
 ##   list(
-##     snpsDf = data.frame(snpId, chromOrig, chromVcf, pos, ref, alt,
+##     snpsDF = data.frame(snpID, chromOrig, chromVcf, pos, ref, alt,
 ##                          binLo, binHi, n_loops_anchored),
 ##     cells_by_chrom = named list per chrom; each is data.frame(binI, binJ)
 ##                      of upper-triangle cells (bp), deduplicated across SNPs
 ##                      on that chrom,
-##     snp_cells_local = list (length nrow(snpsDf)) of integer vectors of
+##     snp_cells_local = list (length nrow(snpsDF)) of integer vectors of
 ##                      within-chrom row indices into cells_by_chrom[[chrom]]
 ##   )
 ## Returns NULL if no eligible SNPs are found (caller short-circuits).
@@ -154,9 +154,9 @@
         function(a) paste(as.character(a), collapse = ","),
         character(1)
     )
-    snpId <- rownames(vcf)
-    if (is.null(snpId) || any(snpId == "" | is.na(snpId))) {
-        snpId <- sprintf("%s:%d_%s/%s", snp_chrom_vcf, snpPos, snpRef, snpAlt)
+    snpID <- rownames(vcf)
+    if (is.null(snpID) || any(snpID == "" | is.na(snpID))) {
+        snpID <- sprintf("%s:%d_%s/%s", snp_chrom_vcf, snpPos, snpRef, snpAlt)
     }
 
     ## Map SNPs to consensus loops (within snpWindow flank)  # Convert anchors to vcf-style seqnames for overlap with the SNP GRanges.
@@ -172,14 +172,14 @@
     padded_A_vcf <- to_vcf_gr(anchorA)
     padded_B_vcf <- to_vcf_gr(anchorB)
 
-    snpGr <- GenomicRanges::GRanges(
+    snpGR <- GenomicRanges::GRanges(
         seqnames = snp_chrom_vcf,
         ranges   = IRanges::IRanges(start = snpPos, end = snpPos)
     )
 
-    hitsA <- GenomicRanges::findOverlaps(snpGr, padded_A_vcf)
-    hitsB <- GenomicRanges::findOverlaps(snpGr, padded_B_vcf)
-    in_loops_by_snp <- vector("list", length(snpGr))
+    hitsA <- GenomicRanges::findOverlaps(snpGR, padded_A_vcf)
+    hitsB <- GenomicRanges::findOverlaps(snpGR, padded_B_vcf)
+    in_loops_by_snp <- vector("list", length(snpGR))
     if (length(hitsA) > 0) {
         spl <- split(S4Vectors::subjectHits(hitsA), S4Vectors::queryHits(hitsA))
         for (s in names(spl)) {
@@ -202,7 +202,7 @@
     snp_idx_keep <- which(keepSNPs)
     in_loops_by_snp <- in_loops_by_snp[snp_idx_keep]
 
-    snpId <- snpId[snp_idx_keep]
+    snpID <- snpID[snp_idx_keep]
     snp_chrom_vcf <- snp_chrom_vcf[snp_idx_keep]
     snpPos <- snpPos[snp_idx_keep]
     snpRef <- snpRef[snp_idx_keep]
@@ -223,7 +223,7 @@
     anchorB_start_native <- GenomicRanges::start(anchorB)
     anchorB_end_native <- GenomicRanges::end(anchorB)
 
-    nSnp <- length(snpId)
+    nSnp <- length(snpID)
     binLo <- integer(nSnp)
     binHi <- integer(nSnp)
     nLoops <- integer(nSnp)
@@ -248,8 +248,8 @@
         if (binLo[i] < 0) binLo[i] <- 0
     }
 
-    snpsDf <- data.frame(
-        snpId = snpId,
+    snpsDF <- data.frame(
+        snpID = snpID,
         chromOrig = snp_chrom_orig,
         chromVcf = snp_chrom_vcf,
         pos = snpPos,
@@ -266,14 +266,14 @@
     cells_by_chrom <- list()
     snp_cells_local <- vector("list", nSnp)
 
-    chromGroups <- split(seq_len(nSnp), snpsDf$chromOrig)
+    chromGroups <- split(seq_len(nSnp), snpsDF$chromOrig)
     for (chr in names(chromGroups)) {
         idxs <- chromGroups[[chr]]
         ## Build a master set of cells, dedupe via paste-key
         cellChunks <- vector("list", length(idxs))
         for (k in seq_along(idxs)) {
             s <- idxs[k]
-            bins <- seq.int(snpsDf$binLo[s], snpsDf$binHi[s], by = resolution)
+            bins <- seq.int(snpsDF$binLo[s], snpsDF$binHi[s], by = resolution)
             ng <- length(bins)
             if (ng == 0) {
                 cellChunks[[k]] <- data.frame(
@@ -312,7 +312,7 @@
     }
 
     list(
-        snpsDf         = snpsDf,
+        snpsDF         = snpsDF,
         cells_by_chrom  = cells_by_chrom,
         snp_cells_local = snp_cells_local
     )

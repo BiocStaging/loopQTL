@@ -59,7 +59,7 @@ remotes::install_github("rhielab/loopQTL")
 ```r
 library(loopQTL)
 
-samplesDf <- data.frame(
+samplesDF <- data.frame(
   Sample = c("S1", "S2", "S3"),
   hic    = c("S1.hic", "S2.hic", "S3.hic"),
   loops  = c("S1_loops.bedpe", "S2_loops.bedpe", "S3_loops.bedpe"),
@@ -69,7 +69,7 @@ samplesDf <- data.frame(
 )
 
 obj <- loopQTLsetup(
-  samples     = samplesDf,
+  samples     = samplesDF,
   vcf         = "cohort.vcf.gz",     # bgzipped + tabix-indexed
   resolution  = 10000,              # bp; must exist in every .hic
   minSamples = 2                   # consensus filter
@@ -89,7 +89,7 @@ obj <- loopQTLnormalize(
 
 obj <- runQTL(obj, window = 0, normal = TRUE)
 head(obj@results)
-##   loopID  snpId  chrom  pos  ref  alt  anchor  beta  se  t  p  nUsed  maf
+##   loopID  snpID  chrom  pos  ref  alt  anchor  beta  se  t  p  nUsed  maf
 ```
 
 ## Annotate results with target genes and enhancer peaks
@@ -107,7 +107,7 @@ obj <- loopQTLannotate(
   peak            = "H3K27ac_peaks.bed",   # optional
   peakAnnotation = "Enhancer"
 )
-head(obj@results[, c("snpId", "loopID", "anchor", "gene", "peak", "Type")])
+head(obj@results[, c("snpID", "loopID", "anchor", "gene", "peak", "Type")])
 ```
 
 ## Save per-SNP contact submatrices for SNP-correlation maps
@@ -126,7 +126,7 @@ obj <- loopQTLnormalize(
 w <- readRDS("loop_snp_windows.rds")
 ## w$cells       : samples x N_cells numeric matrix (post-band-QN, pre-RINT)
 ## w$cellCoordinates : data.frame(chrom, binI, binJ) per column
-## w$snpIndex   : data.frame(snpId, chrom, pos, ref, alt, binLo, binHi,
+## w$snpIndex   : data.frame(snpID, chrom, pos, ref, alt, binLo, binHi,
 ##                            n_loops_anchored, colIndices)  -- one row per SNP
 ```
 
@@ -134,7 +134,7 @@ Once written, `loopQTLplotSnpWindow()` renders a Hi-C-style β heatmap around an
 
 ```r
 p <- loopQTLplotSnpWindow(
-  obj, snpId = "rs123456",
+  obj, snpID = "rs123456",
   chrom  = "chr16",
   start  = 72410000, end = 73470000,   # crop to a region of interest
   normal = TRUE, covariates = "auto"   # match runQTL()'s partial-beta test

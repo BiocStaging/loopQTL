@@ -19,7 +19,7 @@
 #    must equal those of `loops` and `samples`. Empty if `loopQTLnormalize()`
 #'   has not been run.
 #' @slot results QTL result table. Empty if `runQTL()` has not been run.
-#'   Contains a row for each loop-SNP pair and columns `loopID`, `snpId`,
+#'   Contains a row for each loop-SNP pair and columns `loopID`, `snpID`,
 #'   `chrom`, `pos`, `ref`, `alt`, `anchor`, `beta`, `se`, `t`, `p`, `nUsed`,
 #'   and `maf`. If `loopQTLannotate()` has been run, also contains `gene`,
 #'   `peak` (optional), and `Type` columns.

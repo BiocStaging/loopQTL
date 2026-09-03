@@ -1,12 +1,12 @@
 #' Boxplot for a single SNP-loop pair, with QTL stats in the title
 #'
 #' Stratifies the loop's phenotype by genotype dosage (0/1/2, labeled with the
-#' REF/ALT alleles) and adds a title showing snpId, loopID, REF/ALT, p-value,
+#' REF/ALT alleles) and adds a title showing snpID, loopID, REF/ALT, p-value,
 #' and beta - drawn from the pair's row in `obj@results`.
 #'
 #' @param obj A [loopQTL-class] with `obj@results` populated by `runQTL()`.
 #' @param loopID Single loopID to plot.
-#' @param snpId Single snpId to plot.
+#' @param snpID Single snpID to plot.
 #' @param normal Use RINT'd phenotype values (default `TRUE`, matching what
 #'   the QTL regression actually used). Pass `FALSE` to plot pre-RINT values.
 #' @param jitter Add a jittered point overlay (default `TRUE`).
@@ -14,12 +14,12 @@
 #' @return A `ggplot` object.
 #'
 #' @export
-loopQTLplotPair <- function(obj, loopID, snpId,
+loopQTLplotPair <- function(obj, loopID, snpID,
                             normal = TRUE, jitter = TRUE) {
     stopifnot(
         methods::is(obj, "loopQTL"),
         is.character(loopID), length(loopID) == 1,
-        is.character(snpId),  length(snpId) == 1
+        is.character(snpID),  length(snpID) == 1
     )
     if (nrow(obj@results) == 0) {
         .stopNoCall("obj@results is empty. Run runQTL(obj) first.")
@@ -27,9 +27,9 @@ loopQTLplotPair <- function(obj, loopID, snpId,
 
     ## Look up the (loop, SNP) row in obj@results for stats
     hit <- obj@results[obj@results$loopID == loopID &
-        obj@results$snpId == snpId, , drop = FALSE]
+        obj@results$snpID == snpID, , drop = FALSE]
     if (nrow(hit) == 0) {
-        .stopNoCall("(loopID, snpId) pair not found in obj@results")
+        .stopNoCall("(loopID, snpID) pair not found in obj@results")
     }
     hit <- hit[1, , drop = FALSE]
     ref <- hit$ref
@@ -41,7 +41,7 @@ loopQTLplotPair <- function(obj, loopID, snpId,
     )
 
     ## Pull per-sample pair data
-    d <- loopQTLpairData(obj, loopID, snpId, normal = normal)
+    d <- loopQTLpairData(obj, loopID, snpID, normal = normal)
     d$genotypeFactor <- factor(d$genotype, levels = c(0, 1, 2), labels = genotypeLabels)
     d <- d[!is.na(d$genotypeFactor) & !is.na(d$phenotype), , drop = FALSE]
     if (nrow(d) == 0) {
@@ -52,7 +52,7 @@ loopQTLplotPair <- function(obj, loopID, snpId,
     nPer <- as.integer(table(d$genotypeFactor))
     xLabels <- sprintf("%s\n(n=%d)", genotypeLabels, nPer)
 
-    plotTitle <- sprintf("%s   |   %s", snpId, loopID)
+    plotTitle <- sprintf("%s   |   %s", snpID, loopID)
     subMain <- sprintf(
         "REF=%s   ALT=%s   |   p = %.3g   |   beta = %.3g",
         ref, alt, hit$p, hit$beta

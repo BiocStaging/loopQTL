@@ -236,18 +236,18 @@ loopQTLannotate <- function(obj,
     loopIdx <- match(res$loopID, loop_ids_all)
 
     ## SNP GRanges (1 bp per SNP), with chrom normalized to GTF convention.
-    snpGr <- GenomicRanges::GRanges(
+    snpGR <- GenomicRanges::GRanges(
         seqnames = normalizeChrom(res$chrom),
         ranges   = IRanges::IRanges(start = res$pos, end = res$pos)
     )
 
     snp_in_tss <- if (removeTSS) {
-        GenomicRanges::countOverlaps(snpGr, tssRegions) > 0
+        GenomicRanges::countOverlaps(snpGR, tssRegions) > 0
     } else {
         rep(FALSE, nrow(res))
     }
     snp_in_peak <- if (!is.null(peaksGRanges)) {
-        GenomicRanges::countOverlaps(snpGr, peaksGRanges) > 0
+        GenomicRanges::countOverlaps(snpGR, peaksGRanges) > 0
     } else {
         rep(NA, nrow(res))
     }

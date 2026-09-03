@@ -2,7 +2,7 @@
 #'
 #' Reads anchor-window SNPs from the VCF in a single targeted tabix pass, then
 #' runs MatrixEQTL twice - once with anchor-A as the gene position and once
-#' with anchor-B. Results are outer-joined on `(loopID, snpId)` and labeled
+#' with anchor-B. Results are outer-joined on `(loopID, snpID)` and labeled
 #' `anchor = A / B / both`.
 #'
 #' RINT (Blom-offset rank-inverse-normal transform) is applied per loop just
@@ -32,7 +32,7 @@
 #'   every pair). Lower it to shrink the output for very large runs.
 #'
 #' @return The input `obj` with `obj@results` filled - a data.frame with one
-#'   row per tested (loop, SNP) pair: `loopID`, `snpId`, `chrom`, `pos`,
+#'   row per tested (loop, SNP) pair: `loopID`, `snpID`, `chrom`, `pos`,
 #'   `ref`, `alt`, `anchor`, `beta`, `se`, `t`, `p`, `nUsed`, `maf`.
 #'   Access via `obj@results`. The wrapper `loopQTLpairData()` and
 #'   `loopQTLplotPair()` consume this slot directly.
@@ -157,13 +157,13 @@ runQTL <- function(obj,
         return(.returnEmpty())
     }
     dosage <- dosage[snpKeep, , drop = FALSE]
-    snpId <- snp_id_raw[snpKeep]
+    snpID <- snp_id_raw[snpKeep]
     snp_chrom_vcf <- snp_chrom_vcf[snpKeep]
     snpPos <- snpPos[snpKeep]
     snpRef <- snpRef[snpKeep]
     snpAlt <- snpAlt[snpKeep]
     mafKept <- mafAll[snpKeep]
-    rownames(dosage) <- snpId
+    rownames(dosage) <- snpID
 
     ## Resolve covariates
     if (is.null(covariates)) {
@@ -175,23 +175,23 @@ runQTL <- function(obj,
         cvrtMat <- t(Kres$PCs) # MatrixEQTL wants k x nSamples
         obj_K_meta <- list(K = Kres$K, Kmethod = Kres$method, Ksource = "autoPCAForQTL")
     } else {
-        covDf <- as.data.frame(covariates, stringsAsFactors = FALSE)
-        if (!is.null(rownames(covDf))) {
-            mm <- match(samplesVec, rownames(covDf))
+        covDF <- as.data.frame(covariates, stringsAsFactors = FALSE)
+        if (!is.null(rownames(covDF))) {
+            mm <- match(samplesVec, rownames(covDF))
             if (anyNA(mm)) {
                 .stopNoCall(
                     "`covariates` missing rows for samples: ",
                     paste(samplesVec[is.na(mm)], collapse = ", ")
                 )
             }
-            covDf <- covDf[mm, , drop = FALSE]
-        } else if (nrow(covDf) != length(samplesVec)) {
+            covDF <- covDF[mm, , drop = FALSE]
+        } else if (nrow(covDF) != length(samplesVec)) {
             .stopNoCall(
-                "`covariates` has ", nrow(covDf), " rows but ",
+                "`covariates` has ", nrow(covDF), " rows but ",
                 length(samplesVec), " samples; provide rownames or matched order"
             )
         }
-        cvrtMat <- t(as.matrix(covDf))
+        cvrtMat <- t(as.matrix(covDF))
         colnames(cvrtMat) <- samplesVec
         obj_K_meta <- list(K = nrow(cvrtMat), Kmethod = NA_character_, Ksource = "user")
     }
@@ -209,7 +209,7 @@ runQTL <- function(obj,
     ## vcf-style chrom names and matching anchor chrom names)
     loop_chrom_vcf <- vcfChromNormalizerFunc(as.character(GenomicRanges::seqnames(anchorA)))
     snpspos <- data.frame(
-        snpid = snpId,
+        snpid = snpID,
         chr = snp_chrom_vcf,
         pos = snpPos,
         stringsAsFactors = FALSE
@@ -241,7 +241,7 @@ runQTL <- function(obj,
         pvOutputThreshold = pvOutputThreshold
     )
 
-    ## Merge on (loopID = gene, snpId = snps); label anchor A / B / both.
+    ## Merge on (loopID = gene, snpID = snps); label anchor A / B / both.
     merged <- .merge_anchor_runs(outA, outB)
     if (nrow(merged) == 0) {
         obj@results <- .empty_qtl_result()
@@ -250,16 +250,16 @@ runQTL <- function(obj,
 
     ## Attach SNP metadata + MAF
     snpMeta <- data.frame(
-        snpId = snpId, chrom = snp_chrom_vcf, pos = snpPos,
+        snpID = snpID, chrom = snp_chrom_vcf, pos = snpPos,
         ref = snpRef, alt = snpAlt, maf = mafKept,
         stringsAsFactors = FALSE
     )
-    out <- merge(merged, snpMeta, by = "snpId", all.x = TRUE, sort = FALSE)
-    out$nUsed <- rowSums(!is.na(dosage[match(out$snpId, rownames(dosage)), , drop = FALSE]))
+    out <- merge(merged, snpMeta, by = "snpID", all.x = TRUE, sort = FALSE)
+    out$nUsed <- rowSums(!is.na(dosage[match(out$snpID, rownames(dosage)), , drop = FALSE]))
 
     ## Final column order
     out <- out[, c(
-        "loopID", "snpId", "chrom", "pos", "ref", "alt", "anchor",
+        "loopID", "snpID", "chrom", "pos", "ref", "alt", "anchor",
         "beta", "se", "t", "p", "nUsed", "maf"
     )]
     rownames(out) <- NULL
@@ -273,7 +273,7 @@ runQTL <- function(obj,
 
 .empty_qtl_result <- function() {
     data.frame(
-        loopID = character(0), snpId = character(0),
+        loopID = character(0), snpID = character(0),
         chrom = character(0), pos = integer(0),
         ref = character(0), alt = character(0),
         anchor = character(0),
@@ -340,7 +340,7 @@ runQTL <- function(obj,
     cis <- res$cis$eqtls
     if (is.null(cis) || nrow(cis) == 0) {
         return(data.frame(
-            loopID = character(0), snpId = character(0),
+            loopID = character(0), snpID = character(0),
             beta = numeric(0), se = numeric(0), t = numeric(0),
             p = numeric(0),
             stringsAsFactors = FALSE
@@ -351,7 +351,7 @@ runQTL <- function(obj,
     seCol <- if ("se" %in% names(cis)) cis$se else cis$beta / cis$statistic
     data.frame(
         loopID = as.character(cis$gene),
-        snpId = as.character(cis$snps),
+        snpID = as.character(cis$snps),
         beta = as.numeric(cis$beta),
         se = as.numeric(seCol),
         t = as.numeric(cis$statistic),
@@ -360,20 +360,20 @@ runQTL <- function(obj,
     )
 }
 
-## Outer-join two anchor runs on (loopID, snpId) and label `anchor`.
+## Outer-join two anchor runs on (loopID, snpID) and label `anchor`.
 ## When a pair appears in both runs the model is identical, so we just keep one
 ## row and label it `both`.
 .merge_anchor_runs <- function(outA, outB) {
     if (nrow(outA) == 0 && nrow(outB) == 0) {
         return(data.frame(
-            loopID = character(0), snpId = character(0),
+            loopID = character(0), snpID = character(0),
             anchor = character(0),
             beta = numeric(0), se = numeric(0), t = numeric(0),
             p = numeric(0),
             stringsAsFactors = FALSE
         ))
     }
-    key <- function(d) paste(d$loopID, d$snpId, sep = "::")
+    key <- function(d) paste(d$loopID, d$snpID, sep = "::")
     kA <- if (nrow(outA)) key(outA) else character(0)
     kB <- if (nrow(outB)) key(outB) else character(0)
 
