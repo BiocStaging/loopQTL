@@ -17,7 +17,7 @@
 #' matrix is used as-is.
 #'
 #' @param obj A [loopQTL-class] after [loopQTLnormalize()].
-#' @param window Bp flank added to each anchor bin when matching SNPs. Default 0.
+#' @param window Base-pair flank added to each anchor bin when matching SNPs. Default 0.
 #' @param covariates Optional `samples x k` matrix/data.frame. If `NULL`,
 #'   auto-chosen via PCAForQTL.
 #' @param normal Apply RINT per loop before regression. Default `TRUE`.

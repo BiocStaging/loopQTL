@@ -96,7 +96,7 @@ head(obj@results)
 
 `loopQTLannotate()` adds three columns to `obj@results`:
 
-- **`gene`** - comma-separated gene names whose TSS (± `TSSWindow`) sits in the SNP's *partner* anchor
+- **`gene`** - comma-separated gene names whose TSS (± `TSSwindow`) sits in the SNP's *partner* anchor
 - **`peak`** - logical: does the SNP overlap any peak from a user-supplied peak file (with optional TSS filtering)
 - **`Type`** - one of `WithinTSS`, `rs-gene`, `rs-<peak_label>`, `rs-O`, `rs(<peak_label>)-gene`, `rs(<peak_label>)-<peak_label>`, `rs(<peak_label>)-O`
 

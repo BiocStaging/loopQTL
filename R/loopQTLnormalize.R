@@ -33,7 +33,7 @@
 #'   participates in))`, centered on the bounding interval. Guarantees the
 #'   partner anchor stays in-frame even for ~2 Mb Mustache loops. Ignored
 #'   when `saveWindows = FALSE`.
-#' @param snpWindow Bp flank added to each consensus anchor when selecting
+#' @param snpWindow Base-pair flank added to each consensus anchor when selecting
 #'   in-loop SNPs from the VCF. Default 0 (anchor-bin SNPs only - matches
 #'   `runQTL()`'s default). Ignored when `saveWindows = FALSE`.
 #'

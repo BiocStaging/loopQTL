@@ -3,7 +3,7 @@
 #'
 #' Adds three columns to `obj@results`:
 #' \describe{
-#'   \item{`gene`}{Comma-separated gene names whose TSS (± `TSSWindow`) falls
+#'   \item{`gene`}{Comma-separated gene names whose TSS (± `TSSwindow`) falls
 #'     in the SNP's PARTNER anchor (anchor B if the SNP is in anchor A, and
 #'     vice versa; both partners if `anchor == "both"`). Empty string if no
 #'     gene is found.}
@@ -13,7 +13,7 @@
 #'     before this overlap check (so promoter-like peaks don't count).}
 #'   \item{`Type`}{One of:
 #'     \itemize{
-#'       \item `"WithinTSS"` - SNP overlaps any gene's TSS (± `TSSWindow`).
+#'       \item `"WithinTSS"` - SNP overlaps any gene's TSS (± `TSSwindow`).
 #'         Short-circuits all other annotation when `removeTSS = TRUE`.
 #'       \item `"rs-gene"` - SNP not in TSS, has a target gene at the partner anchor.
 #'       \item `"rs-<peakAnnotation>"` - SNP not in TSS, no gene at partner,
@@ -40,11 +40,11 @@
 #' @param peak Optional path to a peak file (BED-like; anything
 #'   `rtracklayer::import()` can read). If supplied, an extra `peak` column
 #'   is added and the `Type` labels gain the `"rs(<peakAnnotation>)-..."` form.
-#' @param TSSWindow Bp flank around each gene's TSS. Default 2000. Used both
+#' @param TSSwindow Base-pair flank around each gene's TSS. Default 2000. Used both
 #'   to define "TSS regions" (for `WithinTSS` classification and peak
 #'   filtering when `removeTSS = TRUE`) and to count a gene as a target
 #'   when its TSS region falls within `anchorWindow` of the partner anchor.
-#' @param anchorWindow Bp flank added around each anchor when looking for
+#' @param anchorWindow Base-pair flank added around each anchor when looking for
 #'   overlapping TSSs (and peaks). Default 5000.
 #' @param peakAnnotation Character label substituted into the `Type` values
 #'   when `peak` is supplied. Default `"Peak"` -> `"rs(Peak)-gene"`; common
@@ -66,14 +66,14 @@
 loopQTLannotate <- function(obj,
                             gtf,
                             peak = NULL,
-                            TSSWindow = 2000,
+                            TSSwindow = 2000,
                             anchorWindow = 5000,
                             peakAnnotation = "Peak",
                             removeTSS = TRUE) {
     stopifnot(
         methods::is(obj, "loopQTL"),
         is.character(gtf), length(gtf) == 1, file.exists(gtf),
-        is.numeric(TSSWindow), length(TSSWindow) == 1, TSSWindow >= 0,
+        is.numeric(TSSwindow), length(TSSwindow) == 1, TSSwindow >= 0,
         is.numeric(anchorWindow), length(anchorWindow) == 1, anchorWindow >= 0,
         is.character(peakAnnotation), length(peakAnnotation) == 1,
         is.logical(removeTSS), length(removeTSS) == 1
@@ -85,7 +85,7 @@ loopQTLannotate <- function(obj,
         .stopNoCall("obj@results is empty. Run runQTL(obj) first.")
     }
 
-    TSSWindow <- as.integer(TSSWindow)
+    TSSwindow <- as.integer(TSSwindow)
     anchorWindow <- as.integer(anchorWindow)
 
     ## 1. Read GTF, extract gene entries, derive TSS
@@ -129,12 +129,12 @@ loopQTLannotate <- function(obj,
     tssRegions <- GenomicRanges::GRanges(
         seqnames = GenomicRanges::seqnames(geneGRanges),
         ranges = IRanges::IRanges(
-            start = pmax(1, tssPos - TSSWindow),
-            end = tssPos + TSSWindow
+            start = pmax(1, tssPos - TSSwindow),
+            end = tssPos + TSSwindow
         )
     )
     S4Vectors::mcols(tssRegions)$gene <- geneNames
-    message(length(tssRegions), " gene TSS regions (±", TSSWindow, " bp)"
+    message(length(tssRegions), " gene TSS regions (±", TSSwindow, " bp)"
     )
 
     ## 2. Chrom-naming normalizer for THIS GTF  # GTF may use "chr1" (GENCODE) or "1" (Ensembl); loop anchors may use
@@ -305,7 +305,7 @@ loopQTLannotate <- function(obj,
     obj@metadata$annotate <- list(
         gtf = gtf,
         peak = peak,
-        TSSWindow = TSSWindow,
+        TSSwindow = TSSwindow,
         anchorWindow = anchorWindow,
         peakAnnotation = peakAnnotation,
         removeTSS = removeTSS,
