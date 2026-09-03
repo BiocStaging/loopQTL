@@ -82,8 +82,10 @@ setValidity("loopQTL", function(object) {
         }
     }
 
-    if (length(errs) > 0)
+    if (length(errs) > 0) {
+        message(errs)
         return(errs)
+    }
     return(TRUE)
 })
 
