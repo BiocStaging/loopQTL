@@ -30,10 +30,11 @@ detail.
 2. `loopQTLnormalize` - Per-chromosome whole-genome straw pull followed by
 	band-wise quantile normalization across samples The output is saved in
    `phenotype(obj)`. Optionally caches per-SNP contact-window matrices to a
-   file for later visualization with `loopQTLplotSnpWindow()` or `loopQTLnormalize()`.
+   file for later visualization with `loopQTLplotSnpWindow()` or
+   `loopQTLnormalize()`.
 3. `loopQTLchooseK` - Runs PCA on the normalized phenotype matrix and picks
-   K via PCAForQTL's method. This function returns the chosen K and the corresponding 
-   sample PCs.
+   K via PCAForQTL's method. This function returns the chosen K and the
+   corresponding sample PCs.
 4. `runQTL` - Tabix-reads anchor-window SNPs from the VCF, runs MatrixEQTL
    to perform the loopQTL analysis. The output is saved in `results(obj)`.
 5. `loopQTLpairData` - Return the sample-level phenotype and genotype for a
@@ -42,8 +43,9 @@ detail.
 6. `loopQTLannotate` - Adds `gene`, `peak` (optional), and `Type` columns
    to `results(obj)` using a GTF for TSS mapping and an optional peak BED
    file for regulatory-element overlap.
-7. `loopQTLplotPair` - Generates boxplot of the loop's contact-strength phenotype
-   grouped by the SNP's dosage class (0/1/2), for a specific SNP-loop pair.
+7. `loopQTLplotPair` - Generates boxplot of the loop's contact-strength
+   phenotype grouped by the SNP's dosage class (0/1/2), for a specific SNP-loop
+   pair.
 8. `c` - Locus-level ggplot track combining consensus loops,
    the tested SNP, and (optionally) gene annotations, over a user-specified
    genomic region.
@@ -176,7 +178,8 @@ head(pair)
 * **`gene`** - comma-separated gene names whose TSS (± `TSSwindow`) sits in
   the SNP's *partner* anchor.
 * **`peak`** - logical: does the SNP overlap any peak from the user-supplied
-  peak file . If the distal TSS peaks are preferred, then you can set `removeTSS = TRUE``.
+  peak file . If the distal TSS peaks are preferred, then you can set
+  `removeTSS = TRUE``.
 * **`Type`** - annotation of each SNP-loop pair such as `WithinTSS`, `rs-gene`,
   `rs-<peakAnnotation>`, `rs-O`, `rs(<peakAnnotation>)-gene`, or
   `rs(<peakAnnotation>)-<peakAnnotation>` summarizing the SNP–loop types.
@@ -216,8 +219,9 @@ p
 `loopQTLplotLocus()` renders a locus-scale ggplot combining the consensus
 loops, the tested SNP, and (when a GTF is supplied) gene annotations, over
 a user-specified region. Please note that to sse `values = "cpm"` or 
-`values = "raw"` to show per-loop contact strength, you need to set `saveWindows = TRUE` 
-to save the per-SNP contact-window matrices from loopQTLnormalize.
+`values = "raw"` to show per-loop contact strength, you need to set
+`saveWindows = TRUE`  to save the per-SNP contact-window matrices from
+loopQTLnormalize.
 
 ```{r}
 gtfPath <- system.file("extdata", "example.gtf.gz", package = "loopQTL")
