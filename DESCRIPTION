@@ -36,8 +36,7 @@ Imports:
     data.table,
     ggplot2,
     scales,
-    rtracklayer,
-    parallel
+    rtracklayer
 Suggests:
     testthat (>= 3.0.0),
     knitr,

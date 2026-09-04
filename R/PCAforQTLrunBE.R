@@ -12,10 +12,8 @@
 ## FIXME: For reproducibility, make sure to change the RNG type (necessary 
 ## unless mc.cores is 1) and set the seed before using this function.
 
-## FIXME: use BiocParallel
-
 .PCAForQTLrunBE <- function(X, B = 20, alpha = 0.05,
-                            mc.cores = min(B, parallel::detectCores() - 1),
+                            mc.cores = max(1, min(B, BiocParallel::bpnworkers(BiocParallel::MulticoreParam()) - 1)),
                             verbose = FALSE) {
     if (alpha < 0 || alpha > 1) {
         .stopNoCall("alpha must be between 0 and 1.")
@@ -27,7 +25,7 @@
 
     if (verbose) cat("Running PCA on permuted data...\n")
 
-    results <- parallel::mclapply(seq_len(B), FUN = function(b) {
+    results <- BiocParallel::bplapply(seq_len(B), FUN = function(b) {
         ## Permute each column of X. That is, permute the observations in each feature.
         XPermuted <- matrix(data = NA, nrow = n, ncol = p)
         for (j in seq_len(p)) {
@@ -38,7 +36,7 @@
         importanceTablePerm <- summary(prcompResultPerm)$importance
         PVEsPerm <- importanceTablePerm[2, ]
         return(PVEsPerm)
-    }, mc.cores = mc.cores) 
+    }, BPPARAM = BiocParallel::MulticoreParam(workers = mc.cores))
     ## results is a list of vectors
     temp <- unlist(results)
     testStatsPerm <- matrix(data = temp, nrow = d, byrow = FALSE)

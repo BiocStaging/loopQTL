@@ -258,7 +258,7 @@ loopQTLsetup <- function(samples,
             "(no `cis` column in samplesheet; ", length(cisChroms),
             " chroms x ", length(sampleIDs), " samples) ..."
         )
-        .compute_cis_from_hic(
+        .computeCisFromHiC(
             hicPaths   = hicPaths,
             sampleIDs  = sampleIDs,
             chroms      = cisChroms,
@@ -297,7 +297,7 @@ loopQTLsetup <- function(samples,
 ## Internal: compute per-sample cis depth by summing all straw counts across
 ## the given chroms. Returns a named numeric vector (one entry per sample).
 ## Parallel unit of work: one (sample, chrom) straw pull + sum.
-.compute_cis_from_hic <- function(hicPaths, sampleIDs, chroms,
+.computeCisFromHiC <- function(hicPaths, sampleIDs, chroms,
                                   resolution, chromNorms,
                                   BPPARAM = BiocParallel::SerialParam()) {
     grid <- expand.grid(

@@ -676,7 +676,7 @@ loopQTLnormalize <- function(obj,
         }
     }
 
-    wide[, chr := as.character(chr)] # FIXME: what?
+    wide[, chr := as.character(chr)]
     wide[, c(
         "chr", "region1", "region2",
         paste0("IF_", seq_len(nSamples))
