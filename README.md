@@ -4,11 +4,11 @@ An R package for mapping chromatin loop QTLs from Hi-C: **does genotype at a loo
 
 Unlike peak-centric window-scan tools (e.g. QTLtools), `loopQTL` only tests SNPs that fall inside a loop's **anchor bins** - because for a given loop, SNPs elsewhere in a wide cis-window are biologically unrelated to whether that loop forms. Intra-chromosomal loops only. No FDR or lead-SNP selection inside the package (returned as a full per-(loop, SNP) table so users can apply their own correction).
 
-<img src="loopQTL schematic.png">
-
 ## Pipeline overview
 
-```
+<img src="loopQTL schematic.png"/>
+
+```         
 loopQTLsetup()      -> validate VCF + .hic headers, read loop BEDPEs, build the
                         exact-coordinate consensus loop set (loops kept when they
                         appear in >= minSamples samples). Optionally auto-computes
@@ -33,7 +33,7 @@ A single `loopQTL` S4 object is threaded through all functions; sample order is 
 
 Bioconductor + CRAN dependencies:
 
-```r
+``` r
 if (!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocManager")
 BiocManager::install(c(
   "strawr", "preprocessCore",
@@ -46,19 +46,19 @@ install.packages(c("MatrixEQTL", "data.table", "ggplot2", "scales"))
 
 `PCAForQTL` (used for auto-selecting phenotype PCs as covariates) is GitHub-only:
 
-```r
+``` r
 remotes::install_github("heatherjzhou/PCAForQTL")
 ```
 
 Then install `loopQTL`:
 
-```r
+``` r
 remotes::install_github("rhielab/loopQTL")
 ```
 
 ## Quick start
 
-```r
+``` r
 library(loopQTL)
 
 samplesDF <- data.frame(
@@ -102,7 +102,7 @@ head(obj@results)
 - **`peak`** - logical: does the SNP overlap any peak from a user-supplied peak file (with optional TSS filtering)
 - **`Type`** - one of `WithinTSS`, `rs-gene`, `rs-<peak_label>`, `rs-O`, `rs(<peak_label>)-gene`, `rs(<peak_label>)-<peak_label>`, `rs(<peak_label>)-O`
 
-```r
+``` r
 obj <- loopQTLannotate(
   obj,
   gtf             = "gencode.v43.gtf.gz",
@@ -116,7 +116,7 @@ head(obj@results[, c("snpID", "loopID", "anchor", "gene", "peak", "Type")])
 
 Pass `saveWindows = TRUE` to `loopQTLnormalize()` to also save a `.rds` containing a `samples × cells` matrix of post-band-QN contact values around each in-loop SNP. Values are sliced from the per-chrom matrix that fills the phenotype, so no recomputation. This is a diagnostic/visualization output - it does not affect `obj@phenotype` or `runQTL()`.
 
-```r
+``` r
 obj <- loopQTLnormalize(
   obj,
   saveWindows = TRUE,
@@ -134,7 +134,7 @@ w <- readRDS("loop_snp_windows.rds")
 
 Once written, `loopQTLplotSnpWindow()` renders a Hi-C-style β heatmap around any single SNP, matching the visualization style of Shi et al. 2025 (*Genome Biology*):
 
-```r
+``` r
 p <- loopQTLplotSnpWindow(
   obj, snpID = "rs123456",
   chrom  = "chr16",
@@ -148,7 +148,7 @@ ggplot2::ggsave("rs123456_snp_window.pdf", p, width = 8, height = 8)
 
 Inside a single call, both `loopQTLsetup()` (when auto-computing per-sample cis from `.hic`) and `loopQTLnormalize()` (one worker per chromosome) dispatch work via `BiocParallel::bplapply`. Pick the backend via `BPPARAM`:
 
-```r
+``` r
 BPPARAM = BiocParallel::MulticoreParam(workers = 16)   # workstation / single node
 BPPARAM = BiocParallel::SerialParam()                   # single-threaded
 ```
@@ -157,7 +157,7 @@ BPPARAM = BiocParallel::SerialParam()                   # single-threaded
 
 If you use `loopQTL` in your work, please cite this repository:
 
-> Wu, Z. loopQTL: anchor-restricted loop QTL mapping from Hi-C. https://github.com/rhielab/loopQTL
+> Wu, Z. loopQTL: anchor-restricted loop QTL mapping from Hi-C. <https://github.com/rhielab/loopQTL>
 
 The BNBC normalization implemented here follows Fletez-Brant et al. 2021 (*Bioinformatics*). The per-SNP contact-window heatmap follows the visualization in Shi et al. 2025 (*Genome Biology*).
 
