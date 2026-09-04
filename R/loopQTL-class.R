@@ -52,9 +52,11 @@ setClass(
 )
 
 setValidity("loopQTL", function(object) {
-    errs <- ""
+    ## For some reason, annoyingly, the length of "" is 1, so we
+    ## use character(0) instead
+    errs <- character(0)
 
-    ## Annoyingly, the length of NA is 1
+    ## Also annoyingly, the length of NA is 1
     if (.isSingleNA(object@samples) || length(object@samples) == 0) {
         errs <- c(errs, "samples must be non-empty")
     }

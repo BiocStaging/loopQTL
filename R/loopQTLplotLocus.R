@@ -300,10 +300,10 @@ loopQTLplotLocus <- function(obj, snpID,
         sub("^chr", "", chrom)
     }
 
-    nameCol <- if ("geneName" %in% names(S4Vectors::mcols(filteredGRanges))) {
-        "geneName"
-    } else if ("geneID" %in% names(S4Vectors::mcols(filteredGRanges))) {
-        "geneID"
+    nameCol <- if ("gene_name" %in% names(S4Vectors::mcols(filteredGRanges))) {
+        "gene_name"
+    } else if ("gene_id" %in% names(S4Vectors::mcols(filteredGRanges))) {
+        "gene_id"
     } else {
         NULL
     }
@@ -311,7 +311,7 @@ loopQTLplotLocus <- function(obj, snpID,
         .stopNoCall("Unable to find gene name/ID column in GTF")
     }
 
-    if (!is.na(geneNames)) {
+    if (!.isSingleNA(geneNames)) {
         namesMatch <- as.character(S4Vectors::mcols(filteredGRanges)[[nameCol]]) %in% geneNames
     } else {
         namesMatch <- TRUE

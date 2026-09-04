@@ -106,18 +106,18 @@ loopQTLannotate <- function(obj,
         .stopNoCall("No `gene` entries in GTF")
     }
 
-    geneNames <- if ("geneName" %in% names(S4Vectors::mcols(geneGRanges))) {
-        as.character(geneGRanges$geneName)
-    } else if ("geneID" %in% names(S4Vectors::mcols(geneGRanges))) {
-        as.character(geneGRanges$geneID)
+    geneNames <- if ("gene_name" %in% names(S4Vectors::mcols(geneGRanges))) {
+        as.character(geneGRanges$gene_name)
+    } else if ("gene_id" %in% names(S4Vectors::mcols(geneGRanges))) {
+        as.character(geneGRanges$gene_id)
     } else {
-        .stopNoCall("GTF gene entries lack both `geneName` and `geneID`")
+        .stopNoCall("GTF gene entries lack both `gene_name` and `gene_id`")
     }
-    ## Some GTFs have NA geneName for novel/predicted; fall back to geneID.
-    if ("geneID" %in% names(S4Vectors::mcols(geneGRanges))) {
+    ## Some GTFs have NA gene_name for novel/predicted; fall back to gene_id.
+    if ("gene_id" %in% names(S4Vectors::mcols(geneGRanges))) {
         naIdx <- which(is.na(geneNames) | geneNames == "")
         if (length(naIdx) > 0) {
-            geneNames[naIdx] <- as.character(geneGRanges$geneID[naIdx])
+            geneNames[naIdx] <- as.character(geneGRanges$gene_id[naIdx])
         }
     }
 

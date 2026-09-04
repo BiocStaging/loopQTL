@@ -14,7 +14,7 @@
 
 ## FIXME: use BiocParallel
 
-.PCAforQTLrunBE <- function(X, B = 20, alpha = 0.05,
+.PCAForQTLrunBE <- function(X, B = 20, alpha = 0.05,
                             mc.cores = min(B, parallel::detectCores() - 1),
                             verbose = FALSE) {
     if (alpha < 0 || alpha > 1) {

@@ -9,7 +9,7 @@
 ## variable inference methods for molecular QTL mapping. Genome Biol. 2022 Oct
 ## 11;23(1):210. doi: 10.1186/s13059-022-02761-4. PMID: 36221136; PMCID:
 ## PMC9552461.).
-.PCAforQTLrunElbow <- function(prcompResult) {
+.PCAForQTLrunElbow <- function(prcompResult) {
     if (!isa(prcompResult, "prcomp")) {
         .stopNoCall("prcompResult must be a prcomp object returned by the function prcomp().")
     }
