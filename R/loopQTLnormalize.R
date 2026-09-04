@@ -28,7 +28,7 @@
 #'   contains `list(cells, cellCoordinates, snpIndex, samples, resolution)`;
 #'   see Details.
 #' @param window Minimum window extent in bp around each in-loop SNP.
-#'   Default 1e6. The actual window is
+#'   Default 1000000. The actual window is
 #'   `max(window, span(SNP_pos U all partner anchors of loops the SNP
 #'   participates in))`, centered on the bounding interval. Guarantees the
 #'   partner anchor stays in-frame even for ~2 Mb Mustache loops. Ignored
@@ -52,7 +52,7 @@
 #'     `NA -> 0` fill matches loop extraction. Sample axis follows `samples`.}
 #'   \item{`cellsRaw`}{numeric matrix `samples x N_cells`, same shape and
 #'     column order as `cells`, but holding the RAW straw counts (before
-#'     any depth correction or QN). Divide row-wise by `obj@cis / 1e6`
+#'     any depth correction or QN). Divide row-wise by `obj@cis / 1000000`
 #'     to get per-sample CPM, or compute your own transform.}
 #'   \item{`cellCoordinates`}{data.frame with `chrom`, `binI`, `binJ` per
 #'     column of `cells` / `cellsRaw`.}
@@ -68,7 +68,7 @@ loopQTLnormalize <- function(obj,
                              BPPARAM = BiocParallel::SerialParam(),
                              saveWindows = FALSE,
                              windowsOut = NULL,
-                             window = 1e6,
+                             window = 1000000,
                              snpWindow = 0) {
     stopifnot(methods::is(obj, "loopQTL"))
 
@@ -517,13 +517,13 @@ loopQTLnormalize <- function(obj,
 
     ## 0. logCPM depth correction (exact bnbc formula)
     ##    bnbc/R/contactGroup_utils.R::logCPM:
-    ##      libs <- (librarySize + 1) / 1e6
+    ##      libs <- (librarySize + 1) / 1000000
     ##      c.   <- abs(1/min(libs) - 1/max(libs))      # stability offset
     ##      log((count + 0.5) / libs + c.)
     ##    natural log, not log2; (count + 0.5) not (count + 1).
     ##    When cis is NULL we fall back to log2(count + 1) (no depth correction).
     if (!is.null(cis)) {
-        libs <- (as.numeric(cis) + 1) / 1e6
+        libs <- (as.numeric(cis) + 1) / 1000000
         if (any(!is.finite(libs)) || any(libs <= 0)) {
             .stopNoCall("Invalid cis values: must be positive and finite")
         }

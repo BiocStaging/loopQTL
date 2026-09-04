@@ -22,7 +22,7 @@
 #'   \describe{
 #'     \item{`"normalized"`}{Default. Post-BNBC values from `obj@phenotype`.
 #'       Matches what `runQTL()` tested.}
-#'     \item{`"cpm"`}{`w$cellsRaw / (obj@cis / 1e6)` per sample.
+#'     \item{`"cpm"`}{`w$cellsRaw / (obj@cis / 1000000)` per sample.
 #'       Requires `saveWindows` output; pass `windows` argument.}
 #'     \item{`"raw"`}{Integer straw counts from `w$cellsRaw`. Depth-
 #'       confounded across samples; use with care. Requires `windows`.}
@@ -184,7 +184,7 @@ loopQTLplotLocus <- function(obj, snpID,
 
     ## 6. Axis formatter
     axisFormat <- if (axisUnit == "Mb") {
-        function(x) sprintf("%.2f", x / 1e6)
+        function(x) sprintf("%.2f", x / 1000000)
     } else {
         function(x) format(x, big.mark = ",", scientific = FALSE)
     }
@@ -270,7 +270,7 @@ loopQTLplotLocus <- function(obj, snpID,
             if (length(obj@cis) == 0) {
                 .stopNoCall("values = 'cpm' needs obj@cis (per-sample cis depth).")
             }
-            rawVals <- rawVals / (obj@cis[obj@samples] / 1e6)
+            rawVals <- rawVals / (obj@cis[obj@samples] / 1000000)
         }
         out[i, ] <- rawVals
     }

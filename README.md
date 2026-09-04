@@ -121,7 +121,7 @@ obj <- loopQTLnormalize(
   obj,
   saveWindows = TRUE,
   windowsOut  = "loop_snp_windows.rds",
-  window       = 1e6,       # minimum window extent in bp
+  window       = 1000000,       # minimum window extent in bp
   snpWindow   = 0         # anchor flank for SNP selection
 )
 

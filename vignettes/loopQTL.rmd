@@ -24,30 +24,30 @@ detail.
 
 # Overview
 
-1. `loopQTLsetup` — Validate the multi-sample VCF header and per-sample
+1. `loopQTLsetup` - Validate the multi-sample VCF header and per-sample
    `.hic` metadata, read per-sample loop BEDPEs, and build the
    exact-coordinate consensus loop set kept in `loops(obj)`. 
-2. `loopQTLnormalize` — Per-chromosome whole-genome straw pull followed by
+2. `loopQTLnormalize` - Per-chromosome whole-genome straw pull followed by
 	band-wise quantile normalization across samples The output is saved in
    `phenotype(obj)`. Optionally caches per-SNP contact-window matrices to a
    file for later visualization with `loopQTLplotSnpWindow()` or `loopQTLnormalize()`.
-3. `loopQTLchooseK` — Runs PCA on the normalized phenotype matrix and picks
+3. `loopQTLchooseK` - Runs PCA on the normalized phenotype matrix and picks
    K via PCAForQTL's method. This function returns the chosen K and the corresponding 
    sample PCs.
-4. `runQTL` — Tabix-reads anchor-window SNPs from the VCF, runs MatrixEQTL
+4. `runQTL` - Tabix-reads anchor-window SNPs from the VCF, runs MatrixEQTL
    to perform the loopQTL analysis. The output is saved in `results(obj)`.
-5. `loopQTLpairData` — Return the sample-level phenotype and genotype for a
-   single `(loopID, snpID)` pair — the row-level view behind any per-pair
+5. `loopQTLpairData` - Return the sample-level phenotype and genotype for a
+   single `(loopID, snpID)` pair - the row-level view behind any per-pair
    downstream plot or custom test.
-6. `loopQTLannotate` — Adds `gene`, `peak` (optional), and `Type` columns
+6. `loopQTLannotate` - Adds `gene`, `peak` (optional), and `Type` columns
    to `results(obj)` using a GTF for TSS mapping and an optional peak BED
    file for regulatory-element overlap.
-7. `loopQTLplotPair` — Generates boxplot of the loop's contact-strength phenotype
+7. `loopQTLplotPair` - Generates boxplot of the loop's contact-strength phenotype
    grouped by the SNP's dosage class (0/1/2), for a specific SNP-loop pair.
-8. `c` — Locus-level ggplot track combining consensus loops,
+8. `c` - Locus-level ggplot track combining consensus loops,
    the tested SNP, and (optionally) gene annotations, over a user-specified
    genomic region.
-9. `loopQTLplotSnpWindow` — Hi-C-style β heatmap around a chosen SNP: for
+9. `loopQTLplotSnpWindow` - Hi-C-style β heatmap around a chosen SNP: for
    every bin-pair in the SNP's neighborhood, plots the per-sample
    regression coefficient of phenotype on the SNP's dosage.
 
@@ -73,9 +73,13 @@ The samplesheet is a tab-separated file with columns `Sample`, `hic`,
 `loops`, and optionally `cis`.
 
 ```{r}
+samplesheetPath <- system.file(
+    "extdata", "example_samplesheet.tsv", package = "loopQTL"
+)
+vcfPath <- system.file("extdata", "example.vcf.gz", package = "loopQTL")
 obj <- loopQTLsetup(
-    samples    = read.table("example_samplesheet.tsv", header = TRUE),
-    vcf        = "example.vcf.gz",
+    samples    = read.table(samplesheetPath, header = TRUE),
+    vcf        = vcfPath,
     resolution = 10000,
     minSamples = 2
 )
@@ -97,14 +101,25 @@ note that this option does not change `phenotype(obj)` or affect the `runQTL()`
 step.
 
 ```{r}
+
+## Get the path to a temporary directory in which to save the output interact
+## file
+tempDirectory <- tempdir()
+
 obj <- loopQTLnormalize(
     obj,
     BPPARAM     = BiocParallel::MulticoreParam(workers = 2),
     saveWindows = TRUE,
-    windowsOut  = "loop_snp_windows.rds",
+    windowsOut  = file.path(tempDirectory, "loop_snp_windows.rds"),
     window      = 2000000,
     snpWindow   = 10000
 )
+
+## Delete the output file, since this is just an example.
+## Do not use this line if running on real data, as it will delete your created
+## file.
+invisible(file.remove(metadata(obj)$windowsOut))
+
 head(phenotype(obj)[, 1:5])
 ```
 
@@ -124,10 +139,10 @@ head(Kres$PCs)
 ## `runQTL`: Anchor-restricted association testing via MatrixEQTL
 
 `runQTL()` reads all anchor-window SNPs from the VCF in a single targeted
-tabix pass, converts them to dosages (0/1/2), and runs MatrixEQTL twice —
+tabix pass, converts them to dosages (0/1/2), and runs MatrixEQTL twice -
 once treating anchor A as the gene position, once anchor B. The two result
 tables are outer-joined on SNP-loop level.  Covariates are supplied via the 
-`covariates` argument — typically the phenotype PCs chosen in the previous step. 
+`covariates` argument - typically the phenotype PCs chosen in the previous step.
 RINT is applied per loop before regression by default.
 
 ```{r}
@@ -158,22 +173,25 @@ head(pair)
 
 `loopQTLannotate()` adds three columns to `results(obj)`:
 
-* **`gene`** — comma-separated gene names whose TSS (± `TSSwindow`) sits in
+* **`gene`** - comma-separated gene names whose TSS (± `TSSwindow`) sits in
   the SNP's *partner* anchor.
-* **`peak`** — logical: does the SNP overlap any peak from the user-supplied
+* **`peak`** - logical: does the SNP overlap any peak from the user-supplied
   peak file . If the distal TSS peaks are preferred, then you can set `removeTSS = TRUE``.
-* **`Type`** — annotation of each SNP-loop pair such as `WithinTSS`, `rs-gene`,
+* **`Type`** - annotation of each SNP-loop pair such as `WithinTSS`, `rs-gene`,
   `rs-<peakAnnotation>`, `rs-O`, `rs(<peakAnnotation>)-gene`, or
   `rs(<peakAnnotation>)-<peakAnnotation>` summarizing the SNP–loop types.
 
 ```{r}
+
+peaksPath <- system.file("extdata", "example_annotate.bed", package = "loopQTL")
+gtfPath <- system.file("extdata", "example.gtf.gz", package = "loopQTL")
 obj <- loopQTLannotate(
     obj,
-    peak            = "example_annotate.bed",
+    peak            = peaksPath,
     peakAnnotation  = "Enhancer",
     TSSwindow       = 2000,
     removeTSS       = TRUE,
-    gtf             = "/project2/rhie_130/suhn/shared/genomes_new/hg38/annotations/gencode.gtf"
+    gtf             = gtfPath
 )
 head(results(obj))
 ```
@@ -202,6 +220,7 @@ a user-specified region. Please note that to sse `values = "cpm"` or
 to save the per-SNP contact-window matrices from loopQTLnormalize.
 
 ```{r}
+gtfPath <- system.file("extdata", "example.gtf.gz", package = "loopQTL")
 p <- loopQTLplotLocus(
     obj,
     chrom = "chr1",
@@ -209,7 +228,7 @@ p <- loopQTLplotLocus(
     end   = 46342685,
     snpID = "rs72677550",
     values = "cpm",
-    gtf   = "/project2/rhie_130/suhn/shared/genomes_new/hg38/annotations/gencode.gtf"
+    gtf   = gtfPath
 )
 p
 ```

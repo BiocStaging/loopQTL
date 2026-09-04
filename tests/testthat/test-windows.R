@@ -73,7 +73,7 @@ test_that(".compute_snp_windows drops SNPs not in any anchor", {
         anchorA    = s$anchorA,
         anchorB    = s$anchorB,
         snpWindow = 0,
-        window     = 1e6,
+        window     = 1000000,
         resolution = s$resolution
     )
     expect_false(is.null(res))
@@ -93,7 +93,7 @@ test_that(".compute_snp_windows returns NULL when no SNPs overlap any anchor", {
         anchorA    = s$anchorA,
         anchorB    = s$anchorB,
         snpWindow = 0,
-        window     = 1e6,
+        window     = 1000000,
         resolution = s$resolution
     )
     expect_null(res)
@@ -104,8 +104,8 @@ test_that("window extent is max(window, bounding span); cells form upper triangl
     td <- tempfile("lqwin_")
     dir.create(td)
     ## SNP at the far end of loop-2's A anchor; partner B at 2_000_000.
-    ## bounding span = 2_010_000 - 1_205_000 = 805_000 -> < window default 1e6
-    ## so eff = 1e6, centered on midpoint ((1205000 + 2010000)/2) ~= 1_607_500
+    ## bounding span = 2_010_000 - 1_205_000 = 805_000 -> < window default 1000000
+    ## so eff = 1000000, centered on midpoint ((1205000 + 2010000)/2) ~= 1_607_500
     vcfGzPath <- make_tiny_vcf(td, data.frame(
         chrom = "chr1", pos = 1205000, id = "s2",
         ref = "C", alt = "T", stringsAsFactors = FALSE
@@ -115,14 +115,14 @@ test_that("window extent is max(window, bounding span); cells form upper triangl
         anchorA    = s$anchorA,
         anchorB    = s$anchorB,
         snpWindow = 0,
-        window     = 1e6,
+        window     = 1000000,
         resolution = s$resolution
     )
     expect_equal(nrow(res$snpsDF), 1)
     binLo <- res$snpsDF$binLo
     binHi <- res$snpsDF$binHi
     span <- binHi - binLo
-    expect_gte(span, 1e6 - 2 * s$resolution) # rounded to bin grid
+    expect_gte(span, 1000000 - 2 * s$resolution) # rounded to bin grid
     ## Cell set is upper-triangle of binLo..binHi
     cc <- res$cells_by_chrom[["chr1"]]
     expect_true(all(cc$binI <= cc$binJ))
@@ -154,7 +154,7 @@ test_that("when bounding span exceeds window, window expands to cover it", {
         anchorA    = anchorA,
         anchorB    = anchorB,
         snpWindow = 0,
-        window     = 1e6, # smaller than bounding span ~4Mb
+        window     = 1000000, # smaller than bounding span ~4Mb
         resolution = resolution
     )
     expect_equal(nrow(res$snpsDF), 1)
@@ -179,7 +179,7 @@ test_that("SNPs in different anchors of the same loop produce overlapping cells 
         anchorA    = s$anchorA,
         anchorB    = s$anchorB,
         snpWindow = 0,
-        window     = 1e6,
+        window     = 1000000,
         resolution = s$resolution
     )
     expect_equal(nrow(res$snpsDF), 2)

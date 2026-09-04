@@ -75,7 +75,7 @@
 #'       same normalization applied to `obj@phenotype`, so with
 #'       `normal = TRUE, covariates = "auto"` the cell at the loop matches
 #'       `obj@results$beta` exactly.}
-#'     \item{`"cpm"`}{Counts per million: `w$cellsRaw / (obj@cis / 1e6)`
+#'     \item{`"cpm"`}{Counts per million: `w$cellsRaw / (obj@cis / 1000000)`
 #'       per sample. Depth-corrected but no cross-sample QN. Requires
 #'       `obj@cis` to be populated (was set at setup).}
 #'     \item{`"raw"`}{Raw straw counts (`w$cellsRaw`) - no depth correction,
@@ -217,7 +217,7 @@ loopQTLplotSnpWindow <- function(obj, snpID,
                     "let setup auto-compute it from .hic."
                 )
             }
-            libM <- obj@cis[w$samples] / 1e6
+            libM <- obj@cis[w$samples] / 1000000
             sweep(w$cellsRaw, 1, libM, "/")
         }
     )
@@ -356,7 +356,7 @@ loopQTLplotSnpWindow <- function(obj, snpID,
 
     ## 8. Plot
     axisFormat <- if (axisUnit == "Mb") {
-        function(x) sprintf("%.2f", x / 1e6)
+        function(x) sprintf("%.2f", x / 1000000)
     } else {
         function(x) format(x, big.mark = ",", scientific = FALSE)
     }
