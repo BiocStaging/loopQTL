@@ -62,11 +62,11 @@
 #'   Default `"RdBu"` (reversed so + value = red, - value = blue).
 #' @param metric What to render per cell:
 #'   \describe{
-#'     \item{`"betaLogp"`}{Default. Signed β weighted by significance:
+#'     \item{`"betaLogp"`}{Default. Signed beta weighted by significance:
 #'       `beta * -log10(p)`. Highlights cells that are both large in
 #'       effect and significant; cells with tiny p-values pop even if
-#'       their raw β is modest.}
-#'     \item{`"beta"`}{Raw regression slope β (same units as
+#'       their raw beta is modest.}
+#'     \item{`"beta"`}{Raw regression slope beta (same units as
 #'       `obj@results$beta` when `normal = TRUE, covariates = "auto"`).}
 #'   }
 #' @param values Which cell values to run the regression on:
@@ -79,7 +79,7 @@
 #'       per sample. Depth-corrected but no cross-sample QN. Requires
 #'       `obj@cis` to be populated (was set at setup).}
 #'     \item{`"raw"`}{Raw straw counts (`w$cellsRaw`) - no depth correction,
-#'       no QN. β is on the raw-count scale and is NOT comparable to
+#'       no QN. Beta is on the raw-count scale and is NOT comparable to
 #'       `obj@results$beta`.}
 #'   }
 #' @param axisUnit Unit for the graph axes - `"Mb"` (default) or `"bp"`.
@@ -146,7 +146,7 @@ loopQTLplotSnpWindow <- function(obj, snpID,
     }
 
     res <- as.integer(w$resolution)
-    bin <- as.integer(row$binStart)
+    binStart <- as.integer(row$binStart)
     binEnd <- as.integer(row$binEnd)
 
     ## 3. Optionally crop to user's [start, end]
@@ -364,7 +364,7 @@ loopQTLplotSnpWindow <- function(obj, snpID,
 
     modeStr <- sprintf(
         "%s%s",
-        if (cvrtMode == "none") "marginal β" else "partial β",
+        if (cvrtMode == "none") "marginal beta" else "partial beta",
         if (normal) ", RINT" else ""
     )
     if (cvrtMode == "auto") 
@@ -378,8 +378,8 @@ loopQTLplotSnpWindow <- function(obj, snpID,
         beta      = expression(beta)
     )
     metric_title_str <- switch(metric,
-        betaLogp = "β × -log10(p)",
-        beta      = "β"
+        betaLogp = "beta × -log10(p)",
+        beta      = "beta"
     )
 
     title <- sprintf(
