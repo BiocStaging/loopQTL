@@ -69,11 +69,11 @@ test_that(".compute_snp_windows drops SNPs not in any anchor", {
         stringsAsFactors = FALSE
     ))
     res <- loopQTL:::.compute_snp_windows(
-        vcfPath   = vcfGzPath,
-        anchorA    = s$anchorA,
-        anchorB    = s$anchorB,
+        vcfPath = vcfGzPath,
+        anchorA = s$anchorA,
+        anchorB = s$anchorB,
         snpWindow = 0,
-        window     = 1000000,
+        window = 1000000,
         resolution = s$resolution
     )
     expect_false(is.null(res))
@@ -89,11 +89,11 @@ test_that(".compute_snp_windows returns NULL when no SNPs overlap any anchor", {
         ref = "A", alt = "G", stringsAsFactors = FALSE
     ))
     res <- loopQTL:::.compute_snp_windows(
-        vcfPath   = vcfGzPath,
-        anchorA    = s$anchorA,
-        anchorB    = s$anchorB,
+        vcfPath = vcfGzPath,
+        anchorA = s$anchorA,
+        anchorB = s$anchorB,
         snpWindow = 0,
-        window     = 1000000,
+        window = 1000000,
         resolution = s$resolution
     )
     expect_null(res)
@@ -111,11 +111,11 @@ test_that("window extent is max(window, bounding span); cells form upper triangl
         ref = "C", alt = "T", stringsAsFactors = FALSE
     ))
     res <- loopQTL:::.compute_snp_windows(
-        vcfPath   = vcfGzPath,
-        anchorA    = s$anchorA,
-        anchorB    = s$anchorB,
+        vcfPath = vcfGzPath,
+        anchorA = s$anchorA,
+        anchorB = s$anchorB,
         snpWindow = 0,
-        window     = 1000000,
+        window = 1000000,
         resolution = s$resolution
     )
     expect_equal(nrow(res$snpsDF), 1)
@@ -150,11 +150,11 @@ test_that("when bounding span exceeds window, window expands to cover it", {
         ref = "A", alt = "G", stringsAsFactors = FALSE
     ))
     res <- loopQTL:::.compute_snp_windows(
-        vcfPath   = vcfGzPath,
-        anchorA    = anchorA,
-        anchorB    = anchorB,
+        vcfPath = vcfGzPath,
+        anchorA = anchorA,
+        anchorB = anchorB,
         snpWindow = 0,
-        window     = 1000000, # smaller than bounding span ~4Mb
+        window = 1000000, # smaller than bounding span ~4Mb
         resolution = resolution
     )
     expect_equal(nrow(res$snpsDF), 1)
@@ -175,11 +175,11 @@ test_that("SNPs in different anchors of the same loop produce overlapping cells 
         stringsAsFactors = FALSE
     ))
     res <- loopQTL:::.compute_snp_windows(
-        vcfPath   = vcfGzPath,
-        anchorA    = s$anchorA,
-        anchorB    = s$anchorB,
+        vcfPath = vcfGzPath,
+        anchorA = s$anchorA,
+        anchorB = s$anchorB,
         snpWindow = 0,
-        window     = 1000000,
+        window = 1000000,
         resolution = s$resolution
     )
     expect_equal(nrow(res$snpsDF), 2)

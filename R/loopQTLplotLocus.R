@@ -197,9 +197,9 @@ loopQTLplotLocus <- function(obj, snpID,
         genotypeLabel <- names(genotypeGroups)[gI]
         arcDF <- data.frame(
             loopID = loopsDF$loopID,
-            x1      = loopsDF$ancAMid,
-            x2      = loopsDF$ancBMid,
-            value   = mean_per_geno[, genotypeLabel]
+            x1 = loopsDF$ancAMid,
+            x2 = loopsDF$ancBMid,
+            value = mean_per_geno[, genotypeLabel]
         )
         .build_arc_panel(arcDF, start, end, axisFormat,
             effLo, effHi, strongColor, weakColor,

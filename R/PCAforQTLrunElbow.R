@@ -3,8 +3,8 @@
 
 ## Implements the elbow method for choosing K in PCA
 
-## Given the output from running prcomp() on X, select the number of PCs by 
-## maximizing the distance to the diagonal line (see below for details, or the 
+## Given the output from running prcomp() on X, select the number of PCs by
+## maximizing the distance to the diagonal line (see below for details, or the
 ## paper: Zhou HJ, Li L, Li Y, Li W, Li JJ. PCA outperforms popular hidden
 ## variable inference methods for molecular QTL mapping. Genome Biol. 2022 Oct
 ## 11;23(1):210. doi: 10.1186/s13059-022-02761-4. PMID: 36221136; PMCID:
@@ -24,7 +24,7 @@
     diagonalLineStartY <- y[1]
     diagonalLineEndX <- x[length(x)]
     diagonalLineEndY <- y[length(y)]
-    
+
     diagonalLineWidth <- diagonalLineEndX - diagonalLineStartX
     diagonalLineHeight <- diagonalLineEndY - diagonalLineStartY
 

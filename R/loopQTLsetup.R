@@ -259,36 +259,36 @@ loopQTLsetup <- function(samples,
             " chroms x ", length(sampleIDs), " samples) ..."
         )
         .computeCisFromHiC(
-            hicPaths   = hicPaths,
-            sampleIDs  = sampleIDs,
-            chroms      = cisChroms,
-            resolution  = resolution,
+            hicPaths = hicPaths,
+            sampleIDs = sampleIDs,
+            chroms = cisChroms,
+            resolution = resolution,
             chromNorms = chrom_norm_per_sample,
-            BPPARAM     = BPPARAM
+            BPPARAM = BPPARAM
         )
     }
 
     cis_source_tag <- if (!is.null(userCis)) "userProvided" else "computed_from_hic"
 
     metadata <- list(
-        resolution         = resolution,
-        minSamples        = minSamples,
-        n_trans_dropped    = sum(n_trans_per_sample),
+        resolution = resolution,
+        minSamples = minSamples,
+        n_trans_dropped = sum(n_trans_per_sample),
         n_trans_per_sample = setNames(n_trans_per_sample, sampleIDs),
-        cisSource         = cis_source_tag,
-        cis_chroms_in      = if (length(cisVec) > 0) cisChroms else character(0),
-        normalization      = "NONE",
-        hicPaths          = setNames(hicPaths, sampleIDs)
+        cisSource = cis_source_tag,
+        cis_chroms_in = if (length(cisVec) > 0) cisChroms else character(0),
+        normalization = "NONE",
+        hicPaths = setNames(hicPaths, sampleIDs)
     )
 
     obj <- new("loopQTL",
-        samples    = sampleIDs,
-        loops      = gi,
-        cis        = cisVec,
-        vcfPath   = vcf,
+        samples = sampleIDs,
+        loops = gi,
+        cis = cisVec,
+        vcfPath = vcf,
         resolution = resolution,
-        phenotype  = matrix(numeric(0), 0, 0),
-        metadata       = metadata
+        phenotype = matrix(numeric(0), 0, 0),
+        metadata = metadata
     )
     methods::validObject(obj)
     obj
@@ -298,8 +298,8 @@ loopQTLsetup <- function(samples,
 ## the given chroms. Returns a named numeric vector (one entry per sample).
 ## Parallel unit of work: one (sample, chrom) straw pull + sum.
 .computeCisFromHiC <- function(hicPaths, sampleIDs, chroms,
-                                  resolution, chromNorms,
-                                  BPPARAM = BiocParallel::SerialParam()) {
+                               resolution, chromNorms,
+                               BPPARAM = BiocParallel::SerialParam()) {
     grid <- expand.grid(
         sampleI = seq_along(sampleIDs),
         chrom = chroms,

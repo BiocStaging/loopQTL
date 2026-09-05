@@ -312,8 +312,8 @@
     }
 
     list(
-        snpsDF         = snpsDF,
-        cells_by_chrom  = cells_by_chrom,
+        snpsDF = snpsDF,
+        cells_by_chrom = cells_by_chrom,
         snp_cells_local = snp_cells_local
     )
 }

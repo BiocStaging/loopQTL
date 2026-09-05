@@ -38,9 +38,9 @@ test_that("loopQTLsetup builds consensus loops without pulling contacts", {
     )
 
     obj <- loopQTLsetup(
-        samples     = samplesDF,
-        vcf         = vcfGzPath,
-        resolution  = 250000,
+        samples = samplesDF,
+        vcf = vcfGzPath,
+        resolution = 250000,
         minSamples = 1
     )
     expect_s4_class(obj, "loopQTL")

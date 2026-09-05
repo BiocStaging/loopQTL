@@ -9,7 +9,7 @@
 ## and alpha, the significance level (default is 0.05),
 ## run BE and return p-values, alpha, and numOfPCsChosen.
 
-## FIXME: For reproducibility, make sure to change the RNG type (necessary 
+## FIXME: For reproducibility, make sure to change the RNG type (necessary
 ## unless mc.cores is 1) and set the seed before using this function.
 
 .PCAForQTLrunBE <- function(X, B = 20, alpha = 0.05,
@@ -45,10 +45,10 @@
     prcompResult <- prcomp(x = X, center = TRUE, scale. = TRUE)
     importanceTable <- summary(prcompResult)$importance
     PVEs <- importanceTable[2, ]
-    pValues <- (rowSums(testStatsPerm >= PVEs) + 1) / (B + 1) 
-    
+    pValues <- (rowSums(testStatsPerm >= PVEs) + 1) / (B + 1)
+
     ## The p-value for the jth PC is calculated as, roughly speaking, the
-    ## proportion of permutations where the PVE of the jth PC is greater than or 
+    ## proportion of permutations where the PVE of the jth PC is greater than or
     ## equal to PVE_j.
     for (j in 2:d) {
         ## Enforce monotone increase of the p-values.

@@ -30,7 +30,7 @@
 #'   when calling the function in a loop over many SNPs to avoid reloading.
 #' @param mirror Logical; mirror the upper-triangle beta values to the
 #'   lower triangle so the heatmap is symmetric. Default `TRUE`.
-#' @param minSamplesPerCell Minimum usable (non-NA dose + complete covariates) 
+#' @param minSamplesPerCell Minimum usable (non-NA dose + complete covariates)
 #'   samples required to fit the regression for a given cell. Cells with fewer
 #'   are returned NA. Default 3.
 #' @param normal Apply RINT (Blom-offset rank-inverse-normal transform) per
@@ -197,7 +197,7 @@ loopQTLplotSnpWindow <- function(obj, snpID,
     ## lm(cell ~ dose + cvrt), so we residualize both cell-value and dose
     ## against [1, cvrt] then take slope = sum(YRes * dRes) / sum(dRes^2).
     ## Select the cell values matrix based on the `values` arg
-    
+
     if (values %in% c("raw", "cpm") && is.null(w$cellsRaw)) {
         .stopNoCall(
             "This loopQTL object does not contain raw counts. To run ",
@@ -205,7 +205,7 @@ loopQTLplotSnpWindow <- function(obj, snpID,
             "with saveWindows set to TRUE."
         )
     }
-    
+
     cellsMatrix <- switch(values,
         normalized = w$cells,
         raw = w$cellsRaw,
@@ -267,8 +267,9 @@ loopQTLplotSnpWindow <- function(obj, snpID,
     }
 
     usable <- !is.na(dose)
-    if (!is.null(cvrt))
+    if (!is.null(cvrt)) {
         usable <- usable & stats::complete.cases(cvrt)
+    }
     nUsable <- sum(usable)
 
     betaVec <- rep(NA_real_, ncol(Y))
@@ -336,7 +337,8 @@ loopQTLplotSnpWindow <- function(obj, snpID,
         binJ <- c(binJ, bin_i_original)
         rm(bin_i_original)
     }
-    long <- data.frame(binI = binI, binJ = binJ, value = value,
+    long <- data.frame(
+        binI = binI, binJ = binJ, value = value,
         stringsAsFactors = FALSE
     )
     long <- long[!duplicated(paste(long$binI, long$binJ, sep = "_")), ,
@@ -367,19 +369,21 @@ loopQTLplotSnpWindow <- function(obj, snpID,
         if (cvrtMode == "none") "marginal beta" else "partial beta",
         if (normal) ", RINT" else ""
     )
-    if (cvrtMode == "auto") 
+    if (cvrtMode == "auto") {
         modeStr <- paste0(modeStr, sprintf(" | K=%d auto PCs", ncol(cvrt)))
-    if (cvrtMode == "user") 
+    }
+    if (cvrtMode == "user") {
         modeStr <- paste0(modeStr, sprintf(" | %d user cvrt", ncol(cvrt)))
+    }
     modeStr <- paste0(modeStr, " | ", values, " values")
 
     metricLabel <- switch(metric,
         betaLogp = expression(beta %*% -log[10](p)),
-        beta      = expression(beta)
+        beta = expression(beta)
     )
     metric_title_str <- switch(metric,
         betaLogp = "beta × -log10(p)",
-        beta      = "beta"
+        beta = "beta"
     )
 
     title <- sprintf(

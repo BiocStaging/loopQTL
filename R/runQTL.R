@@ -63,8 +63,9 @@ runQTL <- function(obj,
     ## Normalize the phenotype if requested (but make a copy of it first so we
     ## don't modify the object)
     phenotype <- obj@phenotype
-    if (normal)
+    if (normal) {
         phenotype <- .rintMatrix(phenotype)
+    }
 
     n_zero_var <- sum(rowSums(!is.na(phenotype)) == 0) -
         sum(rowSums(!is.na(obj@phenotype)) == 0)

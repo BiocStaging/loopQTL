@@ -171,11 +171,11 @@ loopQTLnormalize <- function(obj,
     windowsCtx <- NULL
     if (saveWindows) {
         windowsCtx <- .compute_snp_windows(
-            vcfPath   = obj@vcfPath,
-            anchorA    = anchorA,
-            anchorB    = anchorB,
+            vcfPath = obj@vcfPath,
+            anchorA = anchorA,
+            anchorB = anchorB,
             snpWindow = snpWindow,
-            window     = window,
+            window = window,
             resolution = resolution
         )
         if (is.null(windowsCtx)) {
@@ -421,12 +421,12 @@ loopQTLnormalize <- function(obj,
 
             saveRDS(
                 list(
-                    cells       = cells, # post-BNBC normalized values
-                    cellsRaw   = cellsRaw, # raw straw counts (integer)
+                    cells = cells, # post-BNBC normalized values
+                    cellsRaw = cellsRaw, # raw straw counts (integer)
                     cellCoordinates = cellCoordinates,
-                    snpIndex   = snpIndex,
-                    samples     = samplesVec,
-                    resolution  = resolution
+                    snpIndex = snpIndex,
+                    samples = samplesVec,
+                    resolution = resolution
                 ),
                 file = windowsOut,
                 compress = "xz"
@@ -440,7 +440,8 @@ loopQTLnormalize <- function(obj,
             ## Store the absolute path so it can be found even if the working
             ## directory changes
             obj@metadata$windowsOut <- normalizePath(windowsOut,
-                winslash = "/", mustWork = TRUE)
+                winslash = "/", mustWork = TRUE
+            )
             obj@metadata$n_windows_saved <- nrow(snpIndex)
             obj@metadata$n_window_cells <- totalCells
             obj@metadata$windowBp <- as.numeric(window)

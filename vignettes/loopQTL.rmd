@@ -76,7 +76,8 @@ The samplesheet is a tab-separated file with columns `Sample`, `hic`,
 
 ```{r}
 samplesheetPath <- system.file(
-    "extdata", "example_samplesheet.tsv", package = "loopQTL"
+    "extdata", "example_samplesheet.tsv",
+    package = "loopQTL"
 )
 vcfPath <- system.file("extdata", "example.vcf.gz", package = "loopQTL")
 obj <- loopQTLsetup(
@@ -103,7 +104,6 @@ note that this option does not change `phenotype(obj)` or affect the `runQTL()`
 step.
 
 ```{r}
-
 ## Get the path to a temporary directory in which to save the output interact
 ## file
 tempDirectory <- tempdir()
@@ -185,7 +185,6 @@ head(pair)
   `rs(<peakAnnotation>)-<peakAnnotation>` summarizing the SNP–loop types.
 
 ```{r}
-
 peaksPath <- system.file("extdata", "example_annotate.bed", package = "loopQTL")
 gtfPath <- system.file("extdata", "example.gtf.gz", package = "loopQTL")
 obj <- loopQTLannotate(
@@ -229,10 +228,10 @@ p <- loopQTLplotLocus(
     obj,
     chrom = "chr1",
     start = 45985992,
-    end   = 46342685,
+    end = 46342685,
     snpID = "rs72677550",
     values = "cpm",
-    gtf   = gtfPath
+    gtf = gtfPath
 )
 p
 ```

@@ -31,23 +31,23 @@
 setClass(
     "loopQTL",
     representation(
-        samples    = "character",
-        loops      = "GInteractions",
-        cis        = "numeric",
-        vcfPath   = "character",
+        samples = "character",
+        loops = "GInteractions",
+        cis = "numeric",
+        vcfPath = "character",
         resolution = "integer",
-        phenotype  = "matrix",
-        results    = "data.frame",
-        metadata       = "list"
+        phenotype = "matrix",
+        results = "data.frame",
+        metadata = "list"
     ),
     prototype(
-        samples    = character(0),
-        cis        = numeric(0),
-        vcfPath   = NA_character_,
+        samples = character(0),
+        cis = numeric(0),
+        vcfPath = NA_character_,
         resolution = NA_integer_,
-        phenotype  = matrix(numeric(0), 0, 1),
-        results    = data.frame(),
-        metadata       = list()
+        phenotype = matrix(numeric(0), 0, 1),
+        results = data.frame(),
+        metadata = list()
     )
 )
 
@@ -68,16 +68,19 @@ setValidity("loopQTL", function(object) {
     if (length(object@cis) > 0) {
         if (length(object@cis) != length(object@samples) ||
             !identical(names(object@cis), object@samples)) {
-            errs <- c(errs,
-                "names(cis) must be equal to and in the same order as samples")
+            errs <- c(
+                errs,
+                "names(cis) must be equal to and in the same order as samples"
+            )
         }
     }
 
     if (length(object@phenotype) > 0) {
         if (!identical(colnames(object@phenotype), object@samples)) {
-            errs <- c(errs, paste("colnames(phenotype) must be equal to and in",
-                "the same order as samples")
-            )
+            errs <- c(errs, paste(
+                "colnames(phenotype) must be equal to and in",
+                "the same order as samples"
+            ))
         }
         if (nrow(object@phenotype) != length(object@loops)) {
             errs <- c(errs, "phenotype must have one row per loop")
@@ -166,8 +169,10 @@ setMethod("show", "loopQTL", function(object) {
         "(", paste(utils::head(object@samples, 4), collapse = ", "),
         if (length(object@samples) > 4) ", ..." else "", ")\n"
     )
-    cat("\tloops     :", length(object@loops),
-        "consensus intra-chromosomal loops\n")
+    cat(
+        "\tloops     :", length(object@loops),
+        "consensus intra-chromosomal loops\n"
+    )
     cat("\tresolution:", object@resolution, "bp\n")
     cat(
         "\tphenotype :",
@@ -188,8 +193,10 @@ setMethod("show", "loopQTL", function(object) {
     if (length(object@metadata) > 0) {
         cat("\tmeta      :\n")
         for (nm in names(object@metadata)) {
-            cat("\t\t", nm, "=", paste(object@metadata[[nm]], collapse = ", "),
-                "\n")
+            cat(
+                "\t\t", nm, "=", paste(object@metadata[[nm]], collapse = ", "),
+                "\n"
+            )
         }
     }
     invisible(NULL)

@@ -134,8 +134,7 @@ loopQTLannotate <- function(obj,
         )
     )
     S4Vectors::mcols(tssRegions)$gene <- geneNames
-    message(length(tssRegions), " gene TSS regions (±", TSSwindow, " bp)"
-    )
+    message(length(tssRegions), " gene TSS regions (±", TSSwindow, " bp)")
 
     ## 2. Chrom-naming normalizer for THIS GTF  # GTF may use "chr1" (GENCODE) or "1" (Ensembl); loop anchors may use
     ## either depending on the BEDPE caller (Mustache uses "1"). Build a
