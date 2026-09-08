@@ -75,13 +75,23 @@ The samplesheet is a tab-separated file with columns `Sample`, `hic`,
 `loops`, and optionally `cis`.
 
 ```{r}
-samplesheetPath <- system.file(
-    "extdata", "example_samplesheet.tsv",
-    package = "loopQTL"
+extdataDir <-  system.file("extdata", package = "loopQTL")
+vcfPath <- file.path(extdataDir, "example.vcf.gz")
+samplesheetPath <- file.path(extdataDir, "example_samplesheet.tsv")
+samples <- read.table(samplesheetPath, header = TRUE)
+
+## Fix the input file paths to be absolute since we don't know what the working
+## directory will be when the vignette is built. It is not necessary to do this
+## during normal use of loopQTL if the working directory is set correctly.
+samples$hic <- unlist(
+  lapply(samples$hic, function(x) { file.path(extdataDir, x) })
 )
-vcfPath <- system.file("extdata", "example.vcf.gz", package = "loopQTL")
+samples$loops <- unlist(
+  lapply(samples$loops, function(x) { file.path(extdataDir, x) })
+)
+
 obj <- loopQTLsetup(
-    samples    = read.table(samplesheetPath, header = TRUE),
+    samples    = samples,
     vcf        = vcfPath,
     resolution = 10000,
     minSamples = 2
