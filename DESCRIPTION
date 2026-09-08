@@ -16,6 +16,7 @@ BugReports: https://github.com/rhielab/loopQTL/issues
 License: GPLv3 + file LICENSE
 Encoding: UTF-8
 LazyData: false
+biocViews:
 Depends:
     R (>= 4.1)
 Imports:
@@ -42,5 +43,6 @@ Suggests:
     knitr,
     rmarkdown,
     patchwork
+VignetteBuilder: knitr
 Config/testthat/edition: 3
 Config/roxygen2/version: 8.1.0
