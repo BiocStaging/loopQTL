@@ -47,7 +47,7 @@ Default `0.05`.}
 }}
 
 \item{windows}{Optional path/loaded list from `loopQTLnormalize(
-saveWindows = TRUE)`. Required when `values %in% c("cpm", "raw")`.}
+saveWindows = TRUE)`. Required when `values` is "cpm" or "raw".}
 
 \item{strongColor}{Color for the strongest signal on the arc gradient.
 Default `"#FF7917"` (orange).}
