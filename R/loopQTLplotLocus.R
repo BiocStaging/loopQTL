@@ -28,7 +28,7 @@
 #'       confounded across samples; use with care. Requires `windows`.}
 #'   }
 #' @param windows Optional path/loaded list from `loopQTLnormalize(
-#'   saveWindows = TRUE)`. Required when `values %in% c("cpm", "raw")`.
+#'   saveWindows = TRUE)`. Required when `values` is "cpm" or "raw".
 #' @param strongColor Color for the strongest signal on the arc gradient.
 #'   Default `"#FF7917"` (orange).
 #' @param weakColor Color for the weakest signal. Default `"grey90"`.
