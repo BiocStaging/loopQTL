@@ -1,3 +1,5 @@
+## The @import of data.table is needed for .() to work
+
 #' Normalize loopQTL contacts and write the per-loop phenotype matrix
 #'
 #' For each chromosome, pulls whole-chrom `(x, y, counts)` from every .hic
@@ -63,6 +65,7 @@
 #'   \item{`resolution`}{integer; bin size in bp.}
 #' }
 #'
+#' @import data.table
 #' @export
 loopQTLnormalize <- function(obj,
                              BPPARAM = BiocParallel::SerialParam(),

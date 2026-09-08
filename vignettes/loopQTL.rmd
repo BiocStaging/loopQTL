@@ -49,7 +49,7 @@ detail.
 8. `c` - Locus-level ggplot track combining consensus loops,
    the tested SNP, and (optionally) gene annotations, over a user-specified
    genomic region.
-9. `loopQTLplotSnpWindow` - Hi-C-style β heatmap around a chosen SNP: for
+9. `loopQTLplotSnpWindow` - Hi-C-style beta heatmap around a chosen SNP: for
    every bin-pair in the SNP's neighborhood, plots the per-sample
    regression coefficient of phenotype on the SNP's dosage.
 
@@ -130,11 +130,6 @@ obj <- loopQTLnormalize(
     window      = 2000000,
     snpWindow   = 10000
 )
-
-## Delete the output file, since this is just an example.
-## Do not use this line if running on real data, as it will delete your created
-## file.
-invisible(file.remove(metadata(obj)$windowsOut))
 
 head(phenotype(obj)[, 1:5])
 ```
@@ -250,12 +245,12 @@ p <- loopQTLplotLocus(
 p
 ```
 
-## `loopQTLplotSnpWindow`: Hi-C-style β heatmap around a SNP
+## `loopQTLplotSnpWindow`: Hi-C-style beta heatmap around a SNP
 
 `loopQTLplotSnpWindow()` renders a Hi-C-style heatmap centered on a chosen
 SNP: for every bin-pair in the SNP's cached contact window (from
 `loopQTLnormalize(saveWindows = TRUE)`), the color encodes the per-sample
-regression coefficient (β) of the bin-pair's contact strength on the SNP's
+regression coefficient (beta) of the bin-pair's contact strength on the SNP's
 dosage. Set `normal = TRUE` and `covariates = "auto"` to match the model
 used in `runQTL()`.
 
@@ -270,5 +265,11 @@ p <- loopQTLplotSnpWindow(
     covariates = "auto",
     Kmax       = 4
 )
+
+## Delete the output file, since this is just an example.
+## Do not use this line if running on real data, as it will delete your created
+## file.
+invisible(file.remove(metadata(obj)$windowsOut))
+
 p
 ```

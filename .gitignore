@@ -33,3 +33,5 @@ tests/testthat/Rplots.pdf
 # Local secrets / data
 .env
 *.local
+/doc/
+/Meta/
