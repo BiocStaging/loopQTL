@@ -1,7 +1,7 @@
 Package: loopQTL
 Title: Anchor-Restricted Loop QTL Mapping from Hi-C
 Version: 0.1.0
-Authors@R: Authors@R: c(person("Rhie Lab at the University of Southern California", email = "rhielab@gmail.com", role = "cre"), person("Zexun", "Wu", role = "aut", email = "zexunwu@usc.edu"))
+Authors@R: c(person("Rhie Lab at the University of Southern California", email = "rhielab@gmail.com", role = "cre"), person("Zexun", "Wu", role = "aut", email = "zexunwu@usc.edu"))
 Description: Maps chromatin loop QTLs by testing whether genotype at a loop's
     anchors associates with the loop's contact strength across samples. Reads
     .hic files via strawr, builds an exact-coordinate consensus loop set,
