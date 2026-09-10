@@ -40,6 +40,7 @@ Imports:
     rtracklayer
 Suggests:
     testthat (>= 3.0.0),
+    BiocStyle,
     knitr,
     rmarkdown,
     patchwork
