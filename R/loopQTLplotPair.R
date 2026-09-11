@@ -1,3 +1,5 @@
+#' Per-sample boxplot for a single SNP-loop pair
+#'
 #' This function renders the per-sample boxplot behind a chosen result
 #' SNP-loop pair. Please note that the plot is a ggplot object that you can save
 #' with `ggsave()`.
