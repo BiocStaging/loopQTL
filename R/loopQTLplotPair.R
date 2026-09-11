@@ -14,8 +14,7 @@
 #' @return A `ggplot` object.
 #'
 #' @export
-loopQTLplotPair <- function(obj, loopID, snpID,
-                            normal = TRUE, jitter = TRUE) {
+loopQTLplotPair <- function(obj, loopID, snpID, normal = TRUE, jitter = TRUE) {
     stopifnot(
         methods::is(obj, "loopQTL"),
         is.character(loopID), length(loopID) == 1,
