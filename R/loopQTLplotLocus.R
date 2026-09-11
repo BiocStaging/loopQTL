@@ -9,7 +9,7 @@
 #'
 #' @param obj A loopQTL object with `results(obj)` filled by `runQTL()`.
 #' @param snpID Single snpID present in `results(obj)`.
-#' @param chrom Chromosome. e.g. "chr1"
+#' @param chrom Chromosome. e.g. "chr1".
 #' @param start The start genomic coordinate in bp for the x-axis.
 #' @param end The end genomic coordinate in bp for the x-axis.
 #' @param gtf Path to a GTF file.
