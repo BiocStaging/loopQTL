@@ -1,26 +1,24 @@
 #' This function renders a locus-scale ggplot combining the consensus
+#' This function renders a locus-scale ggplot combining the consensus
 #' loops, the tested SNP, and (when a GTF is supplied) gene annotations, over
 #' a user-specified region. Please note that to use `values = "cpm"` or
 #' `values = "raw"` to show per-loop contact strength, you need to set
 #' `saveWindows = TRUE` to save the per-SNP contact-window matrices from
-#' [loopQTLnormalize()].
+#' `loopQTLnormalize()`.
 #'
-#' @param obj A [loopQTL-class] with `obj@results` populated by [runQTL()].
-#' @param snpID Single snpID present in `obj@results`.
-#' @param chrom Chromosome (must equal the SNP's chrom in `obj@results`).
-#' @param start,end Genomic window in bp for the x-axis.
-#' @param gtf Path to a GTF/GFF file (read via `rtracklayer::import()`).
-#' @param pThreshold Nominal p-value cutoff for "significant" loops. Only
-#'   loops with `obj@results$p <= pThreshold` (for this SNP) are drawn.
-#'   Default `0.05`.
+#' @param obj A loopQTL object with `results(obj)` filled by `runQTL()`.
+#' @param snpID Single snpID present in `results(obj)`.
+#' @param chrom Chromosome. e.g. "chr1"
+#' @param start The start genomic coordinate in bp for the x-axis.
+#' @param end The end genomic coordinate in bp for the x-axis.
+#' @param gtf Path to a GTF file.
+#' @param pThreshold Nominal p-value cutoff for "significant" loops. Default `0.05`.
 #' @param values Which contact-strength matrix to color arcs by:
 #'   \describe{
-#'     \item{`"normalized"`}{Default. Post-BNBC values from `obj@phenotype`.
+#'     \item{`"normalized"`}{Default. The matrix from `obj@phenotype`.
 #'       Matches what `runQTL()` tested.}
-#'     \item{`"cpm"`}{`w$cellsRaw / (obj@cis / 1000000)` per sample.
-#'       Requires `saveWindows` output; pass `windows` argument.}
-#'     \item{`"raw"`}{Integer straw counts from `w$cellsRaw`. Depth-
-#'       confounded across samples; use with care. Requires `windows`.}
+#'     \item{`"cpm"`}{CPM matrix. Requires `saveWindows` output.}
+#'     \item{`"raw"`}{raw count matrix. Requires `saveWindows`.}
 #'   }
 #' @param windows Optional path/loaded list from `loopQTLnormalize(
 #'   saveWindows = TRUE)`. Required when `values` is "cpm" or "raw".
@@ -28,13 +26,13 @@
 #'   Default `"#FF7917"` (orange).
 #' @param weakColor Color for the weakest signal. Default `"grey90"`.
 #' @param limit Optional numeric cap on the color scale (values above are
-#'   squished to `strongColor`). Default `NULL` = data-driven max.
+#'   limited to `strongColor`).
 #' @param geneBiotypes Character vector of `gene_biotype` values to keep
 #'   from the GTF. Default `"protein_coding"`; pass `NULL` to keep all.
 #' @param axisUnit `"Mb"` (default) or `"bp"` for x-axis tick labels.
 #'
-#' @return A `patchwork` composite `ggplot` (gene / SNP / arc panels
-#'   stacked). Save with `ggplot2::ggsave()`.
+#' @return A `ggplot` (gene / SNP / arc panels
+#'   stacked) object. Save with `ggplot2::ggsave()`.
 #'
 #' @export
 loopQTLplotLocus <- function(obj, snpID,
