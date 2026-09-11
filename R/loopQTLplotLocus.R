@@ -500,12 +500,14 @@ loopQTLplotLocus <- function(obj, snpID,
         )
 }
 
+## Generate parabolic arcs (t in [0, 1]; y = 4*t*(1-t) scaled by loop size).
 .arcPath <- function(x1, x2) {
+    t <- seq(0, 1, length.out = 60)
     loopSize <- abs(x2 - x1)
 
     return(data.frame(
-        x = c(x1, mean(x1, x2), x2),
-        y = c(0, -loopSize, 0)
+        x = x1 + t * (x2 - x1),
+        y = -(4 * t * (1 - t)) * loopSize
     ))
 }
 
