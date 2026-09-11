@@ -1,7 +1,9 @@
-#' This function normalizes loopQTL contacts using band-width method and write the per-loop phenotype matrix.
-#' The output is saved in `phenotype(obj)`. 
-#' Optionally, users can caches per-SNP contact-window matrices to a
-#' file for later visualization with `loopQTLplotSnpWindow()` or `loopQTLnormalize()`.
+#' This function normalizes contact strength across samples so that
+#' per-loop phenotypes are directly comparable. For each chromosome it pulls
+#' the whole-genome matrix per sample, log-CPM adjusts, then does
+#' band-wise quantile normalization across samples per genomic-distance band.
+#' Normalized values at the consensus-loop bin-pairs are written to
+#' `phenotype(obj)`. Parallelizes per chromosome via `BiocParallel`.
 #'
 #' @param obj A loopQTL object created from `loopQTLsetup()`.
 #' @param BPPARAM A [BiocParallel::BiocParallelParam] for parallelization
