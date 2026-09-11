@@ -1,13 +1,11 @@
-#' Annotate SNP-loop QTL results with target genes, optional peak overlap,
-#' and a Type classification.
+#' This function annotates SNP-loop QTL results with target genes, optional peak overlap,
+#' and a SNP-loop Type classification.
 #'
 #' Adds three columns to `obj@results`:
 #' \describe{
-#'   \item{`gene`}{Comma-separated gene names whose TSS (± `TSSwindow`) falls
-#'     in the SNP's PARTNER anchor (anchor B if the SNP is in anchor A, and
-#'     vice versa; both partners if `anchor == "both"`). Empty string if no
+#'   \item{`gene`}{The name of the genes found at the target anchor. Empty if no
 #'     gene is found.}
-#'   \item{`peak`}{(only added when `peak` is supplied) `TRUE` if the SNP
+#'   \item{`peak`}{`TRUE` if the SNP
 #'     overlaps any peak from the supplied peak file, `FALSE` otherwise. When
 #'     `removeTSS = TRUE`, peaks that overlap any TSS region are dropped
 #'     before this overlap check (so promoter-like peaks don't count).}
@@ -29,35 +27,21 @@
 #'       \item `"rs(<peakAnnotation>)-O"` - overlaps a peak but no target gene
 #'         and no peak at partner.
 #'     }
-#'     Partner-side priority: `gene` > peak > `O`.
+#'     If both promtoer and peaks are found at the target anchor, it give priority on genes. 
 #'   }
 #' }
 #'
-#' @param obj A [loopQTL-class] with `obj@results` populated by `runQTL()`.
-#' @param gtf Path to a GTF/GFF file with `gene` entries. TSS is taken as
-#'   the gene's `start` on + strand, `end` on - strand. Read via
-#'   `rtracklayer::import()`.
-#' @param peak Optional path to a peak file (BED-like; anything
-#'   `rtracklayer::import()` can read). If supplied, an extra `peak` column
-#'   is added and the `Type` labels gain the `"rs(<peakAnnotation>)-..."` form.
-#' @param TSSwindow Base-pair flank around each gene's TSS. Default 2000. Used both
-#'   to define "TSS regions" (for `WithinTSS` classification and peak
-#'   filtering when `removeTSS = TRUE`) and to count a gene as a target
-#'   when its TSS region falls within `anchorWindow` of the partner anchor.
-#' @param anchorWindow Base-pair flank added around each anchor when looking for
-#'   overlapping TSSs (and peaks). Default 5000.
+#' @param obj A loopQTL object with `obj@results` filled by `runQTL()`.
+#' @param gtf Path to a GTF file with `gene` entries.
+#' @param peak Optional path to a peak  bed file. If supplied, an extra `peak` column
+#'   is added and the `Type` labels gain the `"rs(<peakAnnotation>)-..."` annotations.
+#' @param TSSwindow Base-pair window flank around each gene's TSS to define promoters. Default 2000.
+#' @param anchorWindow Base-pair window flank added around each anchor when looking for
+#'   overlapping promoters and peaks. Default 5000.
 #' @param peakAnnotation Character label substituted into the `Type` values
-#'   when `peak` is supplied. Default `"Peak"` -> `"rs(Peak)-gene"`; common
-#'   alternatives are `"Enhancer"` or `"H3K27ac"`.
-#' @param removeTSS Logical; default `TRUE`. When `TRUE`:
-#'   \enumerate{
-#'     \item SNPs overlapping any TSS region get `Type = "WithinTSS"`,
-#'       short-circuiting their gene/peak annotation.
-#'     \item If `peak` is supplied, peaks that overlap any TSS region are
-#'       dropped before the SNP-in-peak overlap check (so the `peak` column
-#'       reflects only TSS-distal peaks).
-#'   }
-#'   When `FALSE`, no TSS-based filtering is done on either side.
+#'   when `peak` is supplied. Default `"Peak"`. (e.g "Enhancer" or "H3K27ac")
+#' @param removeTSS Logical; default `TRUE`. When `TRUE`, a TSS-based filtering on peaks will be 
+#' done to get the distal peak elements.
 #'
 #' @return The input `obj` with `obj@results` augmented by `gene`, `peak`
 #'   (when applicable), and `Type` columns.
