@@ -1,41 +1,29 @@
-#' Per-pixel SNP-effect (beta) heatmap for one SNP
+#' Hi-C-style β heatmap around a SNP
 #'
-#' For a SNP whose contact window was saved by
-#' [loopQTLnormalize()] (with `saveWindows = TRUE`), fits a per-cell
-#' linear regression `contactValue ~ dosage [+ covariates]` and renders
-#' the regression slope (`beta`) as a heatmap.
+#' This function renders a Hi-C-style heatmap centered on a chosen
+#' SNP: for every bin-pair in the SNP's cached contact window (from
+#' `loopQTLnormalize(saveWindows = TRUE)`), the color encodes the per-sample
+#' regression coefficient (β) of the bin-pair's contact strength on the SNP's
+#' dosage. Set `normal = TRUE` and `covariates = "auto"` to match the model
+#' used in `runQTL()`.
 #'
-#' Same units as the `beta` column in `obj@results` from [runQTL()] -
-#' so with `normal = TRUE, covariates = "auto"` the cell at the loop's
-#' (binA, binB) returns a beta that matches the QTL row directly (no
-#' r -> t conversion needed). With `normal = FALSE, covariates = NULL`,
-#' beta is the slope of the marginal regression on raw BNBC contact
-#' values, matching the visualization-only style of Shi et al. 2025 but
-#' on the slope scale instead of Pearson r.
-#'
-#' Optionally crop the view to a sub-window via `chrom`/`start`/`end` to
-#' zoom on a specific region (e.g. just the loop arc).
-#'
-#' @param obj A [loopQTL-class] with `metadata$windowsOut` populated by
+#' @param obj A loopQTL object with `metadata$windowsOut` filled by
 #'   `loopQTLnormalize(saveWindows = TRUE)`.
-#' @param snpID Single snpID present in the saved windows file.
+#' @param snpID A single snpID present in the saved windows file.
 #' @param chrom Optional chrom for verification. If supplied, must match
-#'   the SNP's chrom in the windows file (helps catch a wrong snpID).
-#' @param start Optional start position in bp to crop the heatmap to.
-#'   Snapped down to the nearest bin start.
-#' @param end Optional end position in bp to crop the heatmap to. Snapped
-#'   up to the nearest bin end.
+#'   the SNP's chrom in the windows file.
+#' @param start Optional Start genomic position in bp to crop the heatmap to.
+#' @param end Optional End genomic position in bp to crop the heatmap to.
 #' @param windows Either `NULL` (default, loads from `obj@metadata$windowsOut`),
-#'   a path to a windows `.rds`, or the loaded list. Pass the loaded list
-#'   when calling the function in a loop over many SNPs to avoid reloading.
+#'   a path to a windows `.rds`, or the loaded list. 
 #' @param mirror Logical; mirror the upper-triangle beta values to the
 #'   lower triangle so the heatmap is symmetric. Default `TRUE`.
 #' @param minSamplesPerCell Minimum usable (non-NA dose + complete covariates)
-#'   samples required to fit the regression for a given cell. Cells with fewer
+#'   samples required to fit the regression for a given cell. Cells with fewer samples
 #'   are returned NA. Default 3.
-#' @param normal Apply RINT (Blom-offset rank-inverse-normal transform) per
+#' @param normal Apply Rank-based Inverse Normal Transformation (RINT) per
 #'   cell across samples before fitting. Matches the `normal = TRUE`
-#'   default in [runQTL()]. Default `FALSE` (regression on raw BNBC).
+#'   default in [runQTL()]. Default `FALSE`.
 #' @param covariates Covariate handling for the regression:
 #'   \describe{
 #'     \item{`NULL`}{Default. Fit `cell ~ dosage` per cell (no covariates).}
@@ -53,34 +41,20 @@
 #'   smaller value (e.g. `floor(nSamples / 4)`) for a more conservative
 #'   covariate set.
 #' @param limit Symmetric color-scale limit on beta. Values beyond
-#'   `+/-limit` are clipped (squished) to the deepest color. Default
-#'   `NULL` = auto-set from `max(|beta|)` in the cropped view (beta is
-#'   unbounded, unlike Pearson r, so there is no universally meaningful
-#'   fixed limit). Pass an explicit numeric (e.g. `1.0`) to lock the
-#'   scale across multiple SNPs for comparability.
-#' @param palette RColorBrewer palette name for the divergent gradient.
-#'   Default `"RdBu"` (reversed so + value = red, - value = blue).
+#'   `+/-limit` are limited to the deepest color. Default
+#'   `NULL`) in the cropped view.
+#' @param palette RColorBrewer palette name for the color pattern in the heatmap. Default `"RdBu"`.
 #' @param metric What to render per cell:
 #'   \describe{
-#'     \item{`"betaLogp"`}{Default. Signed beta weighted by significance:
-#'       `beta * -log10(p)`. Highlights cells that are both large in
-#'       effect and significant; cells with tiny p-values pop even if
-#'       their raw beta is modest.}
-#'     \item{`"beta"`}{Raw regression slope beta (same units as
-#'       `obj@results$beta` when `normal = TRUE, covariates = "auto"`).}
+#'     \item{`"betaLogp"`}{Default. Use raw * -log10(p) values to plot, this consider both beta 
+#'     and significane of the regression analysis.}
+#'     \item{`"beta"`}{Use raw beta values to plot.}
 #'   }
 #' @param values Which cell values to run the regression on:
 #'   \describe{
-#'     \item{`"normalized"`}{Default. Post-BNBC values (`w$cells`). Uses the
-#'       same normalization applied to `obj@phenotype`, so with
-#'       `normal = TRUE, covariates = "auto"` the cell at the loop matches
-#'       `obj@results$beta` exactly.}
-#'     \item{`"cpm"`}{Counts per million: `w$cellsRaw / (obj@cis / 1000000)`
-#'       per sample. Depth-corrected but no cross-sample QN. Requires
-#'       `obj@cis` to be populated (was set at setup).}
-#'     \item{`"raw"`}{Raw straw counts (`w$cellsRaw`) - no depth correction,
-#'       no QN. Beta is on the raw-count scale and is NOT comparable to
-#'       `obj@results$beta`.}
+#'     \item{`"normalized"`}{Default. Use the phenotype(obj) to perform the regression}
+#'     \item{`"cpm"`}{Use counts per million matrix to perform the regression.}
+#'     \item{`"raw"`}{Use raw straw counts to perform the regression}
 #'   }
 #' @param axisUnit Unit for the graph axes - `"Mb"` (default) or `"bp"`.
 #'
