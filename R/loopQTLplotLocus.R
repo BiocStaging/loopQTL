@@ -1,10 +1,9 @@
 #' This function renders a locus-scale ggplot combining the consensus
-#' This function renders a locus-scale ggplot combining the consensus
 #' loops, the tested SNP, and (when a GTF is supplied) gene annotations, over
 #' a user-specified region. Please note that to use `values = "cpm"` or
 #' `values = "raw"` to show per-loop contact strength, you need to set
 #' `saveWindows = TRUE` to save the per-SNP contact-window matrices from
-#' `loopQTLnormalize()`.
+#' [loopQTLnormalize()].
 #'
 #' @param obj A loopQTL object with `results(obj)` filled by `runQTL()`.
 #' @param snpID Single snpID present in `results(obj)`.
