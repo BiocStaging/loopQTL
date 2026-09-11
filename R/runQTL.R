@@ -1,41 +1,14 @@
-#' Anchor-restricted loop-by-SNP association tests via MatrixEQTL
+#' This function runs MatrixEQTL to perform the loopQTL analysis. The output is saved in `results(obj)`.
 #'
-#' Reads anchor-window SNPs from the VCF in a single targeted tabix pass, then
-#' runs MatrixEQTL twice - once with anchor-A as the gene position and once
-#' with anchor-B. Results are outer-joined on `(loopID, snpID)` and labeled
-#' `anchor = A / B / both`.
+#' @param obj A loopQTL object after `loopQTLnormalize()`.
+#' @param window Base-pair window flank added to each anchor bin when matching SNPs. Default 0.
+#' @param covariates Optional `samples x k` matrix/data.frame. If NULL, will auto-chosen via loopQTLchooseK().
+#' @param normal Apply Rank-based Inverse Normal Transformation (RINT) per loop before regression. Default `TRUE`.
+#' @param Kmethod `"elbow"` or `"BE"`; passed to `loopQTLchooseK()` when covariates is `NULL`. Default `"elbow"`.
+#' @param Kmax The maximumn number of PCs used. Default `length(obj@samples) - 2`.
+#' @param pvOutputThreshold MatrixEQTL p-value threshold. Default 1 (return every pair).
 #'
-#' RINT (Blom-offset rank-inverse-normal transform) is applied per loop just
-#' before the regression when `normal = TRUE` (default). Zero-variance loops
-#' become all-NA phenotype rows and are skipped by MatrixEQTL. The raw,
-#' pre-RINT BNBC/fastlo output in `obj@phenotype` is left untouched, so you
-#' can A/B-compare the two by toggling this flag.
-#'
-#' Covariates: if `covariates = NULL`, K phenotype PCs are auto-chosen via
-#' PCAForQTL (default `Kmethod = "elbow"`). PCA is run on the same phenotype
-#' form (RINT'd or not) the regression will use. Otherwise the user-supplied
-#' matrix is used as-is.
-#'
-#' @param obj A [loopQTL-class] after [loopQTLnormalize()].
-#' @param window Base-pair flank added to each anchor bin when matching SNPs. Default 0.
-#' @param covariates Optional `samples x k` matrix/data.frame. If `NULL`,
-#'   auto-chosen via PCAForQTL.
-#' @param normal Apply RINT per loop before regression. Default `TRUE`.
-#' @param Kmethod `"elbow"` or `"BE"`; passed to [loopQTLchooseK()] when
-#'   covariates is `NULL`. Default `"elbow"`.
-#' @param Kmax Hard cap on the auto-chosen K. Default
-#'   `length(obj@samples) - 2`, the largest K that still leaves degrees of
-#'   freedom for MatrixEQTL's intercept + genotype regressor. Pass a smaller
-#'   value (e.g. `floor(nSamples / 4)`) to force a more conservative
-#'   covariate set. Ignored when `covariates` is user-supplied.
-#' @param pvOutputThreshold MatrixEQTL p-value threshold. Default 1 (return
-#'   every pair). Lower it to shrink the output for very large runs.
-#'
-#' @return The input `obj` with `obj@results` filled - a data.frame with one
-#'   row per tested (loop, SNP) pair: `loopID`, `snpID`, `chrom`, `pos`,
-#'   `ref`, `alt`, `anchor`, `beta`, `se`, `t`, `p`, `nUsed`, `maf`.
-#'   Access via `obj@results`. The wrapper `loopQTLpairData()` and
-#'   `loopQTLplotPair()` consume this slot directly.
+#' @return The loopQTL object with `obj@results` filled.
 #'
 #' @export
 runQTL <- function(obj,
