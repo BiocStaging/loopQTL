@@ -1,4 +1,4 @@
-#' `loopQTLsetup()` is the entry point of the pipeline. It:
+#' Validate inputs and build loopQTL object
 #'
 #'* validates the input files header, including .vcf and .hic files;
 #'* reads each per-sample BEDPE and builds a consensus loop set by
