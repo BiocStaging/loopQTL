@@ -1,7 +1,13 @@
-#' Set up a loopQTL analysis
+#' `loopQTLsetup()` is the entry point of the pipeline. It:
 #'
-#' This functions sets up the object for downstream loopQTL analysis. It first validates the VCF header 
-#' and per-sample `.hic` metadata, read per-sample loop BEDPEs, and build the exact-coordinate consensus loop set kept in `loops(obj)`.
+#'* validates the input files header, including .vcf and .hic files;
+#'* reads each per-sample BEDPE and builds a consensus loop set by
+#'  exact-coordinate matching. Loops found fewer than `minSamples` samples will be
+#'  dropped;
+#'* Automatically computes per-sample cis-contact depth from the `.hic` files
+#'  when the samplesheet lacks a `cis` column.
+#'
+#' The samplesheet is a tab-separated file with columns `Sample`, `hic`, `loops`, and optionally `cis`.
 #'
 #' @param samples a data.frame with columns `Sample`, `hic`, `loops`. Optional
 #'   `cis` column. If `cis` column is absent, it will be calculated from the `.hic` files automatically.
