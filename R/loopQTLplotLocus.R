@@ -1,3 +1,5 @@
+#' Locus-level track view of loops, SNPs, and genes
+#' 
 #' This function renders a locus-scale ggplot combining the consensus
 #' loops, the tested SNP, and (when a GTF is supplied) gene annotations, over
 #' a user-specified region. Please note that to use `values = "cpm"` or
