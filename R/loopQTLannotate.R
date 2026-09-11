@@ -1,3 +1,5 @@
+#' Annotate loopQTL results with target genes and regulatory peaks
+#'
 #' This function annotates SNP-loop QTL results with target genes, optional peak overlap,
 #' and a SNP-loop Type classification.
 #'
