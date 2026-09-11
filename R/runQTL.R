@@ -1,7 +1,7 @@
-#' This function first reads all anchor-window SNPs from the VCF, and runs MatrixEQTL twice —
+#' This function first reads all anchor-window SNPs from the VCF, and runs MatrixEQTL twice -
 #' once treating anchor A as the gene position, once anchor B. The two result
 #' tables are outer-joined on SNP-loop level.  Covariates are supplied via the
-#' `covariates` argument — typically the phenotype PCs chosen in the previous step.
+#' `covariates` argument - typically the phenotype PCs chosen in the previous step.
 #' Rank-based Inverse Normal Transformation (RINT) is applied per loop before regression by default.
 #'
 #' @param obj A loopQTL object after `loopQTLnormalize()`.
