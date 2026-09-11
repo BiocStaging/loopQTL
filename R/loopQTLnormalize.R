@@ -1,69 +1,19 @@
-## The @import of data.table is needed for .() to work
-
-#' Normalize loopQTL contacts and write the per-loop phenotype matrix
+#' This function normalizes loopQTL contacts and write the per-loop phenotype matrix.
+#' The output is saved in `phenotype(obj)`. 
+#' Optionally, users can caches per-SNP contact-window matrices to a
+#' file for later visualization with `loopQTLplotSnpWindow()` or `loopQTLnormalize()`.
 #'
-#' For each chromosome, pulls whole-chrom `(x, y, counts)` from every .hic
-#' via `strawr::straw("NONE", ...)`, applies per-sample logCPM depth
-#' correction (`log((count + 0.5) / libs + cOffset)`, requires `obj@cis`),
-#' then band-wise quantile-normalizes each off-diagonal band across samples
-#' via `preprocessCore::normalize.quantiles()` (Bolstad et al. 2003),
-#' following Fletez-Brant et al. 2021. Normalized values are looked up at
-#' consensus bin-pairs. Sparse triplet implementation; the `bnbc`
-#' Bioconductor package is not used. Per-chromosome work is dispatched via
-#' `BiocParallel`.
-#'
-#' **No RINT is applied here** - the phenotype slot stores normalize's output
-#' directly. RINT is applied just before regression in `runQTL()`
-#' (`normal = TRUE` default).
-#'
-#' @param obj A [loopQTL-class] from [loopQTLsetup()].
+#' @param obj A loopQTL object created from `loopQTLsetup()`.
 #' @param BPPARAM A [BiocParallel::BiocParallelParam] for parallelization
 #'   over chromosomes. Default [BiocParallel::SerialParam()].
 #' @param saveWindows Logical. If `TRUE`, also save a local contact submatrix
-#'   around each in-loop SNP for downstream per-pixel SNP-correlation maps
-#'   (Shi et al. 2025). Values are sliced from the band-QN'd per-chrom matrix
-#'   in the same pass that fills the phenotype, so they inherit the same
-#'   depth correction + cross-sample QN. Purely descriptive output; does not
-#'   feed back into `obj@phenotype` or `runQTL()`.
+#'   around each in-loop SNP for downstream functions usage.
 #' @param windowsOut Required when `saveWindows = TRUE`. Path to a `.rds`
-#'   file the per-SNP windows are written to (xz-compressed). The file
-#'   contains `list(cells, cellCoordinates, snpIndex, samples, resolution)`;
-#'   see Details.
-#' @param window Minimum window extent in bp around each in-loop SNP.
-#'   Default 1000000. The actual window is
-#'   `max(window, span(SNP_pos U all partner anchors of loops the SNP
-#'   participates in))`, centered on the bounding interval. Guarantees the
-#'   partner anchor stays in-frame even for ~2 Mb Mustache loops. Ignored
-#'   when `saveWindows = FALSE`.
-#' @param snpWindow Base-pair flank added to each consensus anchor when selecting
-#'   in-loop SNPs from the VCF. Default 0 (anchor-bin SNPs only - matches
-#'   `runQTL()`'s default). Ignored when `saveWindows = FALSE`.
-#'
-#' @return The input object with `phenotype` filled. When `saveWindows = TRUE`,
-#'   `metadata$windowsOut` records the ABSOLUTE file path (via `normalizePath()`,
-#'   so downstream tools like `loopQTLplotSnpWindow()` can find the file
-#'   regardless of the working directory at read time), `metadata$n_windows_saved`
-#'   the SNP count.
-#'
-#' @details
-#' **Saved windows file format (`.rds`):** a list with
-#' \describe{
-#'   \item{`cells`}{numeric matrix `samples x N_cells`. One column per
-#'     `(chrom, binI, binJ)` cell in the union of every in-loop SNP's
-#'     window box. Values are post-band-QN, pre-RINT (contact-scale).
-#'     `NA -> 0` fill matches loop extraction. Sample axis follows `samples`.}
-#'   \item{`cellsRaw`}{numeric matrix `samples x N_cells`, same shape and
-#'     column order as `cells`, but holding the RAW straw counts (before
-#'     any depth correction or QN). Divide row-wise by `obj@cis / 1000000`
-#'     to get per-sample CPM, or compute your own transform.}
-#'   \item{`cellCoordinates`}{data.frame with `chrom`, `binI`, `binJ` per
-#'     column of `cells` / `cellsRaw`.}
-#'   \item{`snpIndex`}{data.frame with one row per SNP: `snpID`, `chrom`,
-#'     `pos`, `ref`, `alt`, `binLo`, `binHi`, `n_loops_anchored`, plus a
-#'     list-column `colIndices` of integer column indices into `cells`.}
-#'   \item{`samples`}{character vector matching the rows of `cells`.}
-#'   \item{`resolution`}{integer; bin size in bp.}
-#' }
+#'   file the per-SNP windows are written to. 
+#' @param window Minimum window extent in bp around each in-loop SNP to 
+#' create `.rds` file when `saveWindows = TRUE`. Default 1000000. 
+#' @param snpWindow Base-pair window flank added to each consensus anchor when selecting
+#'   in-loop SNPs. Default 0.
 #'
 #' @import data.table
 #' @export
