@@ -8,7 +8,7 @@
 #' Same units as the `beta` column in `obj@results` from [runQTL()] -
 #' so with `normal = TRUE, covariates = "auto"` the cell at the loop's
 #' (binA, binB) returns a beta that matches the QTL row directly (no
-#' `r -> t` conversion needed). With `normal = FALSE, covariates = NULL`,
+#' r -> t conversion needed). With `normal = FALSE, covariates = NULL`,
 #' beta is the slope of the marginal regression on raw BNBC contact
 #' values, matching the visualization-only style of Shi et al. 2025 but
 #' on the slope scale instead of Pearson r.

@@ -1,6 +1,6 @@
 #' Choose the number of phenotype PCs to use as covariates for `runQTL()`
 #'
-#' Wraps [PCAForQTL] (Zhou et al.) to pick how many phenotype PCs to include
+#' Wraps PCAForQTL (Zhou et al.) to pick how many phenotype PCs to include
 #' as `cvrt` in MatrixEQTL. Default `Kmethod = "elbow"` (fast); `"BE"` is the
 #' Buja-Eyuboglu permutation-based method (slower, more rigorous).
 #'
