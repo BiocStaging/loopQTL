@@ -1,3 +1,5 @@
+#' Auto-select the number of PCs for covariates
+#'
 #' This function runs PCA on the normalized phenotype matrix and picks a
 #' number of principal components K to use as covariates in the downstream
 #' regression. This function returns a list with the chosen K and the
