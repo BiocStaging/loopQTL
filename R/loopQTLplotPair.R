@@ -1,13 +1,14 @@
 #' Per-sample boxplot for a single SNP-loop pair
 #'
-#' This function renders the per-sample boxplot behind a chosen result
-#' SNP-loop pair. Please note that the plot is a ggplot object that you can save
-#' with `ggsave()`.
+#' This function renders the per-sample boxplot for a chosen result SNP-loop
+#' pair. It is returned as a ggplot object that can be saved with
+#' `ggplot2::ggsave()`.
 #'
 #' @param obj A loopQTL object with `results(obj)` filled by `runQTL()`.
 #' @param loopID A single loopID to plot.
 #' @param snpID A single snpID to plot.
-#' @param normal Use RINT'd phenotype values (default `TRUE`). Pass `FALSE` to plot pre-RINT values.
+#' @param normal Plot Rank-based Inverse Normal Transformed (RINT'd) phenotype
+#' values. Defaults to TRUE. Set to `FALSE` to plot pre-RINT normalized values.
 #' @param jitter Add a jittered point overlay (default `TRUE`).
 #'
 #' @return A `ggplot` object.
