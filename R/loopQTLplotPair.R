@@ -1,14 +1,11 @@
-#' Boxplot for a single SNP-loop pair, with QTL stats in the title
+#' This function renders the per-sample boxplot behind a chosen result
+#' SNP-loop pair. Please note that the plot is a ggplot object that you can save
+#' with `ggsave()`.
 #'
-#' Stratifies the loop's phenotype by genotype dosage (0/1/2, labeled with the
-#' REF/ALT alleles) and adds a title showing snpID, loopID, REF/ALT, p-value,
-#' and beta - drawn from the pair's row in `obj@results`.
-#'
-#' @param obj A [loopQTL-class] with `obj@results` populated by `runQTL()`.
-#' @param loopID Single loopID to plot.
-#' @param snpID Single snpID to plot.
-#' @param normal Use RINT'd phenotype values (default `TRUE`, matching what
-#'   the QTL regression actually used). Pass `FALSE` to plot pre-RINT values.
+#' @param obj A loopQTL object with `results(obj)` filled by `runQTL()`.
+#' @param loopID A single loopID to plot.
+#' @param snpID A single snpID to plot.
+#' @param normal Use RINT'd phenotype values (default `TRUE`). Pass `FALSE` to plot pre-RINT values.
 #' @param jitter Add a jittered point overlay (default `TRUE`).
 #'
 #' @return A `ggplot` object.
