@@ -1,7 +1,7 @@
-#' This function chooses the number of phenotype PCs to use as covariates for `runQTL()`.
-#'
-#' The method is implemented from PCAForQTL (Zhou et al.) to pick how many phenotype PCs to include
-#' as `cvrt` in MatrixEQTL. 
+#' This function runs PCA on the normalized phenotype matrix and picks a
+#' number of principal components K to use as covariates in the downstream
+#' regression. This function returns a list with the chosen K and the
+#' sample × K matrix of PCs.
 #'
 #' @param obj A loopQTL object with `phenotype` matrix filled by `loopQTLnormalize()`.
 #' @param Kmethod `"elbow"` (default) or `"BE"`.
