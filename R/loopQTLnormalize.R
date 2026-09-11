@@ -1,3 +1,5 @@
+#' Cross-normalization on Hi-C signal
+#' 
 #' This function normalizes contact strength across samples so that
 #' per-loop phenotypes are directly comparable. For each chromosome it pulls
 #' the whole-genome matrix per sample, log-CPM adjusts, then does
