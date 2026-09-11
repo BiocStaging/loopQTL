@@ -3,7 +3,11 @@
 #' the whole-genome matrix per sample, log-CPM adjusts, then does
 #' band-wise quantile normalization across samples per genomic-distance band.
 #' Normalized values at the consensus-loop bin-pairs are written to
-#' `phenotype(obj)`. Parallelizes per chromosome via `BiocParallel`.
+#' `phenotype(obj)`. 
+#'
+#' Please note that you need to set `saveWindows = TRUE` to additionally output 
+#' a per-SNP contact-window matrix as .rds file. This file is needed by `loopQTLplotSnpWindow()` and 
+#' `loopQTLplotLocus()` downstream functions.
 #'
 #' @param obj A loopQTL object created from `loopQTLsetup()`.
 #' @param BPPARAM A [BiocParallel::BiocParallelParam] for parallelization
