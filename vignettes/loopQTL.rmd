@@ -123,7 +123,7 @@ library(loopQTL)
 library(ggplot2)
 ```
 
-## `loopQTLsetup`: Build the consensus loop set and validate inputs
+## `loopQTLsetup`: Validate inputs and build loopQTL object
 
 `loopQTLsetup()` is the entry point of the pipeline. It:
 
@@ -172,7 +172,7 @@ obj <- loopQTLsetup(
 obj
 ```
 
-## `loopQTLnormalize`: Whole-genome BNBC-style normalization
+## `loopQTLnormalize`: Cross-normalization on Hi-C signal
 
 `loopQTLnormalize()` normalizes contact strength across samples so that
 per-loop phenotypes are directly comparable. For each chromosome it pulls
@@ -203,7 +203,7 @@ obj <- loopQTLnormalize(
 head(phenotype(obj)[, 1:5])
 ```
 
-## `loopQTLchooseK`: Auto-select the number of phenotype PCs for covariates
+## `loopQTLchooseK`: Auto-select the number of PCs for covariates
 
 `loopQTLchooseK()` runs PCA on the normalized phenotype matrix and picks a
 number of principal components K to use as covariates in the downstream
@@ -216,7 +216,7 @@ message("PCAForQTL chose K = ", Kres$K, " via ", Kres$method)
 head(Kres$PCs)
 ```
 
-## `runQTL`: Anchor-restricted association testing via MatrixEQTL
+## `runQTL`: Anchor-restricted association testing
 
 `runQTL()` reads all anchor-window SNPs from the VCF in a single targeted
 tabix pass, converts them to dosages (0/1/2), and runs MatrixEQTL twice -
