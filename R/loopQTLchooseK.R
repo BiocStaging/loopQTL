@@ -1,29 +1,19 @@
-#' Choose the number of phenotype PCs to use as covariates for `runQTL()`
+#' This function chooses the number of phenotype PCs to use as covariates for `runQTL()`.
 #'
-#' Wraps PCAForQTL (Zhou et al.) to pick how many phenotype PCs to include
-#' as `cvrt` in MatrixEQTL. Default `Kmethod = "elbow"` (fast); `"BE"` is the
-#' Buja-Eyuboglu permutation-based method (slower, more rigorous).
+#' The method is implemented from PCAForQTL (Zhou et al.) to pick how many phenotype PCs to include
+#' as `cvrt` in MatrixEQTL. 
 #'
-#' `normal` controls whether RINT is applied to the phenotype before PCA.
-#' Default `TRUE` matches `runQTL()`'s default, so the PCs reflect the same
-#' phenotype form that the regression will use. Pass `normal = FALSE` to PCA
-#' the raw (BNBC/fastlo) phenotype instead.
-#'
-#' @param obj A [loopQTL-class] with `phenotype` populated by `loopQTLnormalize()`.
+#' @param obj A loopQTL object with `phenotype` matrix filled by `loopQTLnormalize()`.
 #' @param Kmethod `"elbow"` (default) or `"BE"`.
 #' @param normal Apply RINT per loop before PCA. Default `TRUE`.
-#' @param Kmax Hard cap on the number of PCs returned. Default
-#'   `length(obj@samples) - 2`, which is the largest K that still leaves
-#'   degrees of freedom for MatrixEQTL's intercept + genotype regressor.
-#'   When the auto-selected K exceeds `Kmax`, K is capped and a message
-#'   is emitted. Pass a smaller value (e.g. `floor(nSamples / 4)`) to
-#'   force a more conservative covariate set.
+#' @param Kmax The maximum number of PCs returned. Default
+#'   `length(obj@samples) - 2`,
 #' @param ... Forwarded to PCAForQTL's `runElbow` or `runBE` function.
 #'
 #' @return A list:
 #'   \describe{
 #'     \item{`K`}{Chosen number of PCs (integer).}
-#'     \item{`PCs`}{`samples x K` matrix of principal components (rownames = `samples`).}
+#'     \item{`PCs`}{`samples x K` matrix of principal components.}
 #'     \item{`method`}{Which K-selection method was used.}
 #'   }
 #'
