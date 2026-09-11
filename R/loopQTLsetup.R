@@ -1,41 +1,19 @@
 #' Set up a loopQTL analysis
 #'
-#' Builds the consensus loop set by **exact-coordinate matching** of
-#' per-sample BEDPE calls: a loop is "the same" across samples only if both
-#' anchors' (start, end) coordinates match exactly. Counts the number of
-#' distinct samples each unique loop appears in, and retains those with
-#' support >= `minSamples`. No jitter tolerance, no merging - the
-#' previously-used mariner clustering step is gone; experience showed it
-#' was washing out significant QTL hits by collapsing distinct loops.
+#' This functions sets up the object for downstream loopQTL analysis. It first validates the VCF header 
+#' and per-sample `.hic` metadata, read per-sample loop BEDPEs, and build the exact-coordinate consensus loop set kept in `loops(obj)`.
 #'
-#' Also validates per-sample `.hic` metadata and the VCF header, and
-#' records the per-sample `.hic` paths needed by [loopQTLnormalize()].
-#'
-#' When the samplesheet does not provide a `cis` column, per-sample cis
-#' depth is unconditionally auto-computed from the `.hic` files via a
-#' one-pass straw aggregation (sums of counts per `(sample, chrom)`, no
-#' consensus indexing) - needed by the BNBC logCPM step downstream. If you
-#' precompute `cis` per sample yourself (e.g. from a Hi-C QC report) and
-#' put it in the samplesheet, that value is used as-is and the .hic pass
-#' is skipped.
-#'
-#' @param samples data.frame with columns `Sample`, `hic`, `loops`. Optional
-#'   `cis` column: if present, those values become `obj@cis` directly. If
-#'   absent, cis is summed from the `.hic` files here at setup time.
-#' @param vcf Path to a bgzipped + tabix-indexed multi-sample VCF.
-#' @param resolution Analysis bin size in bp (must exist in every .hic). Used
-#'   downstream for straw extraction (normalize) and cis aggregation; NOT
-#'   used for consensus matching.
-#' @param minSamples Keep consensus loops supported by at least this many
-#'   distinct samples (default 2). Support is the count of distinct
-#'   samples whose BEDPE file contained that exact (chrA, startA, endA,
-#'   chrB, startB, endB) tuple after canonicalising A vs B order.
+#' @param samples a data.frame with columns `Sample`, `hic`, `loops`. Optional
+#'   `cis` column. If `cis` column is absent, it will be calculated from the `.hic` files automatically.
+#' @param vcf Path to a VCF. Please note that the vcf should be bgzipped with index.
+#' @param resolution a numeric number that is recognized in .hic file. (e.g 10000)
+#' @param minSamples The least number of samples the consensus loops are identified from. Default is 2 samples.
 #' @param BPPARAM A [BiocParallel::BiocParallelParam] that parallelizes the
-#'   cis-computing straw pulls. Default [BiocParallel::SerialParam()].
+#'   cis-computing straw pulls. 
 #'
 #' @return A [loopQTL-class] object with `samples`, `loops`, `vcfPath`,
-#'   `resolution`, `cis` (if provided or computed), and `metadata` populated.
-#'   `phenotype` is an empty placeholder until normalize fills it.
+#'   `resolution`, `cis`, and `metadata` populated.
+#'   `phenotype` is an empty placeholder until loopQTLnormalize() fills it.
 #'
 #' @export
 loopQTLsetup <- function(samples,
