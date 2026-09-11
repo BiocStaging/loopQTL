@@ -14,7 +14,7 @@
 #'   the SNP's chrom in the windows file.
 #' @param start Optional Start genomic position in bp to crop the heatmap to.
 #' @param end Optional End genomic position in bp to crop the heatmap to.
-#' @param windows Either `NULL` (default, loads from `obj@metadata$windowsOut`),
+#' @param windows Either `NULL` (default, loads from `metadata(obj)$windowsOut`),
 #'   a path to a windows `.rds`, or the loaded list. 
 #' @param mirror Logical; mirror the upper-triangle beta values to the
 #'   lower triangle so the heatmap is symmetric. Default `TRUE`.
@@ -28,9 +28,9 @@
 #'   \describe{
 #'     \item{`NULL`}{Default. Fit `cell ~ dosage` per cell (no covariates).}
 #'     \item{`"auto"`}{Auto-pick K phenotype PCs via PCAForQTL on
-#'       `obj@phenotype` (RINT'd if `normal = TRUE`), then fit
+#'       `phenotype(obj)` (RINT'd if `normal = TRUE`), then fit
 #'       `cell ~ dosage + PCs` per cell. Matches what [runQTL()] tested,
-#'       so beta here equals the `beta` column in `obj@results`.}
+#'       so beta here equals the `beta` column in `results(obj)`.}
 #'     \item{matrix/data.frame}{User-supplied `samples x k` covariates;
 #'       partial regression as above. Rownames or matched order required.}
 #'   }

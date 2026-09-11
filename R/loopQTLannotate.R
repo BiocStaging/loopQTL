@@ -3,7 +3,7 @@
 #' This function annotates SNP-loop QTL results with target genes, optional peak overlap,
 #' and a SNP-loop Type classification.
 #'
-#' Adds three columns to `obj@results`:
+#' Adds three columns to `results(obj)`:
 #' \describe{
 #'   \item{`gene`}{The name of the genes found at the target anchor. Empty if no
 #'     gene is found.}
@@ -33,7 +33,7 @@
 #'   }
 #' }
 #'
-#' @param obj A loopQTL object with `obj@results` filled by `runQTL()`.
+#' @param obj A loopQTL object with `results(obj)` filled by `runQTL()`.
 #' @param gtf Path to a GTF file with `gene` entries.
 #' @param peak Optional path to a peak  bed file. If supplied, an extra `peak` column
 #'   is added and the `Type` labels gain the `"rs(<peakAnnotation>)-..."` annotations.
@@ -45,7 +45,7 @@
 #' @param removeTSS Logical; default `TRUE`. When `TRUE`, a TSS-based filtering on peaks will be 
 #' done to get the distal peak elements.
 #'
-#' @return The input `obj` with `obj@results` augmented by `gene`, `peak`
+#' @return The input `obj` with `results(obj)` augmented by `gene`, `peak`
 #'   (when applicable), and `Type` columns.
 #'
 #' @export

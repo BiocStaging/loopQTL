@@ -9,7 +9,7 @@
 #' @param Kmethod `"elbow"` (default) or `"BE"`.
 #' @param normal Apply RINT per loop before PCA. Default `TRUE`.
 #' @param Kmax The maximum number of PCs returned. Default
-#'   `length(obj@samples) - 2`,
+#'   `length(samples(obj)) - 2`,
 #' @param ... Forwarded to PCAForQTL's `runElbow` or `runBE` function.
 #'
 #' @return A list:

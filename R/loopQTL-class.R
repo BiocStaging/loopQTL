@@ -4,7 +4,7 @@
 #' documentation for more information on the expected format of input data.
 #'
 #' All slots can also be accessed through an identically named function, i.e.,
-#' to access `obj@results`, use `loopQTL::results(obj)`.
+#' to access `results(obj)`, use `loopQTL::results(obj)`.
 #'
 #' @slot samples List of unique sample IDs
 #' @slot loops Consensus intra-chromosomal loops as a

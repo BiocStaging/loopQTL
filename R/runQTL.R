@@ -11,10 +11,10 @@
 #' @param covariates Optional `samples x k` matrix/data.frame. If NULL, will be auto-chosen via loopQTLchooseK().
 #' @param normal Apply Rank-based Inverse Normal Transformation (RINT) per loop before regression. Default `TRUE`.
 #' @param Kmethod `"elbow"` or `"BE"`; passed to `loopQTLchooseK()` when covariates is `NULL`. Default `"elbow"`.
-#' @param Kmax The maximum number of PCs used. Default `length(obj@samples) - 2`.
+#' @param Kmax The maximum number of PCs used. Default `length(samples(obj)) - 2`.
 #' @param pvOutputThreshold MatrixEQTL p-value threshold. Default 1 (return every pair).
 #'
-#' @return The loopQTL object with `obj@results` filled.
+#' @return The loopQTL object with `results(obj)` filled.
 #'
 #' @export
 runQTL <- function(obj,

@@ -16,7 +16,7 @@
 #' @param pThreshold Nominal p-value cutoff for "significant" loops. Default `0.05`.
 #' @param values Which contact-strength matrix to color arcs by:
 #'   \describe{
-#'     \item{`"normalized"`}{Default. The matrix from `obj@phenotype`.
+#'     \item{`"normalized"`}{Default. The matrix from `phenotype(obj)`.
 #'       Matches what `runQTL()` tested.}
 #'     \item{`"cpm"`}{CPM matrix. Requires `saveWindows` output.}
 #'     \item{`"raw"`}{raw count matrix. Requires `saveWindows`.}

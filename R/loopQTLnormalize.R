@@ -24,7 +24,7 @@
 #' @param snpWindow Base-pair window flank added to each consensus anchor when selecting
 #'   in-loop SNPs. Default 0.
 #'
-#' @return The loopQTL `obj` with `obj@phenotype` filled.
+#' @return The loopQTL `obj` with `phenotype(obj)` filled.
 #' @import data.table
 #' @export
 loopQTLnormalize <- function(obj,
