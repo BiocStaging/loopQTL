@@ -1,21 +1,14 @@
-#' Extract per-sample data for one or more SNP-loop pairs
+#' This function returns the per-sample phenotype and genotype
+#' (dosage 0/1/2) for a single SNP-loop pair. Useful for inspecting a
+#' specific hit or exporting sample-level values for reporting.
 #'
-#' Returns a long-format data.frame with one row per `(sample, loopID,
-#' snpID)` combination, carrying the per-sample genotype dosage, the
-#' phenotype value at that loop, and the per-sample cis depth.
-#'
-#' Requires `obj@results` to be populated (i.e., `runQTL()` has run), since
-#' SNP positions are looked up from the result table to fetch genotypes.
-#'
-#' @param obj A [loopQTL-class] with `runQTL()` results in `obj@results`.
+#' @param obj A loopQTL object with `results(obj)` filled.
 #' @param loopID Character vector of loopIDs to extract.
 #' @param snpID Character vector of snpIds to extract.
-#' @param normal Apply RINT per loop before returning phenotype values
-#'   (default `TRUE`, matching `runQTL()`'s default - the values plotted
-#'   then match what the regression actually used).
+#' @param normal Apply RINT per loop before returning phenotype values. default `TRUE`.
 #'
 #' @return data.frame with columns `sample`, `loopID`, `snpID`, `genotype`
-#'   (0/1/2 dosage; NA for missing), `phenotype`, `cis`.
+#'   (0 - Reference homozygou; 1 - heterozygous, 2 - Alternative homozygous), `phenotype`, `cis`.
 #'
 #' @export
 loopQTLpairData <- function(obj, loopID, snpID, normal = TRUE) {
