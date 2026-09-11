@@ -1,4 +1,4 @@
-#' This function normalizes loopQTL contacts and write the per-loop phenotype matrix.
+#' This function normalizes loopQTL contacts using band-width method and write the per-loop phenotype matrix.
 #' The output is saved in `phenotype(obj)`. 
 #' Optionally, users can caches per-SNP contact-window matrices to a
 #' file for later visualization with `loopQTLplotSnpWindow()` or `loopQTLnormalize()`.
