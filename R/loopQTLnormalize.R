@@ -7,7 +7,8 @@
 #'
 #' Please note that you need to set `saveWindows = TRUE` to additionally output 
 #' a per-SNP contact-window matrix as .rds file. This file is needed by `loopQTLplotSnpWindow()` and 
-#' `loopQTLplotLocus()` downstream functions.
+#' `loopQTLplotLocus()` downstream functions. `saveWindows = TRUE` does not change 
+#' `phenotype(obj)` or affect the `runQTL()` step.
 #'
 #' @param obj A loopQTL object created from `loopQTLsetup()`.
 #' @param BPPARAM A [BiocParallel::BiocParallelParam] for parallelization
