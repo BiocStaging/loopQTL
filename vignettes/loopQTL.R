@@ -99,7 +99,7 @@ pair <- loopQTLpairData(
 head(pair)
 
 ## -----------------------------------------------------------------------------
-peaksPath <- system.file("extdata", "example_annotate.bed", package = "loopQTL")
+peaksPath <- system.file("extdata", "example_annotation.bed", package = "loopQTL")
 gtfPath <- system.file("extdata", "example.gtf.gz", package = "loopQTL")
 obj <- loopQTLannotate(
     obj,
