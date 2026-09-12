@@ -2,7 +2,7 @@
 % Please edit documentation in R/loopQTLsetup.R
 \name{loopQTLsetup}
 \alias{loopQTLsetup}
-\title{Set up a loopQTL analysis}
+\title{Validate inputs and build loopQTL object}
 \usage{
 loopQTLsetup(
   samples,
@@ -13,47 +13,33 @@ loopQTLsetup(
 )
 }
 \arguments{
-\item{samples}{data.frame with columns `Sample`, `hic`, `loops`. Optional
-`cis` column: if present, those values become `obj@cis` directly. If
-absent, cis is summed from the `.hic` files here at setup time.}
+\item{samples}{a data.frame with columns \code{Sample}, \code{hic}, \code{loops}. Optional
+\code{cis} column. If \code{cis} column is absent, it will be calculated from the \code{.hic} files automatically.}
 
-\item{vcf}{Path to a bgzipped + tabix-indexed multi-sample VCF.}
+\item{vcf}{Path to a VCF. Please note that the vcf should be bgzipped with index.}
 
-\item{resolution}{Analysis bin size in bp (must exist in every .hic). Used
-downstream for straw extraction (normalize) and cis aggregation; NOT
-used for consensus matching.}
+\item{resolution}{a numeric number that is recognized in .hic file. (e.g 10000)}
 
-\item{minSamples}{Keep consensus loops supported by at least this many
-distinct samples (default 2). Support is the count of distinct
-samples whose BEDPE file contained that exact (chrA, startA, endA,
-chrB, startB, endB) tuple after canonicalising A vs B order.}
+\item{minSamples}{The least number of samples the consensus loops are identified from. Default is 2 samples.}
 
-\item{BPPARAM}{A [BiocParallel::BiocParallelParam] that parallelizes the
-cis-computing straw pulls. Default [BiocParallel::SerialParam()].}
+\item{BPPARAM}{A \link[BiocParallel:BiocParallelParam]{BiocParallel::BiocParallelParam} that parallelizes the
+cis-computing straw pulls.}
 }
 \value{
-A [loopQTL-class] object with `samples`, `loops`, `vcfPath`,
-  `resolution`, `cis` (if provided or computed), and `metadata` populated.
-  `phenotype` is an empty placeholder until normalize fills it.
+A \link[=loopQTL-class]{loopQTL} object with \code{samples}, \code{loops}, \code{vcfPath},
+\code{resolution}, \code{cis}, and \code{metadata} populated.
+\code{phenotype} is an empty placeholder until loopQTLnormalize() fills it.
 }
 \description{
-Builds the consensus loop set by **exact-coordinate matching** of
-per-sample BEDPE calls: a loop is "the same" across samples only if both
-anchors' (start, end) coordinates match exactly. Counts the number of
-distinct samples each unique loop appears in, and retains those with
-support >= `minSamples`. No jitter tolerance, no merging - the
-previously-used mariner clustering step is gone; experience showed it
-was washing out significant QTL hits by collapsing distinct loops.
+\itemize{
+\item validates the input files header, including .vcf and .hic files;
+\item reads each per-sample BEDPE and builds a consensus loop set by
+exact-coordinate matching. Loops found fewer than \code{minSamples} samples will be
+dropped;
+\item Automatically computes per-sample cis-contact depth from the \code{.hic} files
+when the samplesheet lacks a \code{cis} column.
+}
 }
 \details{
-Also validates per-sample `.hic` metadata and the VCF header, and
-records the per-sample `.hic` paths needed by [loopQTLnormalize()].
-
-When the samplesheet does not provide a `cis` column, per-sample cis
-depth is unconditionally auto-computed from the `.hic` files via a
-one-pass straw aggregation (sums of counts per `(sample, chrom)`, no
-consensus indexing) - needed by the BNBC logCPM step downstream. If you
-precompute `cis` per sample yourself (e.g. from a Hi-C QC report) and
-put it in the samplesheet, that value is used as-is and the .hic pass
-is skipped.
+The samplesheet is a tab-separated file with columns \code{Sample}, \code{hic}, \code{loops}, and optionally \code{cis}.
 }

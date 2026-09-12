@@ -1,5 +1,5 @@
 #' Anchor-restricted association testing
-#' 
+#'
 #' This function first reads all anchor-window SNPs from the VCF, and runs MatrixEQTL twice -
 #' once treating anchor A as the gene position, once anchor B. The two result
 #' tables are outer-joined on SNP-loop level.  Covariates are supplied via the

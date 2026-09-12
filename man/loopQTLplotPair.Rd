@@ -2,27 +2,27 @@
 % Please edit documentation in R/loopQTLplotPair.R
 \name{loopQTLplotPair}
 \alias{loopQTLplotPair}
-\title{Boxplot for a single SNP-loop pair, with QTL stats in the title}
+\title{Per-sample boxplot for a single SNP-loop pair}
 \usage{
 loopQTLplotPair(obj, loopID, snpID, normal = TRUE, jitter = TRUE)
 }
 \arguments{
-\item{obj}{A [loopQTL-class] with `obj@results` populated by `runQTL()`.}
+\item{obj}{A loopQTL object with \code{results(obj)} filled by \code{runQTL()}.}
 
-\item{loopID}{Single loopID to plot.}
+\item{loopID}{A single loopID to plot.}
 
-\item{snpID}{Single snpID to plot.}
+\item{snpID}{A single snpID to plot.}
 
-\item{normal}{Use RINT'd phenotype values (default `TRUE`, matching what
-the QTL regression actually used). Pass `FALSE` to plot pre-RINT values.}
+\item{normal}{Plot Rank-based Inverse Normal Transformed (RINT'd) phenotype
+values. Defaults to TRUE. Set to \code{FALSE} to plot pre-RINT normalized values.}
 
-\item{jitter}{Add a jittered point overlay (default `TRUE`).}
+\item{jitter}{Add a jittered point overlay (default \code{TRUE}).}
 }
 \value{
-A `ggplot` object.
+A \code{ggplot} object.
 }
 \description{
-Stratifies the loop's phenotype by genotype dosage (0/1/2, labeled with the
-REF/ALT alleles) and adds a title showing snpID, loopID, REF/ALT, p-value,
-and beta - drawn from the pair's row in `obj@results`.
+This function renders the per-sample boxplot for a chosen result SNP-loop
+pair. It is returned as a ggplot object that can be saved with
+\code{ggplot2::ggsave()}.
 }

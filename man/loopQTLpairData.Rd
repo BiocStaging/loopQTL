@@ -2,31 +2,25 @@
 % Please edit documentation in R/loopQTLpairData.R
 \name{loopQTLpairData}
 \alias{loopQTLpairData}
-\title{Extract per-sample data for one or more SNP-loop pairs}
+\title{Sample-level view of one loop × SNP pair}
 \usage{
 loopQTLpairData(obj, loopID, snpID, normal = TRUE)
 }
 \arguments{
-\item{obj}{A [loopQTL-class] with `runQTL()` results in `obj@results`.}
+\item{obj}{A loopQTL object with \code{results(obj)} filled.}
 
 \item{loopID}{Character vector of loopIDs to extract.}
 
 \item{snpID}{Character vector of snpIds to extract.}
 
-\item{normal}{Apply RINT per loop before returning phenotype values
-(default `TRUE`, matching `runQTL()`'s default - the values plotted
-then match what the regression actually used).}
+\item{normal}{Apply RINT per loop before returning phenotype values. default \code{TRUE}.}
 }
 \value{
-data.frame with columns `sample`, `loopID`, `snpID`, `genotype`
-  (0/1/2 dosage; NA for missing), `phenotype`, `cis`.
+data.frame with columns \code{sample}, \code{loopID}, \code{snpID}, \code{genotype}
+(0 - Reference homozygou; 1 - heterozygous, 2 - Alternative homozygous), \code{phenotype}, \code{cis}.
 }
 \description{
-Returns a long-format data.frame with one row per `(sample, loopID,
-snpID)` combination, carrying the per-sample genotype dosage, the
-phenotype value at that loop, and the per-sample cis depth.
-}
-\details{
-Requires `obj@results` to be populated (i.e., `runQTL()` has run), since
-SNP positions are looked up from the result table to fetch genotypes.
+This function returns the per-sample phenotype and genotype
+(dosage 0/1/2) for a single SNP-loop pair. Useful for inspecting a
+specific hit or exporting sample-level values for reporting.
 }

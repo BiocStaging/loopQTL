@@ -2,7 +2,7 @@
 % Please edit documentation in R/loopQTLnormalize.R
 \name{loopQTLnormalize}
 \alias{loopQTLnormalize}
-\title{Normalize loopQTL contacts and write the per-loop phenotype matrix}
+\title{Cross-normalization on Hi-C signal}
 \usage{
 loopQTLnormalize(
   obj,
@@ -14,74 +14,37 @@ loopQTLnormalize(
 )
 }
 \arguments{
-\item{obj}{A [loopQTL-class] from [loopQTLsetup()].}
+\item{obj}{A loopQTL object created from \code{loopQTLsetup()}.}
 
-\item{BPPARAM}{A [BiocParallel::BiocParallelParam] for parallelization
-over chromosomes. Default [BiocParallel::SerialParam()].}
+\item{BPPARAM}{A \link[BiocParallel:BiocParallelParam]{BiocParallel::BiocParallelParam} for parallelization
+over chromosomes. Default \code{\link[BiocParallel:SerialParam]{BiocParallel::SerialParam()}}.}
 
-\item{saveWindows}{Logical. If `TRUE`, also save a local contact submatrix
-around each in-loop SNP for downstream per-pixel SNP-correlation maps
-(Shi et al. 2025). Values are sliced from the band-QN'd per-chrom matrix
-in the same pass that fills the phenotype, so they inherit the same
-depth correction + cross-sample QN. Purely descriptive output; does not
-feed back into `obj@phenotype` or `runQTL()`.}
+\item{saveWindows}{Logical. If \code{TRUE}, also save a local contact submatrix
+around each in-loop SNP for downstream functions usage.}
 
-\item{windowsOut}{Required when `saveWindows = TRUE`. Path to a `.rds`
-file the per-SNP windows are written to (xz-compressed). The file
-contains `list(cells, cellCoordinates, snpIndex, samples, resolution)`;
-see Details.}
+\item{windowsOut}{Required when \code{saveWindows = TRUE}. Path to a \code{.rds}
+file the per-SNP windows are written to.}
 
-\item{window}{Minimum window extent in bp around each in-loop SNP.
-Default 1000000. The actual window is
-`max(window, span(SNP_pos U all partner anchors of loops the SNP
-participates in))`, centered on the bounding interval. Guarantees the
-partner anchor stays in-frame even for ~2 Mb Mustache loops. Ignored
-when `saveWindows = FALSE`.}
+\item{window}{Minimum window extent in bp around each in-loop SNP to
+create \code{.rds} file when \code{saveWindows = TRUE}. Default 1000000.}
 
-\item{snpWindow}{Base-pair flank added to each consensus anchor when selecting
-in-loop SNPs from the VCF. Default 0 (anchor-bin SNPs only - matches
-`runQTL()`'s default). Ignored when `saveWindows = FALSE`.}
+\item{snpWindow}{Base-pair window flank added to each consensus anchor when selecting
+in-loop SNPs. Default 0.}
 }
 \value{
-The input object with `phenotype` filled. When `saveWindows = TRUE`,
-  `metadata$windowsOut` records the ABSOLUTE file path (via `normalizePath()`,
-  so downstream tools like `loopQTLplotSnpWindow()` can find the file
-  regardless of the working directory at read time), `metadata$n_windows_saved`
-  the SNP count.
+The loopQTL \code{obj} with \code{phenotype(obj)} filled.
 }
 \description{
-For each chromosome, pulls whole-chrom `(x, y, counts)` from every .hic
-via `strawr::straw("NONE", ...)`, applies per-sample logCPM depth
-correction (`log((count + 0.5) / libs + cOffset)`, requires `obj@cis`),
-then band-wise quantile-normalizes each off-diagonal band across samples
-via `preprocessCore::normalize.quantiles()` (Bolstad et al. 2003),
-following Fletez-Brant et al. 2021. Normalized values are looked up at
-consensus bin-pairs. Sparse triplet implementation; the `bnbc`
-Bioconductor package is not used. Per-chromosome work is dispatched via
-`BiocParallel`.
+This function normalizes contact strength across samples so that
+per-loop phenotypes are directly comparable. For each chromosome it pulls
+the whole-genome matrix per sample, log-CPM adjusts, then does
+band-wise quantile normalization across samples per genomic-distance band.
+Normalized values at the consensus-loop bin-pairs are written to
+\code{phenotype(obj)}.
 }
 \details{
-**No RINT is applied here** - the phenotype slot stores normalize's output
-directly. RINT is applied just before regression in `runQTL()`
-(`normal = TRUE` default).
-
-
-**Saved windows file format (`.rds`):** a list with
-\describe{
-  \item{`cells`}{numeric matrix `samples x N_cells`. One column per
-    `(chrom, binI, binJ)` cell in the union of every in-loop SNP's
-    window box. Values are post-band-QN, pre-RINT (contact-scale).
-    `NA -> 0` fill matches loop extraction. Sample axis follows `samples`.}
-  \item{`cellsRaw`}{numeric matrix `samples x N_cells`, same shape and
-    column order as `cells`, but holding the RAW straw counts (before
-    any depth correction or QN). Divide row-wise by `obj@cis / 1000000`
-    to get per-sample CPM, or compute your own transform.}
-  \item{`cellCoordinates`}{data.frame with `chrom`, `binI`, `binJ` per
-    column of `cells` / `cellsRaw`.}
-  \item{`snpIndex`}{data.frame with one row per SNP: `snpID`, `chrom`,
-    `pos`, `ref`, `alt`, `binLo`, `binHi`, `n_loops_anchored`, plus a
-    list-column `colIndices` of integer column indices into `cells`.}
-  \item{`samples`}{character vector matching the rows of `cells`.}
-  \item{`resolution`}{integer; bin size in bp.}
-}
+Please note that you need to set \code{saveWindows = TRUE} to additionally output
+a per-SNP contact-window matrix as .rds file. This file is needed by \code{loopQTLplotSnpWindow()} and
+\code{loopQTLplotLocus()} downstream functions. \code{saveWindows = TRUE} does not change
+\code{phenotype(obj)} or affect the \code{runQTL()} step.
 }

@@ -2,7 +2,7 @@
 % Please edit documentation in R/runQTL.R
 \name{runQTL}
 \alias{runQTL}
-\title{Anchor-restricted loop-by-SNP association tests via MatrixEQTL}
+\title{Anchor-restricted association testing}
 \usage{
 runQTL(
   obj,
@@ -15,49 +15,27 @@ runQTL(
 )
 }
 \arguments{
-\item{obj}{A [loopQTL-class] after [loopQTLnormalize()].}
+\item{obj}{A loopQTL object on which \code{loopQTLnormalize()} has been run.}
 
-\item{window}{Base-pair flank added to each anchor bin when matching SNPs. Default 0.}
+\item{window}{Base-pair window flank added to each anchor bin when matching SNPs. Default 0.}
 
-\item{covariates}{Optional `samples x k` matrix/data.frame. If `NULL`,
-auto-chosen via PCAForQTL.}
+\item{covariates}{Optional \verb{samples x k} matrix/data.frame. If NULL, will be auto-chosen via loopQTLchooseK().}
 
-\item{normal}{Apply RINT per loop before regression. Default `TRUE`.}
+\item{normal}{Apply Rank-based Inverse Normal Transformation (RINT) per loop before regression. Default \code{TRUE}.}
 
-\item{Kmethod}{`"elbow"` or `"BE"`; passed to [loopQTLchooseK()] when
-covariates is `NULL`. Default `"elbow"`.}
+\item{Kmethod}{\code{"elbow"} or \code{"BE"}; passed to \code{loopQTLchooseK()} when covariates is \code{NULL}. Default \code{"elbow"}.}
 
-\item{Kmax}{Hard cap on the auto-chosen K. Default
-`length(obj@samples) - 2`, the largest K that still leaves degrees of
-freedom for MatrixEQTL's intercept + genotype regressor. Pass a smaller
-value (e.g. `floor(nSamples / 4)`) to force a more conservative
-covariate set. Ignored when `covariates` is user-supplied.}
+\item{Kmax}{The maximum number of PCs used. Default \code{length(samples(obj)) - 2}.}
 
-\item{pvOutputThreshold}{MatrixEQTL p-value threshold. Default 1 (return
-every pair). Lower it to shrink the output for very large runs.}
+\item{pvOutputThreshold}{MatrixEQTL p-value threshold. Default 1 (return every pair).}
 }
 \value{
-The input `obj` with `obj@results` filled - a data.frame with one
-  row per tested (loop, SNP) pair: `loopID`, `snpID`, `chrom`, `pos`,
-  `ref`, `alt`, `anchor`, `beta`, `se`, `t`, `p`, `nUsed`, `maf`.
-  Access via `obj@results`. The wrapper `loopQTLpairData()` and
-  `loopQTLplotPair()` consume this slot directly.
+The loopQTL object with \code{results(obj)} filled.
 }
 \description{
-Reads anchor-window SNPs from the VCF in a single targeted tabix pass, then
-runs MatrixEQTL twice - once with anchor-A as the gene position and once
-with anchor-B. Results are outer-joined on `(loopID, snpID)` and labeled
-`anchor = A / B / both`.
-}
-\details{
-RINT (Blom-offset rank-inverse-normal transform) is applied per loop just
-before the regression when `normal = TRUE` (default). Zero-variance loops
-become all-NA phenotype rows and are skipped by MatrixEQTL. The raw,
-pre-RINT BNBC/fastlo output in `obj@phenotype` is left untouched, so you
-can A/B-compare the two by toggling this flag.
-
-Covariates: if `covariates = NULL`, K phenotype PCs are auto-chosen via
-PCAForQTL (default `Kmethod = "elbow"`). PCA is run on the same phenotype
-form (RINT'd or not) the regression will use. Otherwise the user-supplied
-matrix is used as-is.
+This function first reads all anchor-window SNPs from the VCF, and runs MatrixEQTL twice -
+once treating anchor A as the gene position, once anchor B. The two result
+tables are outer-joined on SNP-loop level.  Covariates are supplied via the
+\code{covariates} argument - typically the phenotype PCs chosen in the previous step.
+Rank-based Inverse Normal Transformation (RINT) is applied per loop before regression by default.
 }

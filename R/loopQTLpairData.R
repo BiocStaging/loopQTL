@@ -1,5 +1,5 @@
 #' Sample-level view of one loop × SNP pair
-#' 
+#'
 #' This function returns the per-sample phenotype and genotype
 #' (dosage 0/1/2) for a single SNP-loop pair. Useful for inspecting a
 #' specific hit or exporting sample-level values for reporting.

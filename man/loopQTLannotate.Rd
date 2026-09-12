@@ -2,8 +2,7 @@
 % Please edit documentation in R/loopQTLannotate.R
 \name{loopQTLannotate}
 \alias{loopQTLannotate}
-\title{Annotate SNP-loop QTL results with target genes, optional peak overlap,
-and a Type classification.}
+\title{Annotate loopQTL results with target genes and regulatory peaks}
 \usage{
 loopQTLannotate(
   obj,
@@ -16,72 +15,60 @@ loopQTLannotate(
 )
 }
 \arguments{
-\item{obj}{A [loopQTL-class] with `obj@results` populated by `runQTL()`.}
+\item{obj}{A loopQTL object with \code{results(obj)} filled by \code{runQTL()}.}
 
-\item{gtf}{Path to a GTF/GFF file with `gene` entries. TSS is taken as
-the gene's `start` on + strand, `end` on - strand. Read via
-`rtracklayer::import()`.}
+\item{gtf}{Path to a GTF file with \code{gene} entries.}
 
-\item{peak}{Optional path to a peak file (BED-like; anything
-`rtracklayer::import()` can read). If supplied, an extra `peak` column
-is added and the `Type` labels gain the `"rs(<peakAnnotation>)-..."` form.}
+\item{peak}{Optional path to a peak  bed file. If supplied, an extra \code{peak} column
+is added and the \code{Type} labels gain the \code{"rs(<peakAnnotation>)-..."} annotations.}
 
-\item{TSSwindow}{Base-pair flank around each gene's TSS. Default 2000. Used both
-to define "TSS regions" (for `WithinTSS` classification and peak
-filtering when `removeTSS = TRUE`) and to count a gene as a target
-when its TSS region falls within `anchorWindow` of the partner anchor.}
+\item{TSSwindow}{Base-pair window flank around each gene's TSS to define promoters. Default 2000.}
 
-\item{anchorWindow}{Base-pair flank added around each anchor when looking for
-overlapping TSSs (and peaks). Default 5000.}
+\item{anchorWindow}{Base-pair window flank added around each anchor when looking for
+overlapping promoters and peaks. Default 5000.}
 
-\item{peakAnnotation}{Character label substituted into the `Type` values
-when `peak` is supplied. Default `"Peak"` -> `"rs(Peak)-gene"`; common
-alternatives are `"Enhancer"` or `"H3K27ac"`.}
+\item{peakAnnotation}{Character label substituted into the \code{Type} values
+when \code{peak} is supplied. Default \code{"Peak"}. (e.g "Enhancer" or "H3K27ac")}
 
-\item{removeTSS}{Logical; default `TRUE`. When `TRUE`:
-\enumerate{
-  \item SNPs overlapping any TSS region get `Type = "WithinTSS"`,
-    short-circuiting their gene/peak annotation.
-  \item If `peak` is supplied, peaks that overlap any TSS region are
-    dropped before the SNP-in-peak overlap check (so the `peak` column
-    reflects only TSS-distal peaks).
-}
-When `FALSE`, no TSS-based filtering is done on either side.}
+\item{removeTSS}{Logical; default \code{TRUE}. When \code{TRUE}, a TSS-based filtering on peaks will be
+done to get the distal peak elements.}
 }
 \value{
-The input `obj` with `obj@results` augmented by `gene`, `peak`
-  (when applicable), and `Type` columns.
+The input \code{obj} with \code{results(obj)} augmented by \code{gene}, \code{peak}
+(when applicable), and \code{Type} columns.
 }
 \description{
-Adds three columns to `obj@results`:
+This function annotates SNP-loop QTL results with target genes, optional peak overlap,
+and a SNP-loop Type classification.
+}
+\details{
+Adds three columns to \code{results(obj)}:
 \describe{
-  \item{`gene`}{Comma-separated gene names whose TSS (± `TSSwindow`) falls
-    in the SNP's PARTNER anchor (anchor B if the SNP is in anchor A, and
-    vice versa; both partners if `anchor == "both"`). Empty string if no
-    gene is found.}
-  \item{`peak`}{(only added when `peak` is supplied) `TRUE` if the SNP
-    overlaps any peak from the supplied peak file, `FALSE` otherwise. When
-    `removeTSS = TRUE`, peaks that overlap any TSS region are dropped
-    before this overlap check (so promoter-like peaks don't count).}
-  \item{`Type`}{One of:
-    \itemize{
-      \item `"WithinTSS"` - SNP overlaps any gene's TSS (± `TSSwindow`).
-        Short-circuits all other annotation when `removeTSS = TRUE`.
-      \item `"rs-gene"` - SNP not in TSS, has a target gene at the partner anchor.
-      \item `"rs-<peakAnnotation>"` - SNP not in TSS, no gene at partner,
-        but partner anchor overlaps a peak (only when `peak` is supplied).
-        e.g. `"rs-Enhancer"`.
-      \item `"rs-O"` - SNP not in TSS, no gene AND no peak at the partner anchor.
-      \item `"rs(<peakAnnotation>)-gene"` - additionally overlaps a peak
-        (only when `peak` is supplied), has a target gene. e.g.
-        `"rs(Enhancer)-gene"`.
-      \item `"rs(<peakAnnotation>)-<peakAnnotation>"` - SNP overlaps peak,
-        partner overlaps peak, no gene at partner.
-        e.g. `"rs(Enhancer)-Enhancer"`.
-      \item `"rs(<peakAnnotation>)-O"` - overlaps a peak but no target gene
-        and no peak at partner.
-    }
-    Partner-side priority: `gene` > peak > `O`.
-  }
+\item{\code{gene}}{The name of the genes found at the target anchor. Empty if no
+gene is found.}
+\item{\code{peak}}{\code{TRUE} if the SNP
+overlaps any peak from the supplied peak file, \code{FALSE} otherwise. When
+\code{removeTSS = TRUE}, peaks that overlap any TSS region are dropped
+before this overlap check (so promoter-like peaks don't count).}
+\item{\code{Type}}{One of:
+\itemize{
+\item \code{"WithinTSS"} - SNP overlaps any gene's TSS (± \code{TSSwindow}).
+Short-circuits all other annotation when \code{removeTSS = TRUE}.
+\item \code{"rs-gene"} - SNP not in TSS, has a target gene at the partner anchor.
+\item \code{"rs-<peakAnnotation>"} - SNP not in TSS, no gene at partner,
+but partner anchor overlaps a peak (only when \code{peak} is supplied).
+e.g. \code{"rs-Enhancer"}.
+\item \code{"rs-O"} - SNP not in TSS, no gene AND no peak at the partner anchor.
+\item \code{"rs(<peakAnnotation>)-gene"} - additionally overlaps a peak
+(only when \code{peak} is supplied), has a target gene. e.g.
+\code{"rs(Enhancer)-gene"}.
+\item \code{"rs(<peakAnnotation>)-<peakAnnotation>"} - SNP overlaps peak,
+partner overlaps peak, no gene at partner.
+e.g. \code{"rs(Enhancer)-Enhancer"}.
+\item \code{"rs(<peakAnnotation>)-O"} - overlaps a peak but no target gene
+and no peak at partner.
+}
+If both promtoer and peaks are found at the target anchor, it give priority on genes.
+}
 }
 }

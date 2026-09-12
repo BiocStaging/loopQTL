@@ -2,7 +2,7 @@
 % Please edit documentation in R/loopQTLchooseK.R
 \name{loopQTLchooseK}
 \alias{loopQTLchooseK}
-\title{Choose the number of phenotype PCs to use as covariates for `runQTL()`}
+\title{Auto-select the number of PCs for covariates}
 \usage{
 loopQTLchooseK(
   obj,
@@ -13,37 +13,28 @@ loopQTLchooseK(
 )
 }
 \arguments{
-\item{obj}{A [loopQTL-class] with `phenotype` populated by `loopQTLnormalize()`.}
+\item{obj}{A loopQTL object with \code{phenotype} matrix filled by \code{loopQTLnormalize()}.}
 
-\item{Kmethod}{`"elbow"` (default) or `"BE"`.}
+\item{Kmethod}{\code{"elbow"} (default) or \code{"BE"}.}
 
-\item{normal}{Apply RINT per loop before PCA. Default `TRUE`.}
+\item{normal}{Apply RINT per loop before PCA. Default \code{TRUE}.}
 
-\item{Kmax}{Hard cap on the number of PCs returned. Default
-`length(obj@samples) - 2`, which is the largest K that still leaves
-degrees of freedom for MatrixEQTL's intercept + genotype regressor.
-When the auto-selected K exceeds `Kmax`, K is capped and a message
-is emitted. Pass a smaller value (e.g. `floor(nSamples / 4)`) to
-force a more conservative covariate set.}
+\item{Kmax}{The maximum number of PCs returned. Default
+\code{length(samples(obj)) - 2},}
 
-\item{...}{Forwarded to PCAForQTL's `runElbow` or `runBE` function.}
+\item{...}{Forwarded to PCAForQTL's \code{runElbow} or \code{runBE} function.}
 }
 \value{
 A list:
-  \describe{
-    \item{`K`}{Chosen number of PCs (integer).}
-    \item{`PCs`}{`samples x K` matrix of principal components (rownames = `samples`).}
-    \item{`method`}{Which K-selection method was used.}
-  }
+\describe{
+\item{\code{K}}{Chosen number of PCs (integer).}
+\item{\code{PCs}}{\verb{samples x K} matrix of principal components.}
+\item{\code{method}}{Which K-selection method was used.}
+}
 }
 \description{
-Wraps [PCAForQTL] (Zhou et al.) to pick how many phenotype PCs to include
-as `cvrt` in MatrixEQTL. Default `Kmethod = "elbow"` (fast); `"BE"` is the
-Buja-Eyuboglu permutation-based method (slower, more rigorous).
-}
-\details{
-`normal` controls whether RINT is applied to the phenotype before PCA.
-Default `TRUE` matches `runQTL()`'s default, so the PCs reflect the same
-phenotype form that the regression will use. Pass `normal = FALSE` to PCA
-the raw (BNBC/fastlo) phenotype instead.
+This function runs PCA on the normalized phenotype matrix and picks a
+number of principal components K to use as covariates in the downstream
+regression. This function returns a list with the chosen K and the
+sample × K matrix of PCs.
 }

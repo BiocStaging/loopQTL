@@ -2,7 +2,7 @@
 % Please edit documentation in R/loopQTLplotSnpWindow.R
 \name{loopQTLplotSnpWindow}
 \alias{loopQTLplotSnpWindow}
-\title{Per-pixel SNP-effect (beta) heatmap for one SNP}
+\title{Hi-C-style β heatmap around a SNP}
 \usage{
 loopQTLplotSnpWindow(
   obj,
@@ -25,108 +25,81 @@ loopQTLplotSnpWindow(
 )
 }
 \arguments{
-\item{obj}{A [loopQTL-class] with `metadata$windowsOut` populated by
-`loopQTLnormalize(saveWindows = TRUE)`.}
+\item{obj}{A loopQTL object with \code{metadata$windowsOut} filled by
+\code{loopQTLnormalize(saveWindows = TRUE)}.}
 
-\item{snpID}{Single snpID present in the saved windows file.}
+\item{snpID}{A single snpID present in the saved windows file.}
 
 \item{chrom}{Optional chrom for verification. If supplied, must match
-the SNP's chrom in the windows file (helps catch a wrong snpID).}
+the SNP's chrom in the windows file.}
 
-\item{start}{Optional start position in bp to crop the heatmap to.
-Snapped down to the nearest bin start.}
+\item{start}{Optional Start genomic position in bp to crop the heatmap to.}
 
-\item{end}{Optional end position in bp to crop the heatmap to. Snapped
-up to the nearest bin end.}
+\item{end}{Optional End genomic position in bp to crop the heatmap to.}
 
-\item{windows}{Either `NULL` (default, loads from `obj@metadata$windowsOut`),
-a path to a windows `.rds`, or the loaded list. Pass the loaded list
-when calling the function in a loop over many SNPs to avoid reloading.}
+\item{windows}{Either \code{NULL} (default, loads from \code{metadata(obj)$windowsOut}),
+a path to a windows \code{.rds}, or the loaded list.}
 
 \item{mirror}{Logical; mirror the upper-triangle beta values to the
-lower triangle so the heatmap is symmetric. Default `TRUE`.}
+lower triangle so the heatmap is symmetric. Default \code{TRUE}.}
 
 \item{minSamplesPerCell}{Minimum usable (non-NA dose + complete covariates)
-samples required to fit the regression for a given cell. Cells with fewer
+samples required to fit the regression for a given cell. Cells with fewer samples
 are returned NA. Default 3.}
 
-\item{normal}{Apply RINT (Blom-offset rank-inverse-normal transform) per
-cell across samples before fitting. Matches the `normal = TRUE`
-default in [runQTL()]. Default `FALSE` (regression on raw BNBC).}
+\item{normal}{Apply Rank-based Inverse Normal Transformation (RINT) per
+cell across samples before fitting. Matches the \code{normal = TRUE}
+default in \code{\link[=runQTL]{runQTL()}}. Default \code{FALSE}.}
 
 \item{covariates}{Covariate handling for the regression:
 \describe{
-  \item{`NULL`}{Default. Fit `cell ~ dosage` per cell (no covariates).}
-  \item{`"auto"`}{Auto-pick K phenotype PCs via PCAForQTL on
-    `obj@phenotype` (RINT'd if `normal = TRUE`), then fit
-    `cell ~ dosage + PCs` per cell. Matches what [runQTL()] tested,
-    so beta here equals the `beta` column in `obj@results`.}
-  \item{matrix/data.frame}{User-supplied `samples x k` covariates;
-    partial regression as above. Rownames or matched order required.}
+\item{\code{NULL}}{Default. Fit \code{cell ~ dosage} per cell (no covariates).}
+\item{\code{"auto"}}{Auto-pick K phenotype PCs via PCAForQTL on
+\code{phenotype(obj)} (RINT'd if \code{normal = TRUE}), then fit
+\code{cell ~ dosage + PCs} per cell. Matches what \code{\link[=runQTL]{runQTL()}} tested,
+so beta here equals the \code{beta} column in \code{results(obj)}.}
+\item{matrix/data.frame}{User-supplied \verb{samples x k} covariates;
+partial regression as above. Rownames or matched order required.}
 }}
 
-\item{Kmethod}{`"elbow"` (default) or `"BE"`. Passed through to
-[loopQTLchooseK()] when `covariates = "auto"`. Ignored otherwise.}
+\item{Kmethod}{\code{"elbow"} (default) or \code{"BE"}. Passed through to
+\code{\link[=loopQTLchooseK]{loopQTLchooseK()}} when \code{covariates = "auto"}. Ignored otherwise.}
 
-\item{Kmax}{Hard cap on the auto-chosen K when `covariates = "auto"`.
-Defaults to the number of samples minus 2 (same as [runQTL()]). Pass a
-smaller value (e.g. `floor(nSamples / 4)`) for a more conservative
+\item{Kmax}{Hard cap on the auto-chosen K when \code{covariates = "auto"}.
+Defaults to the number of samples minus 2 (same as \code{\link[=runQTL]{runQTL()}}). Pass a
+smaller value (e.g. \code{floor(nSamples / 4)}) for a more conservative
 covariate set.}
 
 \item{limit}{Symmetric color-scale limit on beta. Values beyond
-`+/-limit` are clipped (squished) to the deepest color. Default
-`NULL` = auto-set from `max(|beta|)` in the cropped view (beta is
-unbounded, unlike Pearson r, so there is no universally meaningful
-fixed limit). Pass an explicit numeric (e.g. `1.0`) to lock the
-scale across multiple SNPs for comparability.}
+\verb{+/-limit} are limited to the deepest color. Default
+\code{NULL}) in the cropped view.}
 
-\item{palette}{RColorBrewer palette name for the divergent gradient.
-Default `"RdBu"` (reversed so + value = red, - value = blue).}
+\item{palette}{RColorBrewer palette name for the color pattern in the heatmap. Default \code{"RdBu"}.}
 
 \item{metric}{What to render per cell:
 \describe{
-  \item{`"betaLogp"`}{Default. Signed beta weighted by significance:
-    `beta * -log10(p)`. Highlights cells that are both large in
-    effect and significant; cells with tiny p-values pop even if
-    their raw beta is modest.}
-  \item{`"beta"`}{Raw regression slope beta (same units as
-    `obj@results$beta` when `normal = TRUE, covariates = "auto"`).}
+\item{\code{"betaLogp"}}{Default. Use raw * -log10(p) values to plot, this consider both beta
+and significane of the regression analysis.}
+\item{\code{"beta"}}{Use raw beta values to plot.}
 }}
 
 \item{values}{Which cell values to run the regression on:
 \describe{
-  \item{`"normalized"`}{Default. Post-BNBC values (`w$cells`). Uses the
-    same normalization applied to `obj@phenotype`, so with
-    `normal = TRUE, covariates = "auto"` the cell at the loop matches
-    `obj@results$beta` exactly.}
-  \item{`"cpm"`}{Counts per million: `w$cellsRaw / (obj@cis / 1000000)`
-    per sample. Depth-corrected but no cross-sample QN. Requires
-    `obj@cis` to be populated (was set at setup).}
-  \item{`"raw"`}{Raw straw counts (`w$cellsRaw`) - no depth correction,
-    no QN. Beta is on the raw-count scale and is NOT comparable to
-    `obj@results$beta`.}
+\item{\code{"normalized"}}{Default. Use the phenotype(obj) to perform the regression}
+\item{\code{"cpm"}}{Use counts per million matrix to perform the regression.}
+\item{\code{"raw"}}{Use raw straw counts to perform the regression}
 }}
 
-\item{axisUnit}{Unit for the graph axes - `"Mb"` (default) or `"bp"`.}
+\item{axisUnit}{Unit for the graph axes - \code{"Mb"} (default) or \code{"bp"}.}
 }
 \value{
-A `ggplot` object.
+A \code{ggplot} object.
 }
 \description{
-For a SNP whose contact window was saved by
-[loopQTLnormalize()] (with `saveWindows = TRUE`), fits a per-cell
-linear regression `contactValue ~ dosage [+ covariates]` and renders
-the regression slope (`beta`) as a heatmap.
-}
-\details{
-Same units as the `beta` column in `obj@results` from [runQTL()] -
-so with `normal = TRUE, covariates = "auto"` the cell at the loop's
-(binA, binB) returns a beta that matches the QTL row directly (no
-`r -> t` conversion needed). With `normal = FALSE, covariates = NULL`,
-beta is the slope of the marginal regression on raw BNBC contact
-values, matching the visualization-only style of Shi et al. 2025 but
-on the slope scale instead of Pearson r.
-
-Optionally crop the view to a sub-window via `chrom`/`start`/`end` to
-zoom on a specific region (e.g. just the loop arc).
+This function renders a Hi-C-style heatmap centered on a chosen
+SNP: for every bin-pair in the SNP's cached contact window (from
+\code{loopQTLnormalize(saveWindows = TRUE)}), the color encodes the per-sample
+regression coefficient (β) of the bin-pair's contact strength on the SNP's
+dosage. Set \code{normal = TRUE} and \code{covariates = "auto"} to match the model
+used in \code{runQTL()}.
 }

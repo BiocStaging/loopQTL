@@ -29,7 +29,7 @@
 #'       \item `"rs(<peakAnnotation>)-O"` - overlaps a peak but no target gene
 #'         and no peak at partner.
 #'     }
-#'     If both promtoer and peaks are found at the target anchor, it give priority on genes. 
+#'     If both promtoer and peaks are found at the target anchor, it give priority on genes.
 #'   }
 #' }
 #'
@@ -42,7 +42,7 @@
 #'   overlapping promoters and peaks. Default 5000.
 #' @param peakAnnotation Character label substituted into the `Type` values
 #'   when `peak` is supplied. Default `"Peak"`. (e.g "Enhancer" or "H3K27ac")
-#' @param removeTSS Logical; default `TRUE`. When `TRUE`, a TSS-based filtering on peaks will be 
+#' @param removeTSS Logical; default `TRUE`. When `TRUE`, a TSS-based filtering on peaks will be
 #' done to get the distal peak elements.
 #'
 #' @return The input `obj` with `results(obj)` augmented by `gene`, `peak`

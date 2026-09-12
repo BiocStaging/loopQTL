@@ -1,15 +1,15 @@
 #' Cross-normalization on Hi-C signal
-#' 
+#'
 #' This function normalizes contact strength across samples so that
 #' per-loop phenotypes are directly comparable. For each chromosome it pulls
 #' the whole-genome matrix per sample, log-CPM adjusts, then does
 #' band-wise quantile normalization across samples per genomic-distance band.
 #' Normalized values at the consensus-loop bin-pairs are written to
-#' `phenotype(obj)`. 
+#' `phenotype(obj)`.
 #'
-#' Please note that you need to set `saveWindows = TRUE` to additionally output 
-#' a per-SNP contact-window matrix as .rds file. This file is needed by `loopQTLplotSnpWindow()` and 
-#' `loopQTLplotLocus()` downstream functions. `saveWindows = TRUE` does not change 
+#' Please note that you need to set `saveWindows = TRUE` to additionally output
+#' a per-SNP contact-window matrix as .rds file. This file is needed by `loopQTLplotSnpWindow()` and
+#' `loopQTLplotLocus()` downstream functions. `saveWindows = TRUE` does not change
 #' `phenotype(obj)` or affect the `runQTL()` step.
 #'
 #' @param obj A loopQTL object created from `loopQTLsetup()`.
@@ -18,9 +18,9 @@
 #' @param saveWindows Logical. If `TRUE`, also save a local contact submatrix
 #'   around each in-loop SNP for downstream functions usage.
 #' @param windowsOut Required when `saveWindows = TRUE`. Path to a `.rds`
-#'   file the per-SNP windows are written to. 
-#' @param window Minimum window extent in bp around each in-loop SNP to 
-#' create `.rds` file when `saveWindows = TRUE`. Default 1000000. 
+#'   file the per-SNP windows are written to.
+#' @param window Minimum window extent in bp around each in-loop SNP to
+#' create `.rds` file when `saveWindows = TRUE`. Default 1000000.
 #' @param snpWindow Base-pair window flank added to each consensus anchor when selecting
 #'   in-loop SNPs. Default 0.
 #'

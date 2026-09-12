@@ -15,7 +15,7 @@
 #' @param resolution a numeric number that is recognized in .hic file. (e.g 10000)
 #' @param minSamples The least number of samples the consensus loops are identified from. Default is 2 samples.
 #' @param BPPARAM A [BiocParallel::BiocParallelParam] that parallelizes the
-#'   cis-computing straw pulls. 
+#'   cis-computing straw pulls.
 #'
 #' @return A [loopQTL-class] object with `samples`, `loops`, `vcfPath`,
 #'   `resolution`, `cis`, and `metadata` populated.

@@ -2,7 +2,7 @@
 % Please edit documentation in R/loopQTLplotLocus.R
 \name{loopQTLplotLocus}
 \alias{loopQTLplotLocus}
-\title{Locus plot: RefGene + SNP + genotype-stratified loop arcs}
+\title{Locus-level track view of loops, SNPs, and genes}
 \usage{
 loopQTLplotLocus(
   obj,
@@ -22,59 +22,52 @@ loopQTLplotLocus(
 )
 }
 \arguments{
-\item{obj}{A [loopQTL-class] with `obj@results` populated by [runQTL()].}
+\item{obj}{A loopQTL object with \code{results(obj)} filled by \code{runQTL()}.}
 
-\item{snpID}{Single snpID present in `obj@results`.}
+\item{snpID}{Single snpID present in \code{results(obj)}.}
 
-\item{chrom}{Chromosome (must equal the SNP's chrom in `obj@results`).}
+\item{chrom}{Chromosome. e.g. "chr1".}
 
-\item{start, end}{Genomic window in bp for the x-axis.}
+\item{start}{The start genomic coordinate in bp for the x-axis.}
 
-\item{gtf}{Path to a GTF/GFF file (read via `rtracklayer::import()`).}
+\item{end}{The end genomic coordinate in bp for the x-axis.}
 
-\item{pThreshold}{Nominal p-value cutoff for "significant" loops. Only
-loops with `obj@results$p <= pThreshold` (for this SNP) are drawn.
-Default `0.05`.}
+\item{gtf}{Path to a GTF file.}
+
+\item{pThreshold}{Nominal p-value cutoff for "significant" loops. Default \code{0.05}.}
 
 \item{values}{Which contact-strength matrix to color arcs by:
 \describe{
-  \item{`"normalized"`}{Default. Post-BNBC values from `obj@phenotype`.
-    Matches what `runQTL()` tested.}
-  \item{`"cpm"`}{`w$cellsRaw / (obj@cis / 1000000)` per sample.
-    Requires `saveWindows` output; pass `windows` argument.}
-  \item{`"raw"`}{Integer straw counts from `w$cellsRaw`. Depth-
-    confounded across samples; use with care. Requires `windows`.}
+\item{\code{"normalized"}}{Default. The matrix from \code{phenotype(obj)}.
+Matches what \code{runQTL()} tested.}
+\item{\code{"cpm"}}{CPM matrix. Requires \code{saveWindows} output.}
+\item{\code{"raw"}}{raw count matrix. Requires \code{saveWindows}.}
 }}
 
-\item{windows}{Optional path/loaded list from `loopQTLnormalize(
-saveWindows = TRUE)`. Required when `values` is "cpm" or "raw".}
+\item{windows}{Optional path/loaded list from \code{loopQTLnormalize( saveWindows = TRUE)}. Required when \code{values} is "cpm" or "raw".}
 
 \item{strongColor}{Color for the strongest signal on the arc gradient.
-Default `"#FF7917"` (orange).}
+Default \code{"#FF7917"} (orange).}
 
-\item{weakColor}{Color for the weakest signal. Default `"grey90"`.}
+\item{weakColor}{Color for the weakest signal. Default \code{"grey90"}.}
 
 \item{limit}{Optional numeric cap on the color scale (values above are
-squished to `strongColor`). Default `NULL` = data-driven max.}
+limited to \code{strongColor}).}
 
-\item{geneBiotypes}{Character vector of `gene_biotype` values to keep
-from the GTF. Default `"protein_coding"`; pass `NULL` to keep all.}
+\item{geneBiotypes}{Character vector of \code{gene_biotype} values to keep
+from the GTF. Default \code{"protein_coding"}; pass \code{NULL} to keep all.}
 
-\item{axisUnit}{`"Mb"` (default) or `"bp"` for x-axis tick labels.}
+\item{axisUnit}{\code{"Mb"} (default) or \code{"bp"} for x-axis tick labels.}
 }
 \value{
-A `patchwork` composite `ggplot` (gene / SNP / arc panels
-  stacked). Save with `ggplot2::ggsave()`.
+A \code{ggplot} (gene / SNP / arc panels
+stacked) object. Save with \code{ggplot2::ggsave()}.
 }
 \description{
-Stacks three tracks over a shared genomic-coordinate axis:
-}
-\details{
-1. **Gene track** - genes from `gtf` overlapping `[start, end]`, drawn as
-   strand-oriented rectangles with labels.
-2. **SNP track** - vertical marker at the SNP's position.
-3. **Loop arcs** - one panel per genotype class (0, 1, 2). For each
-   significant loop anchored by the SNP (per `obj@results`), a Bezier
-   arc connects the two anchor midpoints, colored by the loop's mean
-   contact strength across samples in that genotype class.
+This function renders a locus-scale ggplot combining the consensus
+loops, the tested SNP, and (when a GTF is supplied) gene annotations, over
+a user-specified region. Please note that to use \code{values = "cpm"} or
+\code{values = "raw"} to show per-loop contact strength, you need to set
+\code{saveWindows = TRUE} to save the per-SNP contact-window matrices from
+\code{\link[=loopQTLnormalize]{loopQTLnormalize()}}.
 }

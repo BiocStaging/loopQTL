@@ -243,7 +243,7 @@ specific hit or exporting sample-level values for reporting.
 ```{r}
 pair <- loopQTLpairData(
     obj,
-    loopID = "L0000738_chr1_46110000_46220000",
+    loopID = "L0000473_chr1_46050000_46130000",
     snpID  = "rs72677550"
 )
 head(pair)
@@ -285,7 +285,7 @@ with `ggsave()`.
 ```{r}
 p <- loopQTLplotPair(
     obj,
-    loopID = "L0000738_chr1_46110000_46220000",
+    loopID = "L0000473_chr1_46050000_46130000",
     snpID  = "rs72677550"
 )
 p

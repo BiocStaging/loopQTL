@@ -15,7 +15,7 @@
 #' @param start Optional Start genomic position in bp to crop the heatmap to.
 #' @param end Optional End genomic position in bp to crop the heatmap to.
 #' @param windows Either `NULL` (default, loads from `metadata(obj)$windowsOut`),
-#'   a path to a windows `.rds`, or the loaded list. 
+#'   a path to a windows `.rds`, or the loaded list.
 #' @param mirror Logical; mirror the upper-triangle beta values to the
 #'   lower triangle so the heatmap is symmetric. Default `TRUE`.
 #' @param minSamplesPerCell Minimum usable (non-NA dose + complete covariates)
@@ -46,7 +46,7 @@
 #' @param palette RColorBrewer palette name for the color pattern in the heatmap. Default `"RdBu"`.
 #' @param metric What to render per cell:
 #'   \describe{
-#'     \item{`"betaLogp"`}{Default. Use raw * -log10(p) values to plot, this consider both beta 
+#'     \item{`"betaLogp"`}{Default. Use raw * -log10(p) values to plot, this consider both beta
 #'     and significane of the regression analysis.}
 #'     \item{`"beta"`}{Use raw beta values to plot.}
 #'   }
