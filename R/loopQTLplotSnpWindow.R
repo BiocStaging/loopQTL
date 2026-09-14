@@ -1,9 +1,9 @@
-#' Hi-C-style β heatmap around a SNP
+#' Hi-C-style beta heatmap around a SNP
 #'
 #' This function renders a Hi-C-style heatmap centered on a chosen
 #' SNP: for every bin-pair in the SNP's cached contact window (from
 #' `loopQTLnormalize(saveWindows = TRUE)`), the color encodes the per-sample
-#' regression coefficient (β) of the bin-pair's contact strength on the SNP's
+#' regression coefficient (beta) of the bin-pair's contact strength on the SNP's
 #' dosage. Set `normal = TRUE` and `covariates = "auto"` to match the model
 #' used in `runQTL()`.
 #'

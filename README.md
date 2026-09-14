@@ -132,7 +132,9 @@ w <- readRDS("loop_snp_windows.rds")
 ##                            n_loops_anchored, colIndices)  -- one row per SNP
 ```
 
-Once written, `loopQTLplotSnpWindow()` renders a Hi-C-style β heatmap around any single SNP, matching the visualization style of Shi et al. 2025 (*Genome Biology*):
+## Plot a heatmap for a single SNP
+
+`loopQTLplotSnpWindow()` renders a Hi-C-style beta heatmap around any single SNP, matching the visualization style of Shi et al. 2025 (*Genome Biology*):
 
 ``` r
 p <- loopQTLplotSnpWindow(
