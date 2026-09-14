@@ -7,10 +7,10 @@
 #' Normalized values at the consensus-loop bin-pairs are written to
 #' `phenotype(obj)`.
 #'
-#' Please note that you need to set `saveWindows = TRUE` to additionally output
-#' a per-SNP contact-window matrix as .rds file. This file is needed by `loopQTLplotSnpWindow()` and
-#' `loopQTLplotLocus()` downstream functions. `saveWindows = TRUE` does not change
-#' `phenotype(obj)` or affect the `runQTL()` step.
+#' Please note that you need to set `saveWindows` to TRUE to additionally output
+#' a per-SNP contact-window matrix as .rds file. This file is needed by the
+#' `loopQTLplotSnpWindow()` and `loopQTLplotLocus()` downstream functions. 
+#' `saveWindows` does not change `phenotype(obj)` or affect the `runQTL()` step.
 #'
 #' @param obj A loopQTL object created from `loopQTLsetup()`.
 #' @param BPPARAM A [BiocParallel::BiocParallelParam] for parallelization
@@ -243,11 +243,11 @@ loopQTLnormalize <- function(obj,
             chromMat[, j] <- vals
         }
 
-        ## 4. (saveWindows) Index window cells into two (samples x n_cells) matrices:
+        ## Index window cells into two (samples x n_cells) matrices:
         ##    - windowsMat:     post-BNBC normalized values (from normVals)
-        ##    - windows_raw_mat: raw straw counts at same cells (from sparseList)
+        ##    - windowsRawMat: raw straw counts at same cells (from sparseList)
         windowsMat <- NULL
-        windows_raw_mat <- NULL
+        windowsRawMat <- NULL
         if (!is.null(window_cells_chr)) {
             winKeys <- paste(chr, window_cells_chr$binI, window_cells_chr$binJ,
                 sep = ":"
@@ -265,10 +265,10 @@ loopQTLnormalize <- function(obj,
             }
 
             ## Raw counts: match window cells against each sample's straw sparse output
-            win_key_local <- paste(window_cells_chr$binI, window_cells_chr$binJ,
+            winKeyLocal <- paste(window_cells_chr$binI, window_cells_chr$binJ,
                 sep = ":"
             )
-            windows_raw_mat <- matrix(0,
+            windowsRawMat <- matrix(0,
                 nrow = nSamples,
                 ncol = nrow(window_cells_chr),
                 dimnames = list(samplesVec, NULL)
@@ -277,19 +277,20 @@ loopQTLnormalize <- function(obj,
                 dat <- sparseList[[s]]
                 if (is.null(dat) || nrow(dat) == 0) next
                 datKey <- paste(dat$x, dat$y, sep = ":")
-                m <- match(win_key_local, datKey)
-                windows_raw_mat[s, ] <- ifelse(is.na(m), 0, dat$counts[m])
+                m <- match(winKeyLocal, datKey)
+                windowsRawMat[s, ] <- ifelse(is.na(m), 0, dat$counts[m])
             }
         }
         list(
             rows = rows, mat = chromMat,
             windowsMat = windowsMat,
-            windows_raw_mat = windows_raw_mat,
+            windowsRawMat = windowsRawMat,
             window_cells_chr = window_cells_chr
         )
     }
 
-    chromResults <- BiocParallel::bplapply(chroms_to_run, per_chr_worker, BPPARAM = BPPARAM)
+    chromResults <- BiocParallel::bplapply(chroms_to_run, 
+                                           per_chr_worker, BPPARAM = BPPARAM)
     names(chromResults) <- chroms_to_run
 
     ## Assemble per-chrom slices into the full (loops x samples) phenotype
@@ -301,11 +302,7 @@ loopQTLnormalize <- function(obj,
         pheno[r$rows, ] <- r$mat
     }
 
-    ## cis is set authoritatively at setup time and is genome-wide; normalize
-    ## does not touch it.
-
-    ## No RINT here - that's runQTL()'s job (so obj@phenotype always stores the
-    ## pre-RINT BNBC output, available for QC/comparison).
+    ## obj@phenotype stores the raw values - runQTL() stores RINT'd values
     obj@phenotype <- pheno
 
     ## Stitch per-chrom window outputs and write .rds
@@ -348,7 +345,7 @@ loopQTLnormalize <- function(obj,
                 ncolChr <- ncol(r$windowsMat)
                 rng <- seq.int(offset + 1, offset + ncolChr)
                 cells[, rng] <- r$windowsMat
-                cellsRaw[, rng] <- r$windows_raw_mat
+                cellsRaw[, rng] <- r$windowsRawMat
                 cellCoordinates$chrom[rng] <- chr
                 cellCoordinates$binI[rng] <- r$window_cells_chr$binI
                 cellCoordinates$binJ[rng] <- r$window_cells_chr$binJ
@@ -479,13 +476,8 @@ loopQTLnormalize <- function(obj,
         keepSet <- paste(pairX, pairY, sep = "_")
     }
 
-    ## 0. logCPM depth correction (exact bnbc formula)
-    ##    bnbc/R/contactGroup_utils.R::logCPM:
-    ##      libs <- (librarySize + 1) / 1000000
-    ##      c.   <- abs(1/min(libs) - 1/max(libs))      # stability offset
-    ##      log((count + 0.5) / libs + c.)
-    ##    natural log, not log2; (count + 0.5) not (count + 1).
-    ##    When cis is NULL we fall back to log2(count + 1) (no depth correction).
+    ## logCPM depth correction - based on bnbc/R/contactGroup_utils.R::logCPM.
+    ## When cis is NULL we fall back to log2(count + 1) (no depth correction).
     if (!is.null(cis)) {
         libs <- (as.numeric(cis) + 1) / 1000000
         if (any(!is.finite(libs)) || any(libs <= 0)) {
@@ -530,7 +522,7 @@ loopQTLnormalize <- function(obj,
         per_sample_dt[[s]] <- dt
     }
 
-    ## 2. set of distinct bands across all samples
+    ## Get the set of distinct bands across all samples
     allBands <- sort(unique(unlist(
         lapply(per_sample_dt, function(dt) unique(dt$d))
     )))
@@ -538,7 +530,7 @@ loopQTLnormalize <- function(obj,
         return(emptyOut())
     }
 
-    ## 3. per-band quantile normalization
+    ## Apply per-band quantile normalization
     outputChunks <- vector("list", length(allBands))
     for (k in seq_along(allBands)) {
         b <- allBands[k]
@@ -591,7 +583,7 @@ loopQTLnormalize <- function(obj,
         }
 
         ## Emit QN'd cells as triplets. With logCPM, "zero contact" maps to a
-        ## per-sample baseline value (small but informative), so we emit ALL
+        ## per-sample baseline value (small but informative), so we emit all
         ## cells in the keep set. With log2(x+1) (no depth correction), genuine
         ## zeros stay zero and we skip them to save downstream memory.
         if (is.null(cis)) {
@@ -616,7 +608,7 @@ loopQTLnormalize <- function(obj,
     rm(per_sample_dt)
     invisible(gc(verbose = FALSE))
 
-    ## 4. combine all output chunks into long form
+    ## Combine all output chunks into long form
     outLong <- data.table::rbindlist(outputChunks, fill = TRUE)
     rm(outputChunks)
     if (nrow(outLong) == 0) {
@@ -629,7 +621,8 @@ loopQTLnormalize <- function(obj,
     invisible(gc(verbose = FALSE))
     data.table::setnames(wide, c("i", "j"), c("region1", "region2"))
 
-    ## Ensure every sample has an IF column (some may be all-absent on this chrom)
+    ## Ensure every sample has an IF column (some may have no data for this
+    ## chromosome)
     for (s in seq_len(nSamples)) {
         nmIn <- as.character(s)
         nmOut <- paste0("IF_", s)
