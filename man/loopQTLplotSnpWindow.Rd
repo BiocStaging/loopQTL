@@ -2,7 +2,7 @@
 % Please edit documentation in R/loopQTLplotSnpWindow.R
 \name{loopQTLplotSnpWindow}
 \alias{loopQTLplotSnpWindow}
-\title{Hi-C-style β heatmap around a SNP}
+\title{Hi-C-style beta heatmap around a SNP}
 \usage{
 loopQTLplotSnpWindow(
   obj,
@@ -99,7 +99,7 @@ A \code{ggplot} object.
 This function renders a Hi-C-style heatmap centered on a chosen
 SNP: for every bin-pair in the SNP's cached contact window (from
 \code{loopQTLnormalize(saveWindows = TRUE)}), the color encodes the per-sample
-regression coefficient (β) of the bin-pair's contact strength on the SNP's
+regression coefficient (beta) of the bin-pair's contact strength on the SNP's
 dosage. Set \code{normal = TRUE} and \code{covariates = "auto"} to match the model
 used in \code{runQTL()}.
 }
