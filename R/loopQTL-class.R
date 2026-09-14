@@ -42,6 +42,7 @@ setClass(
     ),
     prototype(
         samples = character(0),
+        loops = InteractionSet::GInteractions(),
         cis = numeric(0),
         vcfPath = NA_character_,
         resolution = NA_integer_,
