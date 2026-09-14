@@ -138,6 +138,13 @@ loopQTLplotLocus <- function(obj, snpID,
         }
         rowMeans(valuesMat[, ss, drop = FALSE], na.rm = TRUE)
     }, numeric(nrow(loopsDF)))
+
+    ## as.matrix() is needed in case there is only one loop - if so, the result
+    ## would not be a matrix, and colnames() would fail.
+    if (length(dim(mean_per_geno)) < 2) {
+        mean_per_geno <- t(as.matrix(mean_per_geno))
+    }
+
     colnames(mean_per_geno) <- names(genotypeGroups)
 
     nPer <- vapply(genotypeGroups, length, integer(1))
