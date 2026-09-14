@@ -13,8 +13,7 @@
 ## unless mc.cores is 1) and set the seed before using this function.
 
 .PCAForQTLrunBE <- function(X, B = 20, alpha = 0.05,
-                            mc.cores = max(1, min(B, BiocParallel::bpnworkers(BiocParallel::MulticoreParam()) - 1)),
-                            verbose = FALSE) {
+                            mc.cores = max(1, min(B, BiocParallel::bpnworkers(BiocParallel::MulticoreParam()) - 1))) {
     if (alpha < 0 || alpha > 1) {
         .stopNoCall("alpha must be between 0 and 1.")
     }
@@ -23,10 +22,9 @@
     p <- ncol(X) # Number of features.
     d <- min(n, p) # Total number of PCs.
 
-    if (verbose) cat("Running PCA on permuted data...\n")
-
     results <- BiocParallel::bplapply(seq_len(B), FUN = function(b) {
-        ## Permute each column of X. That is, permute the observations in each feature.
+        ## Permute each column of X. That is, permute the observations in each
+        ## feature.
         XPermuted <- matrix(data = NA, nrow = n, ncol = p)
         for (j in seq_len(p)) {
             XPermuted[, j] <- sample(x = X[, j], size = n, replace = FALSE)
@@ -41,7 +39,6 @@
     temp <- unlist(results)
     testStatsPerm <- matrix(data = temp, nrow = d, byrow = FALSE)
 
-    if (verbose) cat("Running PCA on the unpermuted data...\n")
     prcompResult <- prcomp(x = X, center = TRUE, scale. = TRUE)
     importanceTable <- summary(prcompResult)$importance
     PVEs <- importanceTable[2, ]
