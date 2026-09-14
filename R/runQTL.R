@@ -1,18 +1,25 @@
 #' Anchor-restricted association testing
 #'
-#' This function first reads all anchor-window SNPs from the VCF, and runs MatrixEQTL twice -
-#' once treating anchor A as the gene position, once anchor B. The two result
-#' tables are outer-joined on SNP-loop level.  Covariates are supplied via the
-#' `covariates` argument - typically the phenotype PCs chosen in the previous step.
-#' Rank-based Inverse Normal Transformation (RINT) is applied per loop before regression by default.
+#' This function first reads all anchor-window SNPs from the VCF, and runs
+#' MatrixEQTL twice - once treating anchor A as the gene position, once anchor 
+#' B. The two result tables are outer-joined on SNP-loop level. Covariates are
+#' supplied via the `covariates` argument - typically the phenotype PCs chosen
+#' in the previous step. By default, rank-based inverse normal transformation
+#' (RINT) is applied per loop before regression.
 #'
 #' @param obj A loopQTL object on which `loopQTLnormalize()` has been run.
-#' @param window Base-pair window flank added to each anchor bin when matching SNPs. Default 0.
-#' @param covariates Optional `samples x k` matrix/data.frame. If NULL, will be auto-chosen via loopQTLchooseK().
-#' @param normal Apply Rank-based Inverse Normal Transformation (RINT) per loop before regression. Default `TRUE`.
-#' @param Kmethod `"elbow"` or `"BE"`; passed to `loopQTLchooseK()` when covariates is `NULL`. Default `"elbow"`.
-#' @param Kmax The maximum number of PCs used. Default `length(samples(obj)) - 2`.
-#' @param pvOutputThreshold MatrixEQTL p-value threshold. Default 1 (return every pair).
+#' @param window Base-pair window flank added to each anchor bin when matching
+#' SNPs. Default 0.
+#' @param covariates Optional `samples x k` matrix/data.frame. If NULL, will be 
+#' auto-chosen via loopQTLchooseK().
+#' @param normal Apply Rank-based Inverse Normal Transformation (RINT) per loop 
+#' before regression. Default `TRUE`.
+#' @param Kmethod `"elbow"` or `"BE"`; passed to `loopQTLchooseK()` when 
+#' covariates is `NULL`. Default `"elbow"`.
+#' @param Kmax The maximum number of PCs used. Defaults to the number of samples
+#' minus two.
+#' @param pvOutputThreshold MatrixEQTL p-value threshold. Default 1 (return 
+#' every pair).
 #'
 #' @return The loopQTL object with `results(obj)` filled.
 #'
@@ -51,7 +58,7 @@ runQTL <- function(obj,
     ## n_zero_var = loops newly NA'd by RINT (had data but constant after RINT).
     ## Originally-NA loops aren't counted here.
 
-    ## Build union of (anchor +- window) target ranges for the VCF read
+    ## Build union of (anchor +/- window) target ranges for the VCF read
     pad <- function(gr) {
         GenomicRanges::GRanges(
             seqnames = GenomicRanges::seqnames(gr),
@@ -76,7 +83,9 @@ runQTL <- function(obj,
         .stopNoCall("Could not read chromosome names from VCF tabix index")
     }
     vcfChromNormalizerFunc <- .make_chrom_normalizer(vcfChroms)
-    rt_chroms_vcf <- vcfChromNormalizerFunc(as.character(GenomicRanges::seqnames(readTargets)))
+    rt_chroms_vcf <- vcfChromNormalizerFunc(
+            as.character(GenomicRanges::seqnames(readTargets))
+    )
     keep <- rt_chroms_vcf %in% vcfChroms
     if (!any(keep)) {
         return(.returnEmpty())
@@ -93,7 +102,9 @@ runQTL <- function(obj,
     param <- VariantAnnotation::ScanVcfParam(
         which = readTargets, geno = "GT", info = NA_character_
     )
-    vcf <- VariantAnnotation::readVcf(obj@vcfPath, genome = "unknown", param = param)
+    vcf <- VariantAnnotation::readVcf(
+            obj@vcfPath, genome = "unknown", param = para
+    )
     if (length(vcf) == 0) {
         return(.returnEmpty())
     }
@@ -112,7 +123,7 @@ runQTL <- function(obj,
     colnames(dosage) <- samplesVec
 
     rr <- SummarizedExperiment::rowRanges(vcf)
-    snp_chrom_vcf <- as.character(GenomicRanges::seqnames(rr)) # in VCF naming
+    snpChromVCF <- as.character(GenomicRanges::seqnames(rr)) 
     snpPos <- GenomicRanges::start(rr)
     snpRef <- as.character(VariantAnnotation::ref(vcf))
     altList <- VariantAnnotation::alt(vcf)
@@ -125,7 +136,7 @@ runQTL <- function(obj,
     if (is.null(snp_id_raw) || any(snp_id_raw == "" | is.na(snp_id_raw))) {
         snp_id_raw <- sprintf(
             "%s:%d_%s/%s",
-            snp_chrom_vcf, snpPos, snpRef, snpAlt
+            snpChromVCF, snpPos, snpRef, snpAlt
         )
     }
 
@@ -138,7 +149,7 @@ runQTL <- function(obj,
     }
     dosage <- dosage[snpKeep, , drop = FALSE]
     snpID <- snp_id_raw[snpKeep]
-    snp_chrom_vcf <- snp_chrom_vcf[snpKeep]
+    snpChromVCF <- snpChromVCF[snpKeep]
     snpPos <- snpPos[snpKeep]
     snpRef <- snpRef[snpKeep]
     snpAlt <- snpAlt[snpKeep]
@@ -190,7 +201,7 @@ runQTL <- function(obj,
     loop_chrom_vcf <- vcfChromNormalizerFunc(as.character(GenomicRanges::seqnames(anchorA)))
     snpspos <- data.frame(
         snpid = snpID,
-        chr = snp_chrom_vcf,
+        chr = snpChromVCF,
         pos = snpPos,
         stringsAsFactors = FALSE
     )
@@ -230,7 +241,7 @@ runQTL <- function(obj,
 
     ## Attach SNP metadata + MAF
     snpMeta <- data.frame(
-        snpID = snpID, chrom = snp_chrom_vcf, pos = snpPos,
+        snpID = snpID, chrom = snpChromVCF, pos = snpPos,
         ref = snpRef, alt = snpAlt, maf = mafKept,
         stringsAsFactors = FALSE
     )
@@ -244,7 +255,7 @@ runQTL <- function(obj,
     )]
     rownames(out) <- NULL
 
-    ## Write to slot and return the obj instead of the raw data.frame.
+    ## Store the results in the object and return it
     obj@results <- out
     obj
 }
@@ -293,7 +304,7 @@ runQTL <- function(obj,
     sd
 }
 
-## Run MatrixEQTL once and return a tidy data.frame of cis hits.
+## Run MatrixEQTL and return a simplified data.frame of cis hits
 .run_matrix_eqtl <- function(snpsSd, geneSD, cvrtSd,
                              snpspos, genepos,
                              cisDist, pvOutputThreshold) {
@@ -327,7 +338,7 @@ runQTL <- function(obj,
         ))
     }
     ## MatrixEQTL columns: snps, gene, statistic, pvalue, beta (FDR ignored)
-    ## Some versions also include `se` directly; if not, derive: se = beta / statistic.
+    ## Some versions also include se; if not, derive it: se = beta / statistic.
     seCol <- if ("se" %in% names(cis)) cis$se else cis$beta / cis$statistic
     data.frame(
         loopID = as.character(cis$gene),
