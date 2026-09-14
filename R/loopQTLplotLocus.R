@@ -550,9 +550,11 @@ loopQTLplotLocus <- function(obj, snpID,
         ggplot2::labs(y = "SNP") +
         ggplot2::theme_classic(base_size = 10) +
         ggplot2::theme(
-            axis.text = ggplot2::element_blank(),
-            axis.ticks = ggplot2::element_blank(),
+            axis.text.y = ggplot2::element_blank(),
+            axis.ticks.y = ggplot2::element_blank(),
             axis.title.x = ggplot2::element_blank(),
+            axis.text.x = ggplot2::element_blank(),
+            axis.ticks.x = ggplot2::element_blank(),
             axis.line.x = ggplot2::element_blank()
         )
 }
@@ -600,13 +602,16 @@ loopQTLplotLocus <- function(obj, snpID,
         ggplot2::labs(y = panelTitle, color = "Mean strength") +
         ggplot2::theme_classic(base_size = 10) +
         ggplot2::theme(
-            axis.text = ggplot2::element_blank(),
-            axis.ticks = ggplot2::element_blank(),
-            axis.title.x = ggplot2::element_blank(),
+            axis.text.y = ggplot2::element_blank(),
+            axis.ticks.y = ggplot2::element_blank(),
             axis.title.y = ggplot2::element_text(size = 9),
-            panel.grid = ggplot2::element_blank(),
-            ## No X-axis line for the loops because it's at the top, above the genes
-            axis.line.x = ggplot2::element_blank()
+            panel.grid = ggplot2::element_blank()
         )
-    return(gg)
+    ## X-axis ruler is on top of the gene track (IGV-style); always hide it here.
+    gg + ggplot2::theme(
+        axis.text.x = ggplot2::element_blank(),
+        axis.ticks.x = ggplot2::element_blank(),
+        axis.title.x = ggplot2::element_blank(),
+        axis.line.x = ggplot2::element_blank()
+    )
 }
