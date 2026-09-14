@@ -167,14 +167,8 @@ loopQTLplotLocus <- function(obj, snpID,
         effHi <- 1
     }
 
-    geneDF <- .load_features_in_region(gtf, chrom, start, end,
-        featureType = "gene",
-        biotypes = geneBiotypes
-    )
-    exonDF <- .load_features_in_region(gtf, chrom, start, end,
-        featureType = "exon",
-        geneNames = geneDF$gene
-    )
+    geneDF <- .load_genes_in_region(gtf, chrom, start, end, geneBiotypes)
+    exonDF <- .load_exons_in_region(gtf, chrom, start, end, geneDF$gene)
 
     ## 6. Axis formatter
     axisFormat <- if (axisUnit == "Mb") {
@@ -277,9 +271,8 @@ loopQTLplotLocus <- function(obj, snpID,
     out
 }
 
-## Read genes (or exons of the given genes) overlapping [start, end] on the given
-## chromosome.
-.load_features_in_region <- function(gtf, chrom, start, end, featureType, geneNames = NA, biotypes = NULL) {
+## Read genes overlapping [start, end] on chrom from a GTF. Handles chr vs no-chr.
+.load_genes_in_region <- function(gtf, chrom, start, end, biotypes) {
     gr <- rtracklayer::import(gtf)
     typeCol <- if ("type" %in% names(S4Vectors::mcols(gr))) {
         "type"
@@ -288,51 +281,113 @@ loopQTLplotLocus <- function(obj, snpID,
     } else {
         .stopNoCall("GTF has neither `type` nor `feature` column")
     }
-    filteredGRanges <- gr[S4Vectors::mcols(gr)[[typeCol]] == featureType]
-    if (length(filteredGRanges) == 0) {
-        .stopNoCall("No ", featureType, " entries in GTF")
-    }
+    genes <- gr[S4Vectors::mcols(gr)[[typeCol]] == "gene"]
+    if (length(genes) == 0) .stopNoCall("No `gene` entries in GTF")
 
-    gtfChroms <- unique(as.character(GenomicRanges::seqnames(filteredGRanges)))
+    gtfChroms <- unique(as.character(GenomicRanges::seqnames(genes)))
+    ## Adjust the chromosome names to match the GTF
     chromQ <- if (any(grepl("^chr", gtfChroms))) {
         (if (grepl("^chr", chrom)) chrom else paste0("chr", chrom))
     } else {
         sub("^chr", "", chrom)
     }
 
-    nameCol <- if ("gene_name" %in% names(S4Vectors::mcols(filteredGRanges))) {
+    keep <- as.character(GenomicRanges::seqnames(genes)) == chromQ &
+        GenomicRanges::end(genes) >= start &
+        GenomicRanges::start(genes) <= end
+    genes <- genes[keep]
+    if (!is.null(biotypes) && "gene_biotype" %in% names(S4Vectors::mcols(genes))) {
+        genes <- genes[as.character(S4Vectors::mcols(genes)$gene_biotype) %in% biotypes]
+    }
+
+    nameCol <- if ("gene_name" %in% names(S4Vectors::mcols(genes))) {
         "gene_name"
-    } else if ("gene_id" %in% names(S4Vectors::mcols(filteredGRanges))) {
+    } else if ("gene_id" %in% names(S4Vectors::mcols(genes))) {
+        "gene_id"
+    } else {
+        NULL
+    }
+    data.frame(
+        gene = if (is.null(nameCol)) {
+            NA_character_
+        } else {
+            as.character(S4Vectors::mcols(genes)[[nameCol]])
+        },
+        start = pmax(start, GenomicRanges::start(genes)),
+        end = pmin(end, GenomicRanges::end(genes)),
+        strand = as.character(GenomicRanges::strand(genes)),
+        stringsAsFactors = FALSE
+    )
+}
+
+## Read exons of the given gene names in the region.
+.load_exons_in_region <- function(gtf, chrom, start, end, geneNames) {
+    if (length(geneNames) == 0) {
+        return(data.frame(
+            gene = character(0), start = integer(0),
+            end = integer(0), strand = character(0),
+            stringsAsFactors = FALSE
+        ))
+    }
+    gr <- rtracklayer::import(gtf)
+    typeCol <- if ("type" %in% names(S4Vectors::mcols(gr))) {
+        "type"
+    } else if ("feature" %in% names(S4Vectors::mcols(gr))) {
+        "feature"
+    } else {
+        return(data.frame(
+            gene = character(0), start = integer(0),
+            end = integer(0), strand = character(0),
+            stringsAsFactors = FALSE
+        ))
+    }
+    exons <- gr[S4Vectors::mcols(gr)[[typeCol]] == "exon"]
+    if (length(exons) == 0) {
+        return(data.frame(
+            gene = character(0), start = integer(0),
+            end = integer(0), strand = character(0),
+            stringsAsFactors = FALSE
+        ))
+    }
+    gtfChroms <- unique(as.character(GenomicRanges::seqnames(exons)))
+    chromQ <- if (any(grepl("^chr", gtfChroms))) {
+        (if (grepl("^chr", chrom)) chrom else paste0("chr", chrom))
+    } else {
+        sub("^chr", "", chrom)
+    }
+    nameCol <- if ("gene_name" %in% names(S4Vectors::mcols(exons))) {
+        "gene_name"
+    } else if ("gene_id" %in% names(S4Vectors::mcols(exons))) {
         "gene_id"
     } else {
         NULL
     }
     if (is.null(nameCol)) {
-        .stopNoCall("Unable to find gene name/ID column in GTF")
+        return(data.frame(
+            gene = character(0), start = integer(0),
+            end = integer(0), strand = character(0),
+            stringsAsFactors = FALSE
+        ))
     }
-
-    if (!.isSingleNA(geneNames)) {
-        namesMatch <- as.character(S4Vectors::mcols(filteredGRanges)[[nameCol]]) %in% geneNames
-    } else {
-        namesMatch <- TRUE
+    keep <- as.character(GenomicRanges::seqnames(exons)) == chromQ &
+        GenomicRanges::end(exons) >= start &
+        GenomicRanges::start(exons) <= end &
+        as.character(S4Vectors::mcols(exons)[[nameCol]]) %in% geneNames
+    exons <- exons[keep]
+    if (length(exons) == 0) {
+        return(data.frame(
+            gene = character(0), start = integer(0),
+            end = integer(0), strand = character(0),
+            stringsAsFactors = FALSE
+        ))
     }
-
-    keep <- as.character(GenomicRanges::seqnames(filteredGRanges)) == chromQ &
-        GenomicRanges::end(filteredGRanges) >= start &
-        GenomicRanges::start(filteredGRanges) <= end &
-        namesMatch
-    filteredGRanges <- filteredGRanges[keep]
-    if (!is.null(biotypes) && "gene_biotype" %in% names(S4Vectors::mcols(filteredGRanges))) {
-        filteredGRanges <- filteredGRanges[as.character(S4Vectors::mcols(filteredGRanges)$gene_biotype) %in% biotypes]
-    }
-
-    return(data.frame(
-        gene = as.character(S4Vectors::mcols(filteredGRanges)[[nameCol]]),
-        start = pmax(start, GenomicRanges::start(filteredGRanges)),
-        end = pmin(end, GenomicRanges::end(filteredGRanges)),
-        strand = as.character(GenomicRanges::strand(filteredGRanges)),
+    data.frame(
+        gene = as.character(S4Vectors::mcols(exons)[[nameCol]]),
+        start = pmax(start, GenomicRanges::start(exons)),
+        end = pmin(end, GenomicRanges::end(exons)),
+        strand = as.character(GenomicRanges::strand(exons)),
         stringsAsFactors = FALSE
-    ))
+    )
 }
 
 
