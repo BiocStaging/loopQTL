@@ -1,5 +1,5 @@
 #' Locus-level track view of loops, SNPs, and genes
-#' 
+#'
 #' This function renders a locus-scale ggplot combining the consensus
 #' loops, the tested SNP, and (when a GTF is supplied) gene annotations, over
 #' a user-specified region. Please note that to use `values = "cpm"` or
@@ -170,7 +170,6 @@ loopQTLplotLocus <- function(obj, snpID,
     geneDF <- .load_genes_in_region(gtf, chrom, start, end, geneBiotypes)
     exonDF <- .load_exons_in_region(gtf, chrom, start, end, geneDF$gene)
 
-    ## 6. Axis formatter
     axisFormat <- if (axisUnit == "Mb") {
         function(x) sprintf("%.2f", x / 1000000)
     } else {
@@ -196,9 +195,8 @@ loopQTLplotLocus <- function(obj, snpID,
         )
     })
 
-    ## 8. Stack with patchwork: gene | SNP | genotype 0 | 1 | 2
-    ##    Heights: gene 1.2, SNP 0.4, arcs each 1.2
-    ##    guides = "collect" consolidates all three arc legends into one.
+    ## Stack the plots with patchwork.
+    ## guides = "collect" consolidates all three arc legends into one.
     heights <- c(1.2, 0.4, rep(1.2, length(arcPanels)))
     wrap <- patchwork::wrap_plots(
         c(list(pGene, pSnp), arcPanels),
@@ -390,7 +388,6 @@ loopQTLplotLocus <- function(obj, snpID,
     )
 }
 
-
 ## Non-overlapping row assignment: greedy first-fit into rows so text labels don't collide.
 .assign_gene_rows <- function(gDF) {
     n <- nrow(gDF)
@@ -574,8 +571,7 @@ loopQTLplotLocus <- function(obj, snpID,
 .build_arc_panel <- function(arcDF, start, end, axisFormat,
                              effLo, effHi, strongColor, weakColor,
                              panelTitle, showX = FALSE) {
-    ## Expand each loop into a set of three points which will be interpolated by
-    ## geom_path
+    ## Expand each arc into a path of points
     paths <- do.call(rbind, lapply(seq_len(nrow(arcDF)), function(i) {
         p <- .arcPath(arcDF$x1[i], arcDF$x2[i])
         p$loopID <- arcDF$loopID[i]
