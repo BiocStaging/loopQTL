@@ -15,8 +15,11 @@
 #' @export
 #' @examples
 #' ##Load the example object, please note that in real analysis the input object should be the output of runQTL().
-#' ##Here we just use the example object.
+#' ##Here we just use the example object. 
 #' obj <- .loopQTLloadExampleDataset()
+#' ##Check results so that you can choose your interested loopID and snpID
+#' head(results(obj))
+#' ##Then you can specify the specifi SNP-loop pair data you want to check at samples level.
 #' pair <- loopQTLpairData(
 #'     obj,
 #'     loopID = "L0000473_chr1_46050000_46130000",
