@@ -377,6 +377,7 @@
 .loopQTLloadExampleDataset <- function(){
     extdataDir <- system.file("extdata", package = "loopQTL")
     rdaPath <- file.path(extdataDir, "example_loopQTL_obj.rda")
-    load(rdaPath)
+    obj <- load(rdaPath)
+    return(obj)
 }
                                 
