@@ -28,7 +28,7 @@
 #' @import data.table
 #' @export
 #' @examples
-#' ##Load the example object, please note that in realy analysis the input object should be the output of loopQTLnormalize().
+#' ##Load the example object, please note that in realy analysis the input object should be the output of loopQTLsetup().
 #' ##Here we just use the example object.
 #' obj <- .loopQTLloadExampleDataset()
 #' ##Example code to run loopQTLnormalize(), please note that by default it will not create the 
