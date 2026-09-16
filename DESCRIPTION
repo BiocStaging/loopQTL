@@ -15,7 +15,7 @@ BugReports: https://github.com/rhielab/loopQTL/issues
 License: GPL-3 + file LICENSE
 Encoding: UTF-8
 BiocType: Software
-biocViews:
+biocViews: Software, DNA3DStructure, Epigenetics, HiC, QuantitativeTrailLocus, SNP
 Depends: R (>= 4.6)
 Imports:
     methods,
