@@ -25,7 +25,8 @@
 #'
 #' @export
 #' @examples
-#' ##Load the example object
+#' ##Load the example object, please note that in realy analysis the input object should be the output of loopQTLnormalized().
+#' ##Here we just use the example object.
 #' obj <- .loopQTLloadExampleDataset()
 #' ##Run the function, please note that the covariates option is not specified.
 #' obj <- runQTL(
