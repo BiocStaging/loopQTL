@@ -27,6 +27,28 @@
 #' @return The loopQTL `obj` with `phenotype(obj)` filled.
 #' @import data.table
 #' @export
+#' @examples
+#' ##Load the example object
+#' obj <- .loopQTLloadExampleDataset()
+#' ##Example code to run loopQTLnormalize(), please note that by default it will not create the 
+#' `.rds` contact submatrix file that is necessary for downstream usage. 
+#' obj <- loopQTLnormalize(
+#'     obj,
+#'     BPPARAM     = BiocParallel::MulticoreParam(workers = 2),
+#'     snpWindow   = 10000)
+#' 
+#' ##Example code to run loopQTLnormalize() by creating the `.rds` contact submatrix file that is 
+#' ##necessary for downstream usage. 
+#' 
+#' ## FirstGet the path to a temporary directory in which to save the output interact file.
+#' tempDirectory <- tempdir()
+#' obj <- loopQTLnormalize(
+#'     obj,
+#'     BPPARAM     = BiocParallel::MulticoreParam(workers = 2),
+#'     saveWindows = TRUE,
+#'     windowsOut  = file.path(tempDirectory, "loop_snp_windows.rds"),
+#'     window      = 2000000,
+#'     snpWindow   = 10000)
 loopQTLnormalize <- function(obj,
                              BPPARAM = BiocParallel::SerialParam(),
                              saveWindows = FALSE,
