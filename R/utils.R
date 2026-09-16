@@ -372,3 +372,11 @@
     df$endB <- as.integer(df$endB)
     df
 }
+
+#Load the example loopQTL object for example reference
+.loopQTLloadExampleDataset <- function(){
+    extdataDir <- system.file("extdata", package = "loopQTL")
+    rdaPath <- file.path(extdataDir, "example_loopQTL_obj.rda")
+    load(rdaPath)
+}
+                                
