@@ -22,6 +22,9 @@
 #'   `phenotype` is an empty placeholder until loopQTLnormalize() fills it.
 #'
 #' @export
+#'
+#' @examples
+#' 
 loopQTLsetup <- function(samples,
                          vcf,
                          resolution,
