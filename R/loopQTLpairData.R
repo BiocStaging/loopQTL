@@ -13,6 +13,8 @@
 #'   (0 - Reference homozygou; 1 - heterozygous, 2 - Alternative homozygous), `phenotype`, `cis`.
 #'
 #' @export
+#' @examples
+#' 
 loopQTLpairData <- function(obj, loopID, snpID, normal = TRUE) {
     stopifnot(
         methods::is(obj, "loopQTL"),
