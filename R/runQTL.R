@@ -24,6 +24,23 @@
 #' @return The loopQTL object with `results(obj)` filled.
 #'
 #' @export
+#' @examples
+#' ##Load the example object
+#' obj <- .loopQTLloadExampleDataset()
+#' ##Run the function, please note that the covariates option is not specified.
+#' obj <- runQTL(
+#'    obj,
+#'    window     = 10000)
+#'
+#' ##However, in real analysis, we do recommend running the loopQTL with covariates specified
+#' ##for more accurate regression results, typically the top Kth PCA values selected as the covariates.
+#' ##We do provide a function to choose best Kth PCA values, referencing the 
+#' ##PCAForQTL(https://github.com/heatherjzhou/PCAForQTL) method.
+#' Kres <- loopQTLchooseK(obj)
+#' obj <- runQTL(
+#'     obj,
+#'     window     = 10000,
+#'     covariates = Kres$PCs)
 runQTL <- function(obj,
                    window = 0,
                    covariates = NULL,
