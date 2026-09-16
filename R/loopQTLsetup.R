@@ -24,7 +24,28 @@
 #' @export
 #'
 #' @examples
+#' ## Get the necessary input example files path.
+#' extdataDir <- system.file("extdata", package = "loopQTL")
+#' vcfPath <- file.path(extdataDir, "example.vcf.gz")
+#' samplesheetPath <- file.path(extdataDir, "example_samplesheet.tsv")
+#' samples <- read.table(samplesheetPath, header = TRUE)
 #' 
+#' ##modify the relative file path
+#' samples$hic <- unlist(
+#'     lapply(samples$hic, function(x) {
+#'         file.path(extdataDir, x)
+#'     }))
+#' samples$loops <- unlist(
+#'     lapply(samples$loops, function(x) {
+#'         file.path(extdataDir, x)
+#'     }))
+#' 
+#' ## Run loopQTLsetup
+#' obj <- loopQTLsetup(
+#'     samples    = samples,
+#'     vcf        = vcfPath,
+#'     resolution = 10000,
+#'     minSamples = 2)
 loopQTLsetup <- function(samples,
                          vcf,
                          resolution,
