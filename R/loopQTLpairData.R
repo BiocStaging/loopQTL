@@ -15,7 +15,13 @@
 #' @export
 #' @examples
 #' ##Load the example object, please note that in real analysis the input object should be the output of runQTL().
-#'
+#' ##Here we just use the example object.
+#' obj <- .loopQTLloadExampleDataset()
+#' pair <- loopQTLpairData(
+#'     obj,
+#'     loopID = "L0000473_chr1_46050000_46130000",
+#'     snpID  = "rs72677550")
+#' head(pair)
 loopQTLpairData <- function(obj, loopID, snpID, normal = TRUE) {
     stopifnot(
         methods::is(obj, "loopQTL"),
