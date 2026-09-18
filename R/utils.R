@@ -379,6 +379,10 @@
     rdaPath    <- file.path(extdataDir, "example_loopQTL_obj.rda")
     e <- new.env()
     load(rdaPath, envir = e)
-    return(e$obj)
+    obj <- e$obj
+    obj@metadata$windowsOut <- system.file(
+        "extdata", "example_loopQTL_snp_windows.rds", package = "loopQTL"
+    )
+    obj
 }
                                 
