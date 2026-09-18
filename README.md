@@ -6,7 +6,7 @@ Unlike peak-centric window-scan tools (e.g. QTLtools), `loopQTL` only tests SNPs
 
 ## Pipeline overview
 
-<img src="loopQTL_schematic.png"/>
+<img src="man/figures/loopQTL_schematic.png"/>
 
 ```         
 loopQTLsetup()      -> validate VCF + .hic headers, read loop BEDPEs, build the

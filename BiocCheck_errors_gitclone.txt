@@ -1,2 +1,0 @@
-xxxxxxxxxxxxSTARTxxxxxxxxxx
-── Running Git clone checks on loopQTL ─────────────────────────────────────────
