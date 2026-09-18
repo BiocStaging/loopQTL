@@ -146,23 +146,4 @@ p <- loopQTLplotSnpWindow(
 ggplot2::ggsave("rs123456_snp_window.pdf", p, width = 8, height = 8)
 ```
 
-## Run in parallel
-
-Inside a single call, both `loopQTLsetup()` (when auto-computing per-sample cis from `.hic`) and `loopQTLnormalize()` (one worker per chromosome) dispatch work via `BiocParallel::bplapply`. Pick the backend via `BPPARAM`:
-
-``` r
-BPPARAM = BiocParallel::MulticoreParam(workers = 16)   # workstation / single node
-BPPARAM = BiocParallel::SerialParam()                   # single-threaded
-```
-
-## Citation
-
-If you use `loopQTL` in your work, please cite this repository:
-
-> Wu, Z. loopQTL: anchor-restricted loop QTL mapping from Hi-C. <https://github.com/rhielab/loopQTL>
-
-The BNBC normalization implemented here follows Fletez-Brant et al. 2021 (*Bioinformatics*). The per-SNP contact-window heatmap follows the visualization in Shi et al. 2025 (*Genome Biology*).
-
-## License
-
 GPLv3. See [LICENSE](LICENSE).
