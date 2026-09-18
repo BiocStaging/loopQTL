@@ -374,10 +374,11 @@
 }
 
 #Load the example loopQTL object for example reference
-.loopQTLloadExampleDataset <- function(){
+.loopQTLloadExampleDataset <- function() {
     extdataDir <- system.file("extdata", package = "loopQTL")
-    rdaPath <- file.path(extdataDir, "example_loopQTL_obj.rda")
-    obj <- load(rdaPath)
-    return(obj)
+    rdaPath    <- file.path(extdataDir, "example_loopQTL_obj.rda")
+    e <- new.env()
+    load(rdaPath, envir = e)
+    return(e$obj)
 }
                                 
