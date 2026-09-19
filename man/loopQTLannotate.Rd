@@ -72,3 +72,24 @@ If both promtoer and peaks are found at the target anchor, it give priority on g
 }
 }
 }
+\examples{
+##Load the example object, please note that in realy analysis the input object should be the output of loopQTLsetup().
+##Here we just use the example object.
+obj <- .loopQTLloadExampleDataset()
+## get the path of example annotation files
+extdataDir <- system.file("extdata", package = "loopQTL")
+peakPath   <- file.path(extdataDir, "example_annotation.bed")
+gtfPath    <- file.path(extdataDir, "example.gtf.gz")
+
+## Annotate SNP-loop pairs with gene, peak overlap, and Type
+obj <- loopQTLannotate(
+    obj,
+    gtf            = gtfPath,
+    peak           = peakPath,
+    peakAnnotation = "Enhancer",
+    TSSwindow      = 2000,
+    removeTSS      = TRUE)
+
+##check the annotated results
+head(results(obj))
+}

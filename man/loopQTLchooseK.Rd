@@ -38,3 +38,8 @@ number of principal components K to use as covariates in the downstream
 regression. This function returns a list with the chosen K and the
 sample × K matrix of PCs.
 }
+\examples{
+obj <- .loopQTLloadExampleDataset()
+Kres <- loopQTLchooseK(obj, Kmethod = "elbow")
+Kres$K
+}

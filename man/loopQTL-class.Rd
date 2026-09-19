@@ -72,6 +72,12 @@ and \code{maf}. If \code{loopQTLannotate()} has been run, also contains \code{ge
 \item{\code{metadata}}{Function-specific metadata}
 }}
 
+\examples{
+obj <- .loopQTLloadExampleDataset()
+obj
+samples(obj)
+loops(obj)
+}
 \seealso{
 loopQTLsetup
 }
