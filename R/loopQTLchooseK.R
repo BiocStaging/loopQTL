@@ -20,6 +20,10 @@
 #'   }
 #'
 #' @export
+#' @examples
+#' obj <- .loopQTLloadExampleDataset()
+#' Kres <- loopQTLchooseK(obj, Kmethod = "elbow")
+#' Kres$K
 loopQTLchooseK <- function(obj,
                            Kmethod = c("elbow", "BE"),
                            normal = TRUE,
