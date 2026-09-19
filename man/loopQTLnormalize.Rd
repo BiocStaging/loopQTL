@@ -16,8 +16,8 @@ loopQTLnormalize(
 \arguments{
 \item{obj}{A loopQTL object created from \code{loopQTLsetup()}.}
 
-\item{BPPARAM}{A \link[BiocParallel:BiocParallelParam]{BiocParallel::BiocParallelParam} for parallelization
-over chromosomes. Default \code{\link[BiocParallel:SerialParam]{BiocParallel::SerialParam()}}.}
+\item{BPPARAM}{A \link[BiocParallel:BiocParallelParam-class]{BiocParallel::BiocParallelParam} for parallelization
+over chromosomes. Default \code{\link[BiocParallel:SerialParam-class]{BiocParallel::SerialParam()}}.}
 
 \item{saveWindows}{Logical. If \code{TRUE}, also save a local contact submatrix
 around each in-loop SNP for downstream functions usage.}
@@ -43,8 +43,32 @@ Normalized values at the consensus-loop bin-pairs are written to
 \code{phenotype(obj)}.
 }
 \details{
-Please note that you need to set \code{saveWindows = TRUE} to additionally output
-a per-SNP contact-window matrix as .rds file. This file is needed by \code{loopQTLplotSnpWindow()} and
-\code{loopQTLplotLocus()} downstream functions. \code{saveWindows = TRUE} does not change
-\code{phenotype(obj)} or affect the \code{runQTL()} step.
+Please note that you need to set \code{saveWindows} to TRUE to additionally output
+a per-SNP contact-window matrix as .rds file. This file is needed by the
+\code{loopQTLplotSnpWindow()} and \code{loopQTLplotLocus()} downstream functions.
+\code{saveWindows} does not change \code{phenotype(obj)} or affect the \code{runQTL()} step.
+}
+\examples{
+##Load the example object, please note that in realy analysis the input object should be the output of loopQTLsetup().
+##Here we just use the example object.
+obj <- .loopQTLloadExampleDataset()
+##Example code to run loopQTLnormalize(), please note that by default it will not create the 
+`.rds` contact submatrix file that is necessary for downstream usage. 
+obj <- loopQTLnormalize(
+    obj,
+    BPPARAM     = BiocParallel::MulticoreParam(workers = 2),
+    snpWindow   = 10000)
+
+##Example code to run loopQTLnormalize() by creating the `.rds` contact submatrix file that is 
+##necessary for downstream usage. 
+
+## FirstGet the path to a temporary directory in which to save the output interact file.
+tempDirectory <- tempdir()
+obj <- loopQTLnormalize(
+    obj,
+    BPPARAM     = BiocParallel::MulticoreParam(workers = 2),
+    saveWindows = TRUE,
+    windowsOut  = file.path(tempDirectory, "loop_snp_windows.rds"),
+    window      = 2000000,
+    snpWindow   = 10000)
 }

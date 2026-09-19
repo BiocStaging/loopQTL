@@ -26,3 +26,16 @@ This function renders the per-sample boxplot for a chosen result SNP-loop
 pair. It is returned as a ggplot object that can be saved with
 \code{ggplot2::ggsave()}.
 }
+\examples{
+##Load the example object, please note that in real analysis the input object should be the output of runQTL().
+##Here we just use the example object. 
+obj <- .loopQTLloadExampleDataset()
+##Check results so that you can choose your interested loopID and snpID
+head(results(obj))
+##Then you can specify the specifi SNP-loop pair data you want to plot as classical QTL box plot.
+##Return is a ggplot object so you can save with ggsave().
+p <- loopQTLplotPair(
+    obj,
+    loopID = "L0000473_chr1_46050000_46130000",
+    snpID  = "rs72677550")
+}

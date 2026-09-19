@@ -103,3 +103,20 @@ regression coefficient (beta) of the bin-pair's contact strength on the SNP's
 dosage. Set \code{normal = TRUE} and \code{covariates = "auto"} to match the model
 used in \code{runQTL()}.
 }
+\examples{
+##Load the example object, please note that in real analysis the input object should be the output of runQTL().
+##Also please note that this function requires the object to have the contact matrix `rda` file. 
+##Check `obj@windowsOut` to see if your object contains this file.
+##Here we just use the example object.
+obj <- .loopQTLloadExampleDataset()
+##Check the results to see if you have any interested SNPs that you want to plot on.
+head(results(obj))
+p <- loopQTLplotSnpWindow(
+    obj,
+    chrom      = "chr1",
+    start      = 45985992,
+    end        = 46342685,
+    snpID      = "rs72677550",
+    normal     = TRUE,
+    covariates = "auto")
+}

@@ -17,25 +17,51 @@ runQTL(
 \arguments{
 \item{obj}{A loopQTL object on which \code{loopQTLnormalize()} has been run.}
 
-\item{window}{Base-pair window flank added to each anchor bin when matching SNPs. Default 0.}
+\item{window}{Base-pair window flank added to each anchor bin when matching
+SNPs. Default 0.}
 
-\item{covariates}{Optional \verb{samples x k} matrix/data.frame. If NULL, will be auto-chosen via loopQTLchooseK().}
+\item{covariates}{Optional \verb{samples x k} matrix/data.frame. If NULL, will be
+auto-chosen via loopQTLchooseK().}
 
-\item{normal}{Apply Rank-based Inverse Normal Transformation (RINT) per loop before regression. Default \code{TRUE}.}
+\item{normal}{Apply Rank-based Inverse Normal Transformation (RINT) per loop
+before regression. Default \code{TRUE}.}
 
-\item{Kmethod}{\code{"elbow"} or \code{"BE"}; passed to \code{loopQTLchooseK()} when covariates is \code{NULL}. Default \code{"elbow"}.}
+\item{Kmethod}{\code{"elbow"} or \code{"BE"}; passed to \code{loopQTLchooseK()} when
+covariates is \code{NULL}. Default \code{"elbow"}.}
 
-\item{Kmax}{The maximum number of PCs used. Default \code{length(samples(obj)) - 2}.}
+\item{Kmax}{The maximum number of PCs used. Defaults to the number of samples
+minus two.}
 
-\item{pvOutputThreshold}{MatrixEQTL p-value threshold. Default 1 (return every pair).}
+\item{pvOutputThreshold}{MatrixEQTL p-value threshold. Default 1 (return
+every pair).}
 }
 \value{
 The loopQTL object with \code{results(obj)} filled.
 }
 \description{
-This function first reads all anchor-window SNPs from the VCF, and runs MatrixEQTL twice -
-once treating anchor A as the gene position, once anchor B. The two result
-tables are outer-joined on SNP-loop level.  Covariates are supplied via the
-\code{covariates} argument - typically the phenotype PCs chosen in the previous step.
-Rank-based Inverse Normal Transformation (RINT) is applied per loop before regression by default.
+This function first reads all anchor-window SNPs from the VCF, and runs
+MatrixEQTL twice - once treating anchor A as the gene position, once anchor
+B. The two result tables are outer-joined on SNP-loop level. Covariates are
+supplied via the \code{covariates} argument - typically the phenotype PCs chosen
+in the previous step. By default, rank-based inverse normal transformation
+(RINT) is applied per loop before regression.
+}
+\examples{
+##Load the example object, please note that in realy analysis the input object should be the output of loopQTLnormalized().
+##Here we just use the example object.
+obj <- .loopQTLloadExampleDataset()
+##Run the function, please note that the covariates option is not specified.
+obj <- runQTL(
+   obj,
+   window     = 10000)
+
+##However, in real analysis, we do recommend running the loopQTL with covariates specified
+##for more accurate regression results, typically the top Kth PCA values selected as the covariates.
+##We do provide a function to choose best Kth PCA values, referencing the 
+##PCAForQTL(https://github.com/heatherjzhou/PCAForQTL) method.
+Kres <- loopQTLchooseK(obj)
+obj <- runQTL(
+    obj,
+    window     = 10000,
+    covariates = Kres$PCs)
 }

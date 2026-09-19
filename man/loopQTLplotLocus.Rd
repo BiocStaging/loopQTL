@@ -71,3 +71,21 @@ a user-specified region. Please note that to use \code{values = "cpm"} or
 \code{saveWindows = TRUE} to save the per-SNP contact-window matrices from
 \code{\link[=loopQTLnormalize]{loopQTLnormalize()}}.
 }
+\examples{
+##Load the example object, please note that in real analysis the input object should be the output of runQTL().
+##Also please note that if you specified "cpm" or "raw" in `values`, it will require the object to have the contact matrix `rda` file. 
+##Check `obj@windowsOut` to see if your object contains this file. Otherwise, it will just use the normalized matrix stored in the object.
+##Here we just use the example object.
+obj <- .loopQTLloadExampleDataset()
+##You also need a gtf file input to give the genomic annotations. Here we provide an example gtf.
+gtfPath <- system.file("extdata", "example.gtf.gz", package = "loopQTL")
+Return is a ggplot object so you can ggsave() to output.
+p <- loopQTLplotLocus(
+    obj,
+    chrom = "chr1",
+    start = 45985992,
+    end = 46342685,
+    snpID = "rs72677550",
+    values = "cpm",
+    gtf = gtfPath)
+}
