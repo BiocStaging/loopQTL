@@ -16,7 +16,7 @@ License: GPL-3 + file LICENSE
 Encoding: UTF-8
 BiocType: Software
 biocViews: Software, DNA3DStructure, Epigenetics, HiC, QuantitativeTrailLocus, SNP
-Depends: R (>= 4.6)
+Depends: R (>= 4.4)
 Imports:
     methods,
     stats,
