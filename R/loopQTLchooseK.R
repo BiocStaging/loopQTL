@@ -21,7 +21,7 @@
 #'
 #' @export
 #' @examples
-#' obj <- .loopQTLloadExampleDataset()
+#' obj <- loopQTLExampleData()
 #' Kres <- loopQTLchooseK(obj, Kmethod = "elbow")
 #' Kres$K
 loopQTLchooseK <- function(obj,

@@ -26,10 +26,11 @@
 #' @slot metadata Function-specific metadata
 #'
 #' @name loopQTL-class
+#' @aliases samples loops cis vcfPath resolution phenotype results metadata
 #' @exportClass loopQTL
 #' @seealso loopQTLsetup
 #' @examples
-#' obj <- .loopQTLloadExampleDataset()
+#' obj <- loopQTLExampleData()
 #' obj
 #' samples(obj)
 #' loops(obj)

@@ -373,8 +373,21 @@
     df
 }
 
-#Load the example loopQTL object for example reference
-.loopQTLloadExampleDataset <- function() {
+#' Load the bundled example loopQTL object
+#'
+#' Convenience helper for `@examples` blocks and vignette code that need a
+#' fully-populated `loopQTL` object without re-running the full pipeline.
+#' Loads `example_loopQTL_obj.rda` shipped in `inst/extdata/` and rewrites
+#' the file paths baked into the object so they resolve against the
+#' currently installed package location.
+#'
+#' @return A [loopQTL-class] object with `phenotype`, `results`,
+#'   and `metadata` populated.
+#' @export
+#' @examples
+#' obj <- loopQTLExampleData()
+#' obj
+loopQTLExampleData <- function() {
     extdataDir <- system.file("extdata", package = "loopQTL")
     rdaPath    <- file.path(extdataDir, "example_loopQTL_obj.rda")
     e <- new.env()

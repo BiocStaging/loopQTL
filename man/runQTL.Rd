@@ -47,18 +47,19 @@ in the previous step. By default, rank-based inverse normal transformation
 (RINT) is applied per loop before regression.
 }
 \examples{
-##Load the example object, please note that in realy analysis the input object should be the output of loopQTLnormalized().
+## Load the example object. In real analysis, the input
+## should be the output of loopQTLnormalize().
 ##Here we just use the example object.
-obj <- .loopQTLloadExampleDataset()
+obj <- loopQTLExampleData()
 ##Run the function, please note that the covariates option is not specified.
 obj <- runQTL(
    obj,
    window     = 10000)
 
-##However, in real analysis, we do recommend running the loopQTL with covariates specified
-##for more accurate regression results, typically the top Kth PCA values selected as the covariates.
-##We do provide a function to choose best Kth PCA values, referencing the 
-##PCAForQTL(https://github.com/heatherjzhou/PCAForQTL) method.
+## In real analysis we recommend running runQTL() with covariates
+## specified for more accurate regression, typically the top-K PCs.
+## The helper loopQTLchooseK() picks K following the PCAForQTL method
+## (https://github.com/heatherjzhou/PCAForQTL).
 Kres <- loopQTLchooseK(obj)
 obj <- runQTL(
     obj,

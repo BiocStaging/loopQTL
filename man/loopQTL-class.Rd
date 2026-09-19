@@ -3,6 +3,14 @@
 \docType{class}
 \name{loopQTL-class}
 \alias{loopQTL-class}
+\alias{samples}
+\alias{loops}
+\alias{cis}
+\alias{vcfPath}
+\alias{resolution}
+\alias{phenotype}
+\alias{results}
+\alias{metadata}
 \alias{samples,loopQTL-method}
 \alias{loops,loopQTL-method}
 \alias{cis,loopQTL-method}
@@ -73,7 +81,7 @@ and \code{maf}. If \code{loopQTLannotate()} has been run, also contains \code{ge
 }}
 
 \examples{
-obj <- .loopQTLloadExampleDataset()
+obj <- loopQTLExampleData()
 obj
 samples(obj)
 loops(obj)

@@ -104,11 +104,12 @@ dosage. Set \code{normal = TRUE} and \code{covariates = "auto"} to match the mod
 used in \code{runQTL()}.
 }
 \examples{
-##Load the example object, please note that in real analysis the input object should be the output of runQTL().
+## Load the example object. In real analysis, the input
+## should be the output of runQTL().
 ##Also please note that this function requires the object to have the contact matrix `rda` file. 
 ##Check `obj@windowsOut` to see if your object contains this file.
 ##Here we just use the example object.
-obj <- .loopQTLloadExampleDataset()
+obj <- loopQTLExampleData()
 ##Check the results to see if you have any interested SNPs that you want to plot on.
 head(results(obj))
 p <- loopQTLplotSnpWindow(

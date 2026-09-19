@@ -7,13 +7,16 @@
 #'* Automatically computes per-sample cis-contact depth from the `.hic` files
 #'  when the samplesheet lacks a `cis` column.
 #'
-#' The samplesheet is a tab-separated file with columns `Sample`, `hic`, `loops`, and optionally `cis`.
+#' The samplesheet is a tab-separated file with columns `Sample`, `hic`,
+#' `loops`, and optionally `cis`.
 #'
-#' @param samples a data.frame with columns `Sample`, `hic`, `loops`. Optional
-#'   `cis` column. If `cis` column is absent, it will be calculated from the `.hic` files automatically.
-#' @param vcf Path to a VCF. Please note that the vcf should be bgzipped with index.
-#' @param resolution a numeric number that is recognized in .hic file. (e.g 10000)
-#' @param minSamples The least number of samples the consensus loops are identified from. Default is 2 samples.
+#' @param samples a data.frame with columns `Sample`, `hic`, `loops`.
+#'   Optional `cis` column. If the `cis` column is absent, it is calculated
+#'   from the `.hic` files automatically.
+#' @param vcf Path to a VCF. The vcf should be bgzipped with tabix index.
+#' @param resolution a numeric bin size recognized in the .hic file (e.g. 10000).
+#' @param minSamples The minimum number of samples supporting a consensus
+#'   loop. Default is 2 samples.
 #' @param BPPARAM A [BiocParallel::BiocParallelParam] that parallelizes the
 #'   cis-computing straw pulls.
 #'

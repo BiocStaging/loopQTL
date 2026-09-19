@@ -72,11 +72,13 @@ a user-specified region. Please note that to use \code{values = "cpm"} or
 \code{\link[=loopQTLnormalize]{loopQTLnormalize()}}.
 }
 \examples{
-##Load the example object, please note that in real analysis the input object should be the output of runQTL().
-##Also please note that if you specified "cpm" or "raw" in `values`, it will require the object to have the contact matrix `rda` file. 
-##Check `obj@windowsOut` to see if your object contains this file. Otherwise, it will just use the normalized matrix stored in the object.
+## Load the example object. In real analysis, the input
+## should be the output of runQTL().
+## If you specify `values = "cpm"` or `values = "raw"`, the object must
+## carry the contact matrix `.rds` (see `obj@metadata$windowsOut`);
+## otherwise the normalized matrix stored in the object is used.
 ##Here we just use the example object.
-obj <- .loopQTLloadExampleDataset()
+obj <- loopQTLExampleData()
 ##You also need a gtf file input to give the genomic annotations. Here we provide an example gtf.
 gtfPath <- system.file("extdata", "example.gtf.gz", package = "loopQTL")
 ## Return is a ggplot object so you can ggsave() to output.

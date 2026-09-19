@@ -50,9 +50,10 @@
 #'
 #' @export
 #' @examples
-#' ##Load the example object, please note that in realy analysis the input object should be the output of loopQTLsetup().
+#' ## Load the example object. In real analysis, the input
+#' ## should be the output of loopQTLsetup().
 #' ##Here we just use the example object.
-#' obj <- .loopQTLloadExampleDataset()
+#' obj <- loopQTLExampleData()
 #' ## get the path of example annotation files
 #' extdataDir <- system.file("extdata", package = "loopQTL")
 #' peakPath   <- file.path(extdataDir, "example_annotation.bed")

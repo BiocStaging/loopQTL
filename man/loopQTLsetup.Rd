@@ -13,14 +13,16 @@ loopQTLsetup(
 )
 }
 \arguments{
-\item{samples}{a data.frame with columns \code{Sample}, \code{hic}, \code{loops}. Optional
-\code{cis} column. If \code{cis} column is absent, it will be calculated from the \code{.hic} files automatically.}
+\item{samples}{a data.frame with columns \code{Sample}, \code{hic}, \code{loops}.
+Optional \code{cis} column. If the \code{cis} column is absent, it is calculated
+from the \code{.hic} files automatically.}
 
-\item{vcf}{Path to a VCF. Please note that the vcf should be bgzipped with index.}
+\item{vcf}{Path to a VCF. The vcf should be bgzipped with tabix index.}
 
-\item{resolution}{a numeric number that is recognized in .hic file. (e.g 10000)}
+\item{resolution}{a numeric bin size recognized in the .hic file (e.g. 10000).}
 
-\item{minSamples}{The least number of samples the consensus loops are identified from. Default is 2 samples.}
+\item{minSamples}{The minimum number of samples supporting a consensus
+loop. Default is 2 samples.}
 
 \item{BPPARAM}{A \link[BiocParallel:BiocParallelParam-class]{BiocParallel::BiocParallelParam} that parallelizes the
 cis-computing straw pulls.}
@@ -41,7 +43,8 @@ when the samplesheet lacks a \code{cis} column.
 }
 }
 \details{
-The samplesheet is a tab-separated file with columns \code{Sample}, \code{hic}, \code{loops}, and optionally \code{cis}.
+The samplesheet is a tab-separated file with columns \code{Sample}, \code{hic},
+\code{loops}, and optionally \code{cis}.
 }
 \examples{
 ## Get the necessary input example files path.

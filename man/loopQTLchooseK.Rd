@@ -39,7 +39,7 @@ regression. This function returns a list with the chosen K and the
 sample × K matrix of PCs.
 }
 \examples{
-obj <- .loopQTLloadExampleDataset()
+obj <- loopQTLExampleData()
 Kres <- loopQTLchooseK(obj, Kmethod = "elbow")
 Kres$K
 }

@@ -28,9 +28,10 @@
 #' @import data.table
 #' @export
 #' @examples
-#' ##Load the example object, please note that in realy analysis the input object should be the output of loopQTLsetup().
+#' ## Load the example object. In real analysis, the input
+#' ## should be the output of loopQTLsetup().
 #' ##Here we just use the example object.
-#' obj <- .loopQTLloadExampleDataset()
+#' obj <- loopQTLExampleData()
 #' ## Example code to run loopQTLnormalize(). By default it will NOT create
 #' ## the .rds contact submatrix file that downstream functions need.
 #' obj <- loopQTLnormalize(
@@ -38,10 +39,10 @@
 #'     BPPARAM     = BiocParallel::MulticoreParam(workers = 2),
 #'     snpWindow   = 10000)
 #' 
-#' ##Example code to run loopQTLnormalize() by creating the `.rds` contact submatrix file that is 
-#' ##necessary for downstream usage. 
-#' 
-#' ## FirstGet the path to a temporary directory in which to save the output interact file.
+#' ## Example code to run loopQTLnormalize() and also create the `.rds`
+#' ## contact submatrix file needed by downstream visualization functions.
+#'
+#' ## First, get a temporary directory in which to save the output file.
 #' tempDirectory <- tempdir()
 #' obj <- loopQTLnormalize(
 #'     obj,
