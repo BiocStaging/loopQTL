@@ -28,6 +28,11 @@
 #' @name loopQTL-class
 #' @exportClass loopQTL
 #' @seealso loopQTLsetup
+#' @examples
+#' obj <- .loopQTLloadExampleDataset()
+#' obj
+#' samples(obj)
+#' loops(obj)
 setClass(
     "loopQTL",
     representation(
