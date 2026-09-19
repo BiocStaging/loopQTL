@@ -380,9 +380,20 @@
     e <- new.env()
     load(rdaPath, envir = e)
     obj <- e$obj
-    obj@metadata$windowsOut <- system.file(
-        "extdata", "example_loopQTL_snp_windows.rds", package = "loopQTL"
+    ## Rewrite absolute paths baked into the .rda so downstream functions
+    ## resolve files against the current installed location, not the machine
+    ## where the .rda was built.
+    obj@metadata$windowsOut <- file.path(
+        extdataDir, "example_loopQTL_snp_windows.rds"
     )
+    if (!is.null(obj@metadata$hicPaths)) {
+        obj@metadata$hicPaths <- setNames(
+            file.path(extdataDir, "example_hic",
+                      paste0(names(obj@metadata$hicPaths), ".hic")),
+            names(obj@metadata$hicPaths)
+        )
+    }
+    obj@vcfPath <- file.path(extdataDir, "example.vcf.gz")
     obj
 }
                                 

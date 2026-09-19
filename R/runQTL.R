@@ -121,7 +121,7 @@ runQTL <- function(obj,
         which = readTargets, geno = "GT", info = NA_character_
     )
     vcf <- VariantAnnotation::readVcf(
-            obj@vcfPath, genome = "unknown", param = para
+            obj@vcfPath, genome = "unknown", param = param
     )
     if (length(vcf) == 0) {
         return(.returnEmpty())
