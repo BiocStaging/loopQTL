@@ -24,8 +24,8 @@
 #' ##Return is a ggplot object so you can save with ggsave().
 #' p <- loopQTLplotPair(
 #'     obj,
-#'     loopID = "L0000473_chr1_46050000_46130000",
-#'     snpID  = "rs72677550")
+#'     loopID = "L0000187_chr1_46030000_46220000",
+#'     snpID  = "rs11584814")
 loopQTLplotPair <- function(obj, loopID, snpID, normal = TRUE, jitter = TRUE) {
     stopifnot(
         methods::is(obj, "loopQTL"),

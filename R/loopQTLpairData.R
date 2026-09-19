@@ -22,8 +22,8 @@
 #' ##Then you can specify the specifi SNP-loop pair data you want to check at samples level.
 #' pair <- loopQTLpairData(
 #'     obj,
-#'     loopID = "L0000473_chr1_46050000_46130000",
-#'     snpID  = "rs72677550")
+#'     loopID = "L0000187_chr1_46030000_46220000",
+#'     snpID  = "rs11584814")
 #' head(pair)
 loopQTLpairData <- function(obj, loopID, snpID, normal = TRUE) {
     stopifnot(

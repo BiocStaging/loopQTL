@@ -79,13 +79,13 @@ a user-specified region. Please note that to use \code{values = "cpm"} or
 obj <- .loopQTLloadExampleDataset()
 ##You also need a gtf file input to give the genomic annotations. Here we provide an example gtf.
 gtfPath <- system.file("extdata", "example.gtf.gz", package = "loopQTL")
-Return is a ggplot object so you can ggsave() to output.
+## Return is a ggplot object so you can ggsave() to output.
 p <- loopQTLplotLocus(
     obj,
     chrom = "chr1",
-    start = 45985992,
-    end = 46342685,
-    snpID = "rs72677550",
+    start = 45900000,
+    end = 46300000,
+    snpID = "rs11584814",
     values = "cpm",
     gtf = gtfPath)
 }

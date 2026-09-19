@@ -72,9 +72,9 @@
 #' p <- loopQTLplotSnpWindow(
 #'     obj,
 #'     chrom      = "chr1",
-#'     start      = 45985992,
-#'     end        = 46342685,
-#'     snpID      = "rs72677550",
+#'     start      = 45900000,
+#'     end        = 46300000,
+#'     snpID      = "rs11584814",
 #'     normal     = TRUE,
 #'     covariates = "auto")
 loopQTLplotSnpWindow <- function(obj, snpID,
