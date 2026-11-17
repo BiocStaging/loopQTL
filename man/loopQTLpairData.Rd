@@ -13,11 +13,13 @@ loopQTLpairData(obj, loopID, snpID, normal = TRUE)
 
 \item{snpID}{Character vector of snpIds to extract.}
 
-\item{normal}{Apply RINT per loop before returning phenotype values. default \code{TRUE}.}
+\item{normal}{Apply RINT per loop before returning phenotype values. default
+\code{TRUE}.}
 }
 \value{
-data.frame with columns \code{sample}, \code{loopID}, \code{snpID}, \code{genotype}
-(0 - Reference homozygou; 1 - heterozygous, 2 - Alternative homozygous), \code{phenotype}, \code{cis}.
+data.frame with columns \code{sample}, \code{loopID}, \code{snpID}, \code{genotype} (0 -
+Reference homozygou; 1 - heterozygous, 2 - Alternative homozygous),
+\code{phenotype}, \code{cis}.
 }
 \description{
 This function returns the per-sample phenotype and genotype
@@ -27,14 +29,16 @@ specific hit or exporting sample-level values for reporting.
 \examples{
 ## Load the example object. In real analysis, the input
 ## should be the output of runQTL().
-##Here we just use the example object. 
+## Here we just use the example object.
 obj <- loopQTLExampleData()
-##Check results so that you can choose your interested loopID and snpID
+## Check results so that you can choose your interested loopID and snpID
 head(results(obj))
-##Then you can specify the specifi SNP-loop pair data you want to check at samples level.
+## Then you can specify the specific SNP-loop pair data you want to
+## check at samples level.
 pair <- loopQTLpairData(
     obj,
     loopID = "L0000187_chr1_46030000_46220000",
-    snpID  = "rs11584814")
+    snpID  = "rs11584814"
+)
 head(pair)
 }

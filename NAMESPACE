@@ -21,3 +21,17 @@ exportMethods(samples)
 exportMethods(show)
 exportMethods(vcfPath)
 import(data.table)
+importFrom(methods,
+  is,
+  new,
+  slot,
+  slotNames,
+  validObject
+)
+importFrom(stats,
+  prcomp,
+  qnorm,
+  setNames
+)
+importFrom(utils,head)
+importMethodsFrom(methods,show)
